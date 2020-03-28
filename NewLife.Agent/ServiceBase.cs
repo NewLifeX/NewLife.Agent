@@ -163,58 +163,65 @@ namespace NewLife.Agent
                 Console.WriteLine();
                 Console.WriteLine();
 
-                switch (key.KeyChar)
+                try
                 {
-                    case '1':
-                        //输出状态
-                        ShowStatus();
+                    switch (key.KeyChar)
+                    {
+                        case '1':
+                            //输出状态
+                            ShowStatus();
 
-                        break;
-                    case '2':
-                        if (Host.IsInstalled(name))
-                            Host.Remove(name);
-                        else
-                            Install();
-                        break;
-                    case '3':
-                        if (Host.IsRunning(name))
-                            Host.Stop(name);
-                        else
-                            Host.Start(name);
-                        // 稍微等一下状态刷新
-                        Thread.Sleep(500);
-                        break;
-                    case '4':
-                        if (Host.IsRunning(name))
-                            Host.Restart(name);
-                        // 稍微等一下状态刷新
-                        Thread.Sleep(500);
-                        break;
-                    case '5':
-                        #region 循环调试
-                        try
-                        {
-                            Console.WriteLine("正在循环调试……");
-                            StartWork("循环开始");
+                            break;
+                        case '2':
+                            if (Host.IsInstalled(name))
+                                Host.Remove(name);
+                            else
+                                Install();
+                            break;
+                        case '3':
+                            if (Host.IsRunning(name))
+                                Host.Stop(name);
+                            else
+                                Host.Start(name);
+                            // 稍微等一下状态刷新
+                            Thread.Sleep(500);
+                            break;
+                        case '4':
+                            if (Host.IsRunning(name))
+                                Host.Restart(name);
+                            // 稍微等一下状态刷新
+                            Thread.Sleep(500);
+                            break;
+                        case '5':
+                            #region 循环调试
+                            try
+                            {
+                                Console.WriteLine("正在循环调试……");
+                                StartWork("循环开始");
 
-                            Console.WriteLine("任意键结束循环调试！");
-                            Console.ReadKey(true);
+                                Console.WriteLine("任意键结束循环调试！");
+                                Console.ReadKey(true);
 
-                            StopWork("循环停止");
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine(ex.ToString());
-                        }
-                        #endregion
-                        break;
-                    case '7':
-                        if (WatchDogs.Length > 0) CheckWatchDog();
-                        break;
-                    default:
-                        // 自定义菜单
-                        if (_Menus.TryGetValue(key.KeyChar, out var menu)) menu.Callback();
-                        break;
+                                StopWork("循环停止");
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine(ex.ToString());
+                            }
+                            #endregion
+                            break;
+                        case '7':
+                            if (WatchDogs.Length > 0) CheckWatchDog();
+                            break;
+                        default:
+                            // 自定义菜单
+                            if (_Menus.TryGetValue(key.KeyChar, out var menu)) menu.Callback();
+                            break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    XTrace.WriteException(ex);
                 }
             }
         }

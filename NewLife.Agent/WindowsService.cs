@@ -59,10 +59,16 @@ namespace NewLife.Agent
                  * 2、当服务有请求时（注意：请求是由SCM发给它的），调用它对应的处理函数（主意：这相当于主线程“陷入”了，它在等待控制消息并对消息做处理）。
                  */
 
-                XTrace.WriteLine("启动服务 {0}", service.ServiceName);
+                XTrace.WriteLine("运行服务 {0}", service.ServiceName);
 
                 var flag = StartServiceCtrlDispatcher(intPtr);
-                if (!flag) XTrace.WriteLine("服务启动失败！");
+                //if (!flag) XTrace.WriteLine("服务启动失败！");
+
+                XTrace.WriteLine("退出服务 {0} CtrlDispatcher={1}", service.ServiceName, flag);
+            }
+            catch (Exception ex)
+            {
+                XTrace.WriteException(ex);
             }
             finally
             {
@@ -90,14 +96,15 @@ namespace NewLife.Agent
                 if (SetServiceStatus(_statusHandle, status))
                 {
                     // 使用线程池启动服务Start函数，并等待信号量
-                    _startCompletedSignal = new ManualResetEvent(initialState: false);
-                    ThreadPool.QueueUserWorkItem(ServiceQueuedMainCallback, null);
-                    _startCompletedSignal.WaitOne();
+                    //_startCompletedSignal = new ManualResetEvent(initialState: false);
+                    //ThreadPool.QueueUserWorkItem(ServiceQueuedMainCallback, null);
+                    //_startCompletedSignal.WaitOne();
+                    ServiceQueuedMainCallback(null);
 
                     // 设置服务状态
                     if (!SetServiceStatus(_statusHandle, status))
                     {
-                        XTrace.WriteLine("启动服务{0}失败，{1}", _service.ServiceName, new Win32Exception().Message);
+                        XTrace.WriteLine("运行服务{0}失败，{1}", _service.ServiceName, new Win32Exception().Message);
 
                         _status.currentState = ServiceControllerStatus.Stopped;
                         SetServiceStatus(_statusHandle, status);
@@ -106,7 +113,7 @@ namespace NewLife.Agent
             }
         }
 
-        private ManualResetEvent _startCompletedSignal;
+        //private ManualResetEvent _startCompletedSignal;
         private void ServiceQueuedMainCallback(Object state)
         {
             //var args = (String[])state;
@@ -126,7 +133,7 @@ namespace NewLife.Agent
 
                 _status.currentState = ServiceControllerStatus.Stopped;
             }
-            _startCompletedSignal.Set();
+            //_startCompletedSignal.Set();
         }
 
         private IntPtr _statusHandle;
@@ -202,6 +209,7 @@ namespace NewLife.Agent
                             //{
                             //    DeferredCustomCommand(command);
                             //});
+                            SetServiceStatus(_statusHandle, status);
                             break;
                     }
                 }
@@ -225,15 +233,14 @@ namespace NewLife.Agent
                     _service.StopAsync(source.Token);
 
                     _status.currentState = ServiceControllerStatus.Stopped;
-                    SetServiceStatus(_statusHandle, status);
                 }
                 catch (Exception ex)
                 {
                     XTrace.WriteException(ex);
 
                     _status.currentState = currentState;
-                    SetServiceStatus(_statusHandle, status);
                 }
+                SetServiceStatus(_statusHandle, status);
             }
         }
 
