@@ -1,5 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using NewLife.Log;
@@ -363,6 +365,40 @@ namespace NewLife.Agent
             SERVICE_STATUS status = default;
             if (!ControlService(service, ControlOptions.CONTROL_STOP, &status))
                 throw new Win32Exception(Marshal.GetLastWin32Error());
+
+            return true;
+        }
+
+        /// <summary>重启服务</summary>
+        /// <param name="serviceName">服务名</param>
+        public override Boolean Restart(String serviceName)
+        {
+            XTrace.WriteLine("{0}.Stop {1}", GetType().Name, serviceName);
+
+            // 在临时目录生成重启服务的批处理文件
+            var filename = "重启.bat".GetFullPath();
+            if (File.Exists(filename)) File.Delete(filename);
+
+            File.AppendAllText(filename, "net stop " + serviceName);
+            File.AppendAllText(filename, Environment.NewLine);
+            File.AppendAllText(filename, "ping 127.0.0.1 -n 5 > nul ");
+            File.AppendAllText(filename, Environment.NewLine);
+            File.AppendAllText(filename, "net start " + serviceName);
+
+            //执行重启服务的批处理
+            //RunCmd(filename, false, false);
+            var p = new Process();
+            var si = new ProcessStartInfo
+            {
+                FileName = filename,
+                UseShellExecute = true,
+                CreateNoWindow = true
+            };
+            p.StartInfo = si;
+
+            p.Start();
+
+            //if (File.Exists(filename)) File.Delete(filename);
 
             return true;
         }

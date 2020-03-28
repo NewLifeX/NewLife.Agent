@@ -41,6 +41,10 @@ namespace NewLife.Agent
         /// <returns></returns>
         Boolean Stop(String serviceName);
 
+        /// <summary>重启服务</summary>
+        /// <param name="serviceName">服务名</param>
+        Boolean Restart(String serviceName);
+
         /// <summary>开始执行服务</summary>
         /// <param name="service"></param>
         void Run(IHostedService service);
@@ -81,6 +85,10 @@ namespace NewLife.Agent
         /// <param name="serviceName">服务名</param>
         /// <returns></returns>
         public virtual Boolean Stop(String serviceName) => false;
+
+        /// <summary>重启服务</summary>
+        /// <param name="serviceName">服务名</param>
+        public virtual Boolean Restart(String serviceName) => false;
 
         /// <summary>开始执行服务</summary>
         /// <param name="service"></param>

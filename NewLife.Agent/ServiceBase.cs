@@ -79,6 +79,7 @@ namespace NewLife.Agent
             if (args.Length > 1)
             {
                 #region 命令
+                var name = ServiceName;
                 var cmd = args[1].ToLower();
                 switch (cmd)
                 {
@@ -89,13 +90,13 @@ namespace NewLife.Agent
                         Install();
                         break;
                     case "-u":
-                        Host.Remove(ServiceName);
+                        Host.Remove(name);
                         break;
                     case "-start":
-                        Host.Start(ServiceName);
+                        Host.Start(name);
                         break;
                     case "-stop":
-                        Host.Stop(ServiceName);
+                        Host.Stop(name);
                         break;
                 }
                 #endregion
@@ -349,7 +350,7 @@ namespace NewLife.Agent
         #endregion
 
         #region 服务维护
-        private TimerX? _Timer;
+        private TimerX _Timer;
 
         /// <summary>服务管理线程封装</summary>
         /// <param name="data"></param>
@@ -390,7 +391,7 @@ namespace NewLife.Agent
 
             WriteLog("当前进程占用内存 {0:n0}M，超过阀值 {1:n0}M，准备重新启动！", cur, max);
 
-            Restart("MaxMemory");
+            Host.Restart(ServiceName);
 
             return true;
         }
@@ -407,7 +408,7 @@ namespace NewLife.Agent
 
             WriteLog("当前进程总线程 {0:n0}个，超过阀值 {1:n0}个，准备重新启动！", p.Threads.Count, max);
 
-            Restart("MaxThread");
+            Host.Restart(ServiceName);
 
             return true;
         }
@@ -424,7 +425,7 @@ namespace NewLife.Agent
 
             WriteLog("当前进程句柄 {0:n0}个，超过阀值 {1:n0}个，准备重新启动！", p.HandleCount, max);
 
-            Restart("MaxHandle");
+            Host.Restart(ServiceName);
 
             return true;
         }
@@ -444,41 +445,9 @@ namespace NewLife.Agent
 
             WriteLog("服务已运行 {0:n0}分钟，达到预设重启时间（{1:n0}分钟），准备重启！", ts.TotalMinutes, auto);
 
-            Restart("AutoRestart");
+            Host.Restart(ServiceName);
 
             return true;
-        }
-
-        /// <summary>重启服务</summary>
-        /// <param name="reason"></param>
-        public void Restart(String reason)
-        {
-            WriteLog("重启服务！{0}", reason);
-
-            // 在临时目录生成重启服务的批处理文件
-            var filename = "重启.bat".GetFullPath();
-            if (File.Exists(filename)) File.Delete(filename);
-
-            File.AppendAllText(filename, "net stop " + ServiceName);
-            File.AppendAllText(filename, Environment.NewLine);
-            File.AppendAllText(filename, "ping 127.0.0.1 -n 5 > nul ");
-            File.AppendAllText(filename, Environment.NewLine);
-            File.AppendAllText(filename, "net start " + ServiceName);
-
-            //执行重启服务的批处理
-            //RunCmd(filename, false, false);
-            var p = new Process();
-            var si = new ProcessStartInfo
-            {
-                FileName = filename,
-                UseShellExecute = true,
-                CreateNoWindow = true
-            };
-            p.StartInfo = si;
-
-            p.Start();
-
-            //if (File.Exists(filename)) File.Delete(filename);
         }
         #endregion
 

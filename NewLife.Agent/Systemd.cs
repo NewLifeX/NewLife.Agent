@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
@@ -140,6 +138,18 @@ namespace NewLife.Agent
         /// <param name="serviceName">服务名</param>
         /// <returns></returns>
         public override Boolean Stop(String serviceName) => Execute("systemctl", $"stop {serviceName}") != null;
+
+        /// <summary>重启服务</summary>
+        /// <param name="serviceName">服务名</param>
+        public override Boolean Restart(String serviceName)
+        {
+            XTrace.WriteLine("{0}.Stop {1}", GetType().Name, serviceName);
+
+            var cmd = $"systemctl stop {serviceName} && systemctl start {serviceName}";
+            Process.Start(cmd);
+
+            return true;
+        }
 
         private static String Execute(String cmd, String arguments, Boolean writeLog = true)
         {

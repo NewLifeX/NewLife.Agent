@@ -7,11 +7,8 @@ namespace NewLife.Agent
     /// <summary>主机承载的服务</summary>
     public interface IHostedService
     {
+        /// <summary>服务名</summary>
         String ServiceName { get; }
-        //String DisplayName { get; }
-        //String Description { get; }
-
-        //Boolean Running { get; }
 
         /// <summary>开始</summary>
         /// <param name="cancellationToken"></param>
