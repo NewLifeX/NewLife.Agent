@@ -98,6 +98,9 @@ namespace NewLife.Agent
                     case "-stop":
                         Host.Stop(name);
                         break;
+                    case "-restart":
+                        Host.Restart(name);
+                        break;
                 }
                 #endregion
             }
@@ -179,6 +182,10 @@ namespace NewLife.Agent
                         else
                             Host.Start(name);
                         break;
+                    case '4':
+                        if (Host.IsRunning(name))
+                            Host.Restart(name);
+                        break;
                     case '5':
                         #region 循环调试
                         try
@@ -226,11 +233,11 @@ namespace NewLife.Agent
                 {
                     run = true;
                     Console.WriteLine("3 停止服务 -stop");
+                    Console.WriteLine("4 重启服务 -restart");
                 }
                 else
                 {
                     Console.WriteLine("2 卸载服务 -u");
-
                     Console.WriteLine("3 启动服务 -start");
                 }
             }
