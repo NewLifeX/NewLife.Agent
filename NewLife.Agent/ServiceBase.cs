@@ -181,10 +181,14 @@ namespace NewLife.Agent
                             Host.Stop(name);
                         else
                             Host.Start(name);
+                        // 稍微等一下状态刷新
+                        Thread.Sleep(500);
                         break;
                     case '4':
                         if (Host.IsRunning(name))
                             Host.Restart(name);
+                        // 稍微等一下状态刷新
+                        Thread.Sleep(500);
                         break;
                     case '5':
                         #region 循环调试
@@ -479,21 +483,23 @@ namespace NewLife.Agent
         /// XAgent看门狗功能由管理线程完成，每分钟一次。
         /// 检查指定的任务是否已经停止，如果已经停止，则启动它。
         /// </remarks>
-        public static void CheckWatchDog()
+        public void CheckWatchDog()
         {
             var ss = WatchDogs;
             if (ss == null || ss.Length < 1) return;
 
-            //foreach (var item in ss)
-            //{
-            //    // 注意：IsServiceRunning返回三种状态，null表示未知
-            //    if (ServiceHelper.IsServiceRunning(item) == false)
-            //    {
-            //        XTrace.WriteLine("发现服务{0}被关闭，准备启动！", item);
+            foreach (var item in ss)
+            {
+                // 已安装未运行
+                if (!Host.IsInstalled(item))
+                    XTrace.WriteLine("未发现服务{0}，是否已安装？", item);
+                else if (!Host.IsRunning(item))
+                {
+                    XTrace.WriteLine("发现服务{0}被关闭，准备启动！", item);
 
-            //        ServiceHelper.RunCmd("net start " + item, false, true);
-            //    }
-            //}
+                    Host.Start(item);
+                }
+            }
         }
         #endregion
 
