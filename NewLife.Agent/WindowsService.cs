@@ -14,7 +14,20 @@ namespace NewLife.Agent
     {
         private IHostedService _service;
         private SERVICE_STATUS _status;
-        //private Int32 _acceptedCommands;
+        private IntPtr _handleName;
+
+        /// <summary>销毁</summary>
+        /// <param name="disposing"></param>
+        protected override void Dispose(Boolean disposing)
+        {
+            base.Dispose(disposing);
+
+            if (_handleName != IntPtr.Zero)
+            {
+                Marshal.FreeHGlobal(_handleName);
+                _handleName = IntPtr.Zero;
+            }
+        }
 
         /// <summary>开始执行服务</summary>
         /// <param name="service"></param>
@@ -25,7 +38,7 @@ namespace NewLife.Agent
             _service = service;
 
             var num = Marshal.SizeOf(typeof(SERVICE_TABLE_ENTRY));
-            var intPtr = Marshal.AllocHGlobal(checked((1 + 1) * num));
+            var intPtr = Marshal.AllocHGlobal((IntPtr)((1 + 1) * num));
             try
             {
                 // Win32OwnProcess/StartPending
@@ -42,14 +55,18 @@ namespace NewLife.Agent
                 // CanStop | CanShutdown
                 //_acceptedCommands = 1 | 4;
 
-                SERVICE_TABLE_ENTRY result = default;
-                result.callback = ServiceMainCallback;
-                result.name = Marshal.StringToHGlobalUni(service.ServiceName);
+                var result = new SERVICE_TABLE_ENTRY
+                {
+                    callback = ServiceMainCallback,
+                    name = _handleName = Marshal.StringToHGlobalUni(service.ServiceName)
+                };
                 Marshal.StructureToPtr(result, intPtr, false);
 
-                SERVICE_TABLE_ENTRY result2 = default;
-                result2.callback = null;
-                result2.name = (IntPtr)0;
+                var result2 = new SERVICE_TABLE_ENTRY
+                {
+                    callback = null,
+                    name = IntPtr.Zero
+                };
                 Marshal.StructureToPtr(result2, intPtr + num, false);
 
                 /*
@@ -70,10 +87,10 @@ namespace NewLife.Agent
             {
                 XTrace.WriteException(ex);
             }
-            finally
-            {
-                Marshal.FreeHGlobal(intPtr);
-            }
+            //finally
+            //{
+            //    Marshal.FreeHGlobal(intPtr);
+            //}
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -116,8 +133,6 @@ namespace NewLife.Agent
                     }
                 }
             }
-
-            XTrace.WriteLine("ServiceMainCallback Finished!");
         }
 
         //private ManualResetEvent _startCompletedSignal;

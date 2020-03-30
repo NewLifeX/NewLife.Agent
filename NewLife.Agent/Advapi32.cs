@@ -140,7 +140,8 @@ namespace NewLife.Agent
 
         public delegate void ServiceMainCallback(Int32 argCount, IntPtr argPointer);
 
-        public struct SERVICE_TABLE_ENTRY
+        [StructLayout(LayoutKind.Sequential)]
+        public class SERVICE_TABLE_ENTRY
         {
             public IntPtr name;
 
