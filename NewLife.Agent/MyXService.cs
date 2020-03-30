@@ -48,7 +48,7 @@ namespace NewLife.Agent
         /// <param name="reason"></param>
         protected override void StopWork(String reason)
         {
-            WriteLog("业务结束！");
+            WriteLog("业务结束！{0}", reason);
 
             _timer.Dispose();
             _timer2.Dispose();

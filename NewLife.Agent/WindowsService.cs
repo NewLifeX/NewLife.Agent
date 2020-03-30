@@ -118,10 +118,10 @@ namespace NewLife.Agent
                 if (SetServiceStatus(_statusHandle, status))
                 {
                     // 使用线程池启动服务Start函数，并等待信号量
-                    //_startCompletedSignal = new ManualResetEvent(initialState: false);
-                    //ThreadPool.QueueUserWorkItem(ServiceQueuedMainCallback, null);
-                    //_startCompletedSignal.WaitOne();
-                    ServiceQueuedMainCallback(null);
+                    _startCompletedSignal = new ManualResetEvent(initialState: false);
+                    ThreadPool.QueueUserWorkItem(ServiceQueuedMainCallback, null);
+                    _startCompletedSignal.WaitOne();
+                    //ServiceQueuedMainCallback(null);
 
                     // 设置服务状态
                     if (!SetServiceStatus(_statusHandle, status))
@@ -133,18 +133,19 @@ namespace NewLife.Agent
                     }
                 }
             }
+
+            Thread.Sleep(30_000);
         }
 
-        //private ManualResetEvent _startCompletedSignal;
+        private ManualResetEvent _startCompletedSignal;
         private void ServiceQueuedMainCallback(Object state)
         {
-            //var args = (String[])state;
             try
             {
                 //OnStart(args);
                 var source = new CancellationTokenSource();
                 _service.StartAsync(source.Token);
-                //WriteLogEntry(SR.StartSuccessful);
+
                 _status.checkPoint = 0;
                 _status.waitHint = 0;
                 _status.currentState = ServiceControllerStatus.Running;
@@ -155,13 +156,13 @@ namespace NewLife.Agent
 
                 _status.currentState = ServiceControllerStatus.Stopped;
             }
-            //_startCompletedSignal.Set();
+            _startCompletedSignal.Set();
         }
 
         private IntPtr _statusHandle;
         private unsafe Int32 ServiceCommandCallbackEx(Int32 command, Int32 eventType, IntPtr eventData, IntPtr eventContext)
         {
-            XTrace.WriteLine("ServiceCommandCallbackEx(command={0}, eventType={1}, eventData={2}, eventContext={3}", command, eventType, eventData, eventContext);
+            XTrace.WriteLine("ServiceCommandCallbackEx(command={0}, eventType={1}, eventData={2}, eventContext={3})", command, eventType, eventData, eventContext);
 
             // Power | SessionChange
             if (command == ControlOptions.CONTROL_POWEREVENT || command == ControlOptions.CONTROL_SESSIONCHANGE) return 0;
