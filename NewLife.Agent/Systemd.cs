@@ -12,7 +12,7 @@ namespace NewLife.Agent
     public class Systemd : Host
     {
         private String _path;
-        private IHostedService _service;
+        private ServiceBase _service;
 
         /// <summary>实例化</summary>
         public Systemd()
@@ -34,17 +34,18 @@ namespace NewLife.Agent
 
         /// <summary>启动服务</summary>
         /// <param name="service"></param>
-        public override void Run(IHostedService service)
+        public override void Run(ServiceBase service)
         {
             if (service == null) throw new ArgumentNullException(nameof(service));
 
             _service = service;
 
-            var source = new CancellationTokenSource();
-            service.StartAsync(source.Token);
+            //var source = new CancellationTokenSource();
+            //service.StartAsync(source.Token);
 
             // 阻塞
-            Thread.Sleep(-1);
+            //Thread.Sleep(-1);
+            service.DoLoop();
         }
 
         /// <summary>服务是否已安装</summary>

@@ -47,7 +47,7 @@ namespace NewLife.Agent
 
         /// <summary>开始执行服务</summary>
         /// <param name="service"></param>
-        void Run(IHostedService service);
+        void Run(ServiceBase service);
     }
 
     /// <summary>服务主机。用于管理控制服务</summary>
@@ -92,6 +92,6 @@ namespace NewLife.Agent
 
         /// <summary>开始执行服务</summary>
         /// <param name="service"></param>
-        public abstract void Run(IHostedService service);
+        public abstract void Run(ServiceBase service);
     }
 }

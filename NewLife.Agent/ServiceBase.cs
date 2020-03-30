@@ -12,7 +12,7 @@ using NewLife.Threading;
 namespace NewLife.Agent
 {
     /// <summary>服务程序基类</summary>
-    public abstract class ServiceBase : IHostedService
+    public abstract class ServiceBase /*: IHostedService*/
     {
         #region 属性
         /// <summary>主机</summary>
@@ -310,15 +310,42 @@ namespace NewLife.Agent
         #endregion
 
         #region 服务控制
+        private Boolean _running;
+        /// <summary>主循环</summary>
+        public void DoLoop()
+        {
+            AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
+
+            StartWork("DoLoop");
+
+            _running = true;
+            while (_running)
+            {
+                DoCheck(null);
+
+                Thread.Sleep(10_000);
+            }
+        }
+
+        /// <summary>停止循环</summary>
+        public void StopLoop()
+        {
+            AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
+
+            StopWork("StopLoop");
+
+            _running = false;
+        }
+
         /// <summary>开始工作</summary>
         /// <param name="reason"></param>
         protected virtual void StartWork(String reason)
         {
             WriteLog("服务启动 {0}", reason);
 
-            if (_Timer == null) AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
+            //if (_Timer == null) AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
 
-            _Timer = new TimerX(DoCheck, null, 10_000, 10_000, "AM") { Async = true };
+            //_Timer = new TimerX(DoCheck, null, 10_000, 10_000, "AM") { Async = true };
         }
 
         private void OnProcessExit(Object sender, EventArgs e)
@@ -331,9 +358,9 @@ namespace NewLife.Agent
         /// <param name="reason"></param>
         protected virtual void StopWork(String reason)
         {
-            if (_Timer != null) AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
-            _Timer.TryDispose();
-            _Timer = null;
+            //if (_Timer != null) AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
+            //_Timer.TryDispose();
+            //_Timer = null;
 
             WriteLog("服务停止 {0}", reason);
         }
@@ -368,7 +395,7 @@ namespace NewLife.Agent
         #endregion
 
         #region 服务维护
-        private TimerX _Timer;
+        //private TimerX _Timer;
 
         /// <summary>服务管理线程封装</summary>
         /// <param name="data"></param>
@@ -466,18 +493,6 @@ namespace NewLife.Agent
             Host.Restart(ServiceName);
 
             return true;
-        }
-        #endregion
-
-        #region 服务高级功能
-        public virtual async Task StartAsync(CancellationToken cancellationToken)
-        {
-            StartWork("StartAsync");
-        }
-
-        public virtual async Task StopAsync(CancellationToken cancellationToken)
-        {
-            StopWork("StopAsync");
         }
         #endregion
 

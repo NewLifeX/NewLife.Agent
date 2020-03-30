@@ -60,6 +60,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="BackgroundService.cs" />
+    <Compile Remove="IHostedService.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\Doc\leaf.png" Link="leaf.png" PackagePath="\" />

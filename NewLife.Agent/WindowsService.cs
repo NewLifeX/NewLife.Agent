@@ -12,7 +12,7 @@ namespace NewLife.Agent
     /// <summary>Windows服务</summary>
     public class WindowsService : Host
     {
-        private IHostedService _service;
+        private ServiceBase _service;
         private SERVICE_STATUS _status;
         private IntPtr _handleName;
 
@@ -31,7 +31,7 @@ namespace NewLife.Agent
 
         /// <summary>开始执行服务</summary>
         /// <param name="service"></param>
-        public override void Run(IHostedService service)
+        public override void Run(ServiceBase service)
         {
             if (service == null) throw new ArgumentNullException(nameof(service));
 
@@ -114,50 +114,61 @@ namespace NewLife.Agent
                     | ControlsAccepted.CanPauseAndContinue
                     | ControlsAccepted.CanHandlePowerEvent
                     | ControlsAccepted.CanHandleSessionChangeEvent;
-                _status.currentState = ServiceControllerStatus.StartPending;
+                //_status.currentState = ServiceControllerStatus.StartPending;
+                _status.currentState = ServiceControllerStatus.Running;
                 if (SetServiceStatus(_statusHandle, status))
                 {
-                    // 使用线程池启动服务Start函数，并等待信号量
-                    _startCompletedSignal = new ManualResetEvent(initialState: false);
-                    ThreadPool.QueueUserWorkItem(ServiceQueuedMainCallback, null);
-                    _startCompletedSignal.WaitOne();
+                    //// 使用线程池启动服务Start函数，并等待信号量
+                    //_startCompletedSignal = new ManualResetEvent(initialState: false);
+                    //ThreadPool.QueueUserWorkItem(ServiceQueuedMainCallback, null);
+                    //_startCompletedSignal.WaitOne();
                     //ServiceQueuedMainCallback(null);
 
-                    // 设置服务状态
-                    if (!SetServiceStatus(_statusHandle, status))
+                    try
                     {
-                        XTrace.WriteLine("运行服务{0}失败，{1}", _service.ServiceName, new Win32Exception().Message);
+                        // 阻塞
+                        _service.DoLoop();
+                    }
+                    catch (Exception ex)
+                    {
+                        XTrace.WriteException(ex);
 
+                        // 设置服务状态
                         _status.currentState = ServiceControllerStatus.Stopped;
-                        SetServiceStatus(_statusHandle, status);
+                        if (!SetServiceStatus(_statusHandle, status))
+                        {
+                            XTrace.WriteLine("运行服务{0}失败，{1}", _service.ServiceName, new Win32Exception().Message);
+
+                            _status.currentState = ServiceControllerStatus.Stopped;
+                            SetServiceStatus(_statusHandle, status);
+                        }
                     }
                 }
             }
 
-            Thread.Sleep(30_000);
+            //Thread.Sleep(30_000);
         }
 
-        private ManualResetEvent _startCompletedSignal;
-        private void ServiceQueuedMainCallback(Object state)
-        {
-            try
-            {
-                //OnStart(args);
-                var source = new CancellationTokenSource();
-                _service.StartAsync(source.Token);
+        //private ManualResetEvent _startCompletedSignal;
+        //private void ServiceQueuedMainCallback(Object state)
+        //{
+        //    try
+        //    {
+        //        var source = new CancellationTokenSource();
+        //        _service.StartAsync(source.Token);
 
-                _status.checkPoint = 0;
-                _status.waitHint = 0;
-                _status.currentState = ServiceControllerStatus.Running;
-            }
-            catch (Exception ex)
-            {
-                XTrace.WriteException(ex);
+        //        _status.checkPoint = 0;
+        //        _status.waitHint = 0;
+        //        _status.currentState = ServiceControllerStatus.Running;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        XTrace.WriteException(ex);
 
-                _status.currentState = ServiceControllerStatus.Stopped;
-            }
-            _startCompletedSignal.Set();
-        }
+        //        _status.currentState = ServiceControllerStatus.Stopped;
+        //    }
+        //    _startCompletedSignal.Set();
+        //}
 
         private IntPtr _statusHandle;
         private unsafe Int32 ServiceCommandCallbackEx(Int32 command, Int32 eventType, IntPtr eventData, IntPtr eventContext)
@@ -252,8 +263,9 @@ namespace NewLife.Agent
                 SetServiceStatus(_statusHandle, status);
                 try
                 {
-                    var source = new CancellationTokenSource();
-                    _service.StopAsync(source.Token);
+                    //var source = new CancellationTokenSource();
+                    //_service.StopAsync(source.Token);
+                    _service.StopLoop();
 
                     _status.currentState = ServiceControllerStatus.Stopped;
                 }
