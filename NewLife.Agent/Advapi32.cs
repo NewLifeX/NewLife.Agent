@@ -97,7 +97,7 @@ namespace NewLife.Agent
 
             public ServiceControllerStatus currentState;
 
-            public Int32 controlsAccepted;
+            public ControlsAccepted controlsAccepted;
 
             public Int32 win32ExitCode;
 
@@ -117,6 +117,25 @@ namespace NewLife.Agent
             StartPending = 2,
             Stopped = 1,
             StopPending = 3
+        }
+
+        [Flags]
+        public enum ControlsAccepted : Int32
+        {
+            SERVICE_ACCEPT_NETBINDCHANGE = 0x00000010,
+            SERVICE_ACCEPT_PARAMCHANGE = 0x00000008,
+            CanPauseAndContinue = 0x00000002,
+            SERVICE_ACCEPT_PRESHUTDOWN = 0x00000100,
+            CanShutdown = 0x00000004,
+            CanStop = 0x00000001,
+
+            //supported only by HandlerEx
+            SERVICE_ACCEPT_HARDWAREPROFILECHANGE = 0x00000020,
+            CanHandlePowerEvent = 0x00000040,
+            CanHandleSessionChangeEvent = 0x00000080,
+            SERVICE_ACCEPT_TIMECHANGE = 0x00000200,
+            SERVICE_ACCEPT_TRIGGEREVENT = 0x00000400,
+            SERVICE_ACCEPT_USERMODEREBOOT = 0x00000800
         }
 
         public delegate void ServiceMainCallback(Int32 argCount, IntPtr argPointer);

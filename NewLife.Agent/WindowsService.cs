@@ -14,7 +14,7 @@ namespace NewLife.Agent
     {
         private IHostedService _service;
         private SERVICE_STATUS _status;
-        private Int32 _acceptedCommands;
+        //private Int32 _acceptedCommands;
 
         /// <summary>开始执行服务</summary>
         /// <param name="service"></param>
@@ -40,7 +40,7 @@ namespace NewLife.Agent
                 // CanStop | CanShutdown | CanPauseAndContinue | CanHandlePowerEvent | CanHandleSessionChangeEvent
                 //_acceptedCommands = 1 | 4 | 2 | 64 | 128;
                 // CanStop | CanShutdown
-                _acceptedCommands = 1 | 4;
+                //_acceptedCommands = 1 | 4;
 
                 SERVICE_TABLE_ENTRY result = default;
                 result.callback = ServiceMainCallback;
@@ -87,11 +87,16 @@ namespace NewLife.Agent
 
                 _statusHandle = RegisterServiceCtrlHandlerEx(_service.ServiceName, ServiceCommandCallbackEx, IntPtr.Zero);
 
-                _status.controlsAccepted = _acceptedCommands;
-                if ((_status.controlsAccepted & 1) != 0)
-                {
-                    _status.controlsAccepted |= 4;
-                }
+                //_status.controlsAccepted = _acceptedCommands;
+                //if ((_status.controlsAccepted & 1) != 0)
+                //{
+                //    _status.controlsAccepted |= 4;
+                //}
+                _status.controlsAccepted = ControlsAccepted.CanStop
+                    | ControlsAccepted.CanShutdown
+                    | ControlsAccepted.CanPauseAndContinue
+                    | ControlsAccepted.CanHandlePowerEvent
+                    | ControlsAccepted.CanHandleSessionChangeEvent;
                 _status.currentState = ServiceControllerStatus.StartPending;
                 if (SetServiceStatus(_statusHandle, status))
                 {
@@ -111,6 +116,8 @@ namespace NewLife.Agent
                     }
                 }
             }
+
+            XTrace.WriteLine("ServiceMainCallback Finished!");
         }
 
         //private ManualResetEvent _startCompletedSignal;
@@ -381,6 +388,9 @@ namespace NewLife.Agent
         public override Boolean Restart(String serviceName)
         {
             XTrace.WriteLine("{0}.Stop {1}", GetType().Name, serviceName);
+
+            //var cmd = $"net stop {serviceName} & ping 127.0.0.1 -n 5 & net start {serviceName}";
+            //Process.Start(cmd);
 
             // 在临时目录生成重启服务的批处理文件
             var filename = "重启.bat".GetFullPath();
