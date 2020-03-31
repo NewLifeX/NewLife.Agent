@@ -312,12 +312,36 @@ namespace NewLife.Agent
         #region 服务控制
         private Boolean _running;
         private AutoResetEvent _event;
+        private Process _process;
         /// <summary>主循环</summary>
         public void DoLoop()
         {
             AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
 
             StartWork("DoLoop");
+
+            // 启动后命令，服务启动后执行的命令
+            var set = Setting.Current;
+            if (!set.AfterStart.IsNullOrEmpty())
+            {
+                try
+                {
+                    var file = set.AfterStart.Substring(null, " ");
+                    var args = set.AfterStart.Substring(" ", null);
+                    WriteLog("启动后执行：FileName={0} Args={1}", file, args);
+
+                    var si = new ProcessStartInfo(file, args)
+                    {
+                        WorkingDirectory = ".".GetFullPath()
+                    };
+                    _process = Process.Start(si);
+                    WriteLog("进程：[{0}]{1}", _process.Id, _process.ProcessName);
+                }
+                catch (Exception ex)
+                {
+                    XTrace.WriteException(ex);
+                }
+            }
 
             _event = new AutoResetEvent(false);
             _running = true;
@@ -351,6 +375,11 @@ namespace NewLife.Agent
             _running = false;
             _event?.Set();
 
+            try
+            {
+                _process?.Kill();
+            }
+            catch { }
         }
 
         /// <summary>开始工作</summary>
