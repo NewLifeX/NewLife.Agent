@@ -417,13 +417,8 @@ namespace NewLife.Agent
         {
             XTrace.WriteLine("{0}.Stop {1}", GetType().Name, serviceName);
 
-            var cmd = $"net stop {serviceName} & ping 127.0.0.1 -n 5 & net start {serviceName}";
-            //Process.Start("start", cmd);
-            var si = new ProcessStartInfo(Environment.SystemDirectory.CombinePath("start.exe"), cmd)
-            {
-                UseShellExecute = true
-            };
-            Process.Start(si);
+            var cmd = $"/c net stop {serviceName} & ping 127.0.0.1 -n 5 & net start {serviceName}";
+            Process.Start("cmd.exe", cmd);
 
             //// 在临时目录生成重启服务的批处理文件
             //var filename = "重启.bat".GetFullPath();
