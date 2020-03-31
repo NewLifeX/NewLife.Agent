@@ -311,6 +311,7 @@ namespace NewLife.Agent
 
         #region 服务控制
         private Boolean _running;
+        private AutoResetEvent _event;
         /// <summary>主循环</summary>
         public void DoLoop()
         {
@@ -318,13 +319,26 @@ namespace NewLife.Agent
 
             StartWork("DoLoop");
 
+            _event = new AutoResetEvent(false);
             _running = true;
             while (_running)
             {
-                DoCheck(null);
+                try
+                {
+                    DoCheck(null);
+                }
+                catch (ThreadAbortException) { }
+                catch (ThreadInterruptedException) { }
+                catch (Exception ex)
+                {
+                    XTrace.WriteException(ex);
+                }
 
-                Thread.Sleep(10_000);
+                //Thread.Sleep(10_000);
+                _event.WaitOne(10_000);
             }
+
+            _event.Dispose();
         }
 
         /// <summary>停止循环</summary>
@@ -335,6 +349,8 @@ namespace NewLife.Agent
             StopWork("StopLoop");
 
             _running = false;
+            _event?.Set();
+
         }
 
         /// <summary>开始工作</summary>

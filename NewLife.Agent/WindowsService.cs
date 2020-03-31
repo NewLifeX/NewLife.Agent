@@ -417,33 +417,38 @@ namespace NewLife.Agent
         {
             XTrace.WriteLine("{0}.Stop {1}", GetType().Name, serviceName);
 
-            //var cmd = $"net stop {serviceName} & ping 127.0.0.1 -n 5 & net start {serviceName}";
-            //Process.Start(cmd);
-
-            // 在临时目录生成重启服务的批处理文件
-            var filename = "重启.bat".GetFullPath();
-            if (File.Exists(filename)) File.Delete(filename);
-
-            File.AppendAllText(filename, "net stop " + serviceName);
-            File.AppendAllText(filename, Environment.NewLine);
-            File.AppendAllText(filename, "ping 127.0.0.1 -n 5 > nul ");
-            File.AppendAllText(filename, Environment.NewLine);
-            File.AppendAllText(filename, "net start " + serviceName);
-
-            //执行重启服务的批处理
-            //RunCmd(filename, false, false);
-            var p = new Process();
-            var si = new ProcessStartInfo
+            var cmd = $"net stop {serviceName} & ping 127.0.0.1 -n 5 & net start {serviceName}";
+            //Process.Start("start", cmd);
+            var si = new ProcessStartInfo(Environment.SystemDirectory.CombinePath("start.exe"), cmd)
             {
-                FileName = filename,
-                UseShellExecute = true,
-                CreateNoWindow = true
+                UseShellExecute = true
             };
-            p.StartInfo = si;
+            Process.Start(si);
 
-            p.Start();
-
+            //// 在临时目录生成重启服务的批处理文件
+            //var filename = "重启.bat".GetFullPath();
             //if (File.Exists(filename)) File.Delete(filename);
+
+            //File.AppendAllText(filename, "net stop " + serviceName);
+            //File.AppendAllText(filename, Environment.NewLine);
+            //File.AppendAllText(filename, "ping 127.0.0.1 -n 5 > nul ");
+            //File.AppendAllText(filename, Environment.NewLine);
+            //File.AppendAllText(filename, "net start " + serviceName);
+
+            ////执行重启服务的批处理
+            ////RunCmd(filename, false, false);
+            //var p = new Process();
+            //var si = new ProcessStartInfo
+            //{
+            //    FileName = filename,
+            //    UseShellExecute = true,
+            //    CreateNoWindow = true
+            //};
+            //p.StartInfo = si;
+
+            //p.Start();
+
+            ////if (File.Exists(filename)) File.Delete(filename);
 
             return true;
         }
