@@ -28,6 +28,18 @@ namespace NewLife.Agent
 
     class Advapi32
     {
+        [Flags]
+        public enum ServiceType
+        {
+            Adapter = 0x4,
+            FileSystemDriver = 0x2,
+            InteractiveProcess = 0x100,
+            KernelDriver = 0x1,
+            RecognizerDriver = 0x8,
+            Win32OwnProcess = 0x10,
+            Win32ShareProcess = 0x20
+        }
+
         internal class ControlOptions
         {
             internal const Int32 CONTROL_CONTINUE = 3;
@@ -93,7 +105,7 @@ namespace NewLife.Agent
 
         internal struct SERVICE_STATUS
         {
-            public Int32 serviceType;
+            public ServiceType serviceType;
 
             public ServiceControllerStatus currentState;
 
