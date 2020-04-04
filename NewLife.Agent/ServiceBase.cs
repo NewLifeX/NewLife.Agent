@@ -3,16 +3,17 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Threading.Tasks;
 using NewLife.Log;
 using NewLife.Reflection;
-using NewLife.Threading;
+
+[assembly: RuntimeCompatibilityAttribute(WrapNonExceptionThrows = true)]
 
 namespace NewLife.Agent
 {
     /// <summary>服务程序基类</summary>
-    public abstract class ServiceBase /*: IHostedService*/
+    public abstract class ServiceBase : DisposeBase
     {
         #region 属性
         /// <summary>主机</summary>
@@ -32,6 +33,16 @@ namespace NewLife.Agent
         /// <summary>初始化</summary>
         public ServiceBase()
         {
+        }
+
+        /// <summary>销毁</summary>
+        /// <param name="disposing"></param>
+        protected override void Dispose(Boolean disposing)
+        {
+            base.Dispose(disposing);
+
+            //StopWork(disposing ? "Dispose" : "GC");
+            StopLoop();
         }
         #endregion
 
@@ -368,6 +379,8 @@ namespace NewLife.Agent
         /// <summary>停止循环</summary>
         public void StopLoop()
         {
+            if (!_running) return;
+
             AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
 
             StopWork("StopLoop");

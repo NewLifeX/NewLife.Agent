@@ -167,13 +167,14 @@ namespace NewLife.Agent
         [DllImport("advapi32.dll", CharSet = CharSet.Unicode, EntryPoint = "OpenServiceW", SetLastError = true)]
         internal static extern IntPtr OpenService(SafeServiceHandle databaseHandle, String serviceName, Int32 access);
 
-        [DllImport("Advapi32.dll")]
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         internal static extern IntPtr CreateService(SafeServiceHandle databaseHandle, String lpSvcName, String lpDisplayName,
                                                     Int32 dwDesiredAccess, Int32 dwServiceType, Int32 dwStartType,
                                                     Int32 dwErrorControl, String lpPathName, String lpLoadOrderGroup,
                                                     Int32 lpdwTagId, String lpDependencies, String lpServiceStartName,
                                                     String lpPassword);
-        [DllImport("advapi32.dll")]
+
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern Int32 DeleteService(SafeServiceHandle serviceHandle);
 
         [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
@@ -191,7 +192,7 @@ namespace NewLife.Agent
         [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern Boolean StartServiceCtrlDispatcher(IntPtr entry);
 
-        [DllImport("advapi32.dll")]
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern Boolean ChangeServiceConfig2(SafeServiceHandle serviceHandle, Int32 dwInfoLevel, IntPtr pInfo);
     }
 }
