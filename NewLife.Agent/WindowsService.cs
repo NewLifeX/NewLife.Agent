@@ -2,9 +2,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Threading;
 using NewLife.Log;
-using NewLife.Threading;
 using static NewLife.Agent.Advapi32;
 
 namespace NewLife.Agent
@@ -95,7 +93,7 @@ namespace NewLife.Agent
                 if (table != IntPtr.Zero) Marshal.FreeHGlobal(table);
                 if (handleName != IntPtr.Zero) Marshal.FreeHGlobal(handleName);
 
-                _service.TryDispose();
+                //_service.TryDispose();
             }
         }
 
@@ -160,60 +158,20 @@ namespace NewLife.Agent
         //    _startCompletedSignal.Set();
         //}
 
-        private Int32 ServiceCommandCallbackEx(Int32 command, Int32 eventType, IntPtr eventData, IntPtr eventContext)
+        private Int32 ServiceCommandCallbackEx(ControlOptions command, Int32 eventType, IntPtr eventData, IntPtr eventContext)
         {
-            XTrace.WriteLine("ServiceCommandCallbackEx(command={0}, eventType={1}, eventData={2}, eventContext={3})", command, eventType, eventData, eventContext);
+            if (command != ControlOptions.PowerEvent && command != ControlOptions.SessionChange)
+                XTrace.WriteLine("ServiceCommandCallbackEx(command={0}, eventType={1}, eventData=0x{2:x}, eventContext=0x{3:x})", command, eventType, eventData, eventContext);
 
-            // Power | SessionChange
-            if (command == ControlOptions.CONTROL_POWEREVENT || command == ControlOptions.CONTROL_SESSIONCHANGE) return 0;
-
-            if (command == ControlOptions.CONTROL_INTERROGATE)
+            switch (command)
             {
-                ReportStatus(_status.currentState);
-            }
-            else
-            {
-                switch (command)
-                {
-                    //case ControlOptions.CONTROL_CONTINUE:
-                    //    if (_status.currentState == ServiceControllerStatus.Paused)
-                    //    {
-                    //        _status.currentState = ServiceControllerStatus.ContinuePending;
-                    //        SetServiceStatus(_statusHandle, status);
-                    //        //ThreadPool.QueueUserWorkItem(delegate
-                    //        //{
-                    //        //    DeferredContinue();
-                    //        //});
-                    //    }
-                    //    break;
-                    //case ControlOptions.CONTROL_PAUSE:
-                    //    if (_status.currentState == ServiceControllerStatus.Running)
-                    //    {
-                    //        _status.currentState = ServiceControllerStatus.PausePending;
-                    //        SetServiceStatus(_statusHandle, status);
-                    //        //ThreadPool.QueueUserWorkItem(delegate
-                    //        //{
-                    //        //    DeferredPause();
-                    //        //});
-                    //    }
-                    //    break;
-                    case ControlOptions.CONTROL_STOP:
-                        if (_status.currentState == ServiceControllerStatus.Paused ||
-                            _status.currentState == ServiceControllerStatus.Running)
-                        {
-                            ReportStatus(ServiceControllerStatus.StopPending);
-                            try
-                            {
-                                _service.StopLoop();
-                            }
-                            catch (Exception ex)
-                            {
-                                XTrace.WriteException(ex);
-                            }
-                            ReportStatus(ServiceControllerStatus.Stopped);
-                        }
-                        break;
-                    case ControlOptions.CONTROL_SHUTDOWN:
+                case ControlOptions.Interrogate:
+                    ReportStatus(_status.currentState);
+                    break;
+                case ControlOptions.Stop:
+                    if (_status.currentState == ServiceControllerStatus.Paused ||
+                        _status.currentState == ServiceControllerStatus.Running)
+                    {
                         ReportStatus(ServiceControllerStatus.StopPending);
                         try
                         {
@@ -224,15 +182,31 @@ namespace NewLife.Agent
                             XTrace.WriteException(ex);
                         }
                         ReportStatus(ServiceControllerStatus.Stopped);
-                        break;
-                    default:
-                        //ThreadPool.QueueUserWorkItem(delegate
-                        //{
-                        //    DeferredCustomCommand(command);
-                        //});
-                        //SetServiceStatus(_statusHandle, status);
-                        break;
-                }
+                    }
+                    break;
+                case ControlOptions.Shutdown:
+                    ReportStatus(ServiceControllerStatus.StopPending);
+                    try
+                    {
+                        _service.StopLoop();
+                    }
+                    catch (Exception ex)
+                    {
+                        XTrace.WriteException(ex);
+                    }
+                    ReportStatus(ServiceControllerStatus.Stopped);
+                    break;
+                case ControlOptions.PowerEvent:
+                    XTrace.WriteLine("PowerEvent {0}", (PowerBroadcastStatus)eventType);
+                    break;
+                case ControlOptions.SessionChange:
+                    var sessionNotification = new WTSSESSION_NOTIFICATION();
+                    Marshal.PtrToStructure(eventData, sessionNotification);
+                    XTrace.WriteLine("SessionChange {0}, {1}", (SessionChangeReason)eventType, sessionNotification.sessionId);
+                    break;
+                default:
+                    ReportStatus(_status.currentState);
+                    break;
             }
 
             return 0;
@@ -383,7 +357,7 @@ namespace NewLife.Agent
             if (service.IsInvalid) throw new Win32Exception(Marshal.GetLastWin32Error());
 
             SERVICE_STATUS status = default;
-            ControlService(service, ControlOptions.CONTROL_STOP, &status);
+            ControlService(service, ControlOptions.Stop, &status);
 
             if (DeleteService(service) == 0) throw new Win32Exception(Marshal.GetLastWin32Error());
 
@@ -423,7 +397,7 @@ namespace NewLife.Agent
             if (service.IsInvalid) throw new Win32Exception(Marshal.GetLastWin32Error());
 
             SERVICE_STATUS status = default;
-            if (!ControlService(service, ControlOptions.CONTROL_STOP, &status))
+            if (!ControlService(service, ControlOptions.Stop, &status))
                 throw new Win32Exception(Marshal.GetLastWin32Error());
 
             return true;

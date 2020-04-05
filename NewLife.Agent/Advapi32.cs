@@ -18,15 +18,12 @@ namespace NewLife.Agent
         }
 
         internal SafeServiceHandle(IntPtr handle)
-            : base(IntPtr.Zero, true)
-        {
-            SetHandle(handle);
-        }
+            : base(IntPtr.Zero, true) => SetHandle(handle);
 
         protected override Boolean ReleaseHandle() => Advapi32.CloseServiceHandle(handle);
     }
 
-    class Advapi32
+    internal class Advapi32
     {
         [Flags]
         public enum ServiceType
@@ -40,21 +37,21 @@ namespace NewLife.Agent
             Win32ShareProcess = 0x20
         }
 
-        internal class ControlOptions
+        internal enum ControlOptions
         {
-            internal const Int32 CONTROL_CONTINUE = 3;
+            Continue = 3,
 
-            internal const Int32 CONTROL_INTERROGATE = 4;
+            Interrogate = 4,
 
-            internal const Int32 CONTROL_PAUSE = 2;
+            Pause = 2,
 
-            internal const Int32 CONTROL_POWEREVENT = 13;
+            PowerEvent = 13,
 
-            internal const Int32 CONTROL_SESSIONCHANGE = 14;
+            SessionChange = 14,
 
-            internal const Int32 CONTROL_SHUTDOWN = 5;
+            Shutdown = 5,
 
-            internal const Int32 CONTROL_STOP = 1;
+            Stop = 1,
         }
 
         internal class ServiceOptions
@@ -166,13 +163,47 @@ namespace NewLife.Agent
             public IntPtr Description;
         }
 
-        public delegate Int32 ServiceControlCallbackEx(Int32 control, Int32 eventType, IntPtr eventData, IntPtr eventContext);
+        public enum PowerBroadcastStatus
+        {
+            BatteryLow = 9,
+            OemEvent = 11,
+            PowerStatusChange = 10,
+            QuerySuspend = 0,
+            QuerySuspendFailed = 2,
+            ResumeAutomatic = 18,
+            ResumeCritical = 6,
+            ResumeSuspend = 7,
+            Suspend = 4
+        }
+
+        public enum SessionChangeReason
+        {
+            ConsoleConnect = 1,
+            ConsoleDisconnect,
+            RemoteConnect,
+            RemoteDisconnect,
+            SessionLogon,
+            SessionLogoff,
+            SessionLock,
+            SessionUnlock,
+            SessionRemoteControl
+        }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        public class WTSSESSION_NOTIFICATION
+        {
+            public Int32 size;
+
+            public Int32 sessionId;
+        }
+
+        public delegate Int32 ServiceControlCallbackEx(ControlOptions control, Int32 eventType, IntPtr eventData, IntPtr eventContext);
 
         [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         internal static extern Boolean CloseServiceHandle(IntPtr handle);
 
         [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        internal unsafe static extern Boolean ControlService(SafeServiceHandle serviceHandle, Int32 control, SERVICE_STATUS* pStatus);
+        internal static extern unsafe Boolean ControlService(SafeServiceHandle serviceHandle, ControlOptions control, SERVICE_STATUS* pStatus);
 
         [DllImport("advapi32.dll", CharSet = CharSet.Unicode, EntryPoint = "OpenSCManagerW", SetLastError = true)]
         internal static extern IntPtr OpenSCManager(String machineName, String databaseName, Int32 access);
@@ -191,13 +222,13 @@ namespace NewLife.Agent
         public static extern Int32 DeleteService(SafeServiceHandle serviceHandle);
 
         [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        internal unsafe static extern Boolean QueryServiceStatus(SafeServiceHandle serviceHandle, SERVICE_STATUS* pStatus);
+        internal static extern unsafe Boolean QueryServiceStatus(SafeServiceHandle serviceHandle, SERVICE_STATUS* pStatus);
 
         [DllImport("advapi32.dll", CharSet = CharSet.Unicode, EntryPoint = "StartServiceW", SetLastError = true)]
         internal static extern Boolean StartService(SafeServiceHandle serviceHandle, Int32 argNum, IntPtr argPtrs);
 
         [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        public unsafe static extern Boolean SetServiceStatus(IntPtr serviceStatusHandle, SERVICE_STATUS* status);
+        public static extern unsafe Boolean SetServiceStatus(IntPtr serviceStatusHandle, SERVICE_STATUS* status);
 
         [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern IntPtr RegisterServiceCtrlHandlerEx(String serviceName, ServiceControlCallbackEx callback, IntPtr userData);
