@@ -42,9 +42,17 @@ namespace NewLife.Agent
                 // 正常运行后可接受的命令
                 _acceptedCommands = ControlsAccepted.CanStop
                     | ControlsAccepted.CanShutdown
-                    | ControlsAccepted.CanPauseAndContinue
+                    //| ControlsAccepted.CanPauseAndContinue
+                    | ControlsAccepted.ParamChange
+                    | ControlsAccepted.NetBindChange
+                    | ControlsAccepted.HardwareProfileChange
                     | ControlsAccepted.CanHandlePowerEvent
-                    | ControlsAccepted.CanHandleSessionChangeEvent;
+                    | ControlsAccepted.CanHandleSessionChangeEvent
+                    | ControlsAccepted.PreShutdown
+                    | ControlsAccepted.TimeChange
+                    | ControlsAccepted.TriggerEvent
+                    //| ControlsAccepted.UserModeReboot
+                    ;
 
                 var result = new SERVICE_TABLE_ENTRY
                 {
@@ -161,13 +169,9 @@ namespace NewLife.Agent
 
             if (command == ControlOptions.CONTROL_INTERROGATE)
             {
-                //SetServiceStatus(_statusHandle, status);
                 ReportStatus(_status.currentState);
             }
-            else if (_status.currentState != ServiceControllerStatus.ContinuePending &&
-                _status.currentState != ServiceControllerStatus.StartPending &&
-                _status.currentState != ServiceControllerStatus.StopPending &&
-                _status.currentState != ServiceControllerStatus.PausePending)
+            else
             {
                 switch (command)
                 {
@@ -262,9 +266,9 @@ namespace NewLife.Agent
         //}
 
         private Int32 _checkPoint = 1;
-        private unsafe Boolean ReportStatus(ServiceControllerStatus state, Int32? waitHint = null)
+        private unsafe Boolean ReportStatus(ServiceControllerStatus state, Int32 waitHint = 0)
         {
-            if (waitHint != null)
+            if (waitHint > 0)
                 XTrace.WriteLine("ReportStatus {0}, {1}", state, waitHint);
             else
                 XTrace.WriteLine("ReportStatus {0}", state);
@@ -285,7 +289,7 @@ namespace NewLife.Agent
                 else
                     _status.checkPoint = _checkPoint++;
 
-                if (waitHint != null) _status.waitHint = waitHint.Value;
+                _status.waitHint = waitHint;
                 _status.currentState = state;
 
                 return SetServiceStatus(_statusHandle, status);
@@ -341,25 +345,26 @@ namespace NewLife.Agent
             using var service = new SafeServiceHandle(CreateService(manager, serviceName, displayName, ServiceOptions.SERVICE_ALL_ACCESS, 0x10, 2, 1, binPath, null, 0, null, null, null));
             if (service.IsInvalid) throw new Win32Exception(Marshal.GetLastWin32Error());
 
-            // 设置描述信息
-            if (!description.IsNullOrEmpty())
-            {
-                SERVICE_DESCRIPTION sd;
-                sd.Description = description;
-                var lpInfo = Marshal.AllocHGlobal(Marshal.SizeOf(sd));
+            //// 设置描述信息
+            //if (!description.IsNullOrEmpty())
+            //{
+            //    SERVICE_DESCRIPTION sd;
+            //    sd.Description = Marshal.StringToHGlobalUni(description);
+            //    var lpInfo = Marshal.AllocHGlobal(Marshal.SizeOf(sd));
 
-                try
-                {
-                    Marshal.StructureToPtr(sd, lpInfo, false);
+            //    try
+            //    {
+            //        Marshal.StructureToPtr(sd, lpInfo, false);
 
-                    const Int32 SERVICE_CONFIG_DESCRIPTION = 1;
-                    ChangeServiceConfig2(service, SERVICE_CONFIG_DESCRIPTION, lpInfo);
-                }
-                finally
-                {
-                    Marshal.FreeHGlobal(lpInfo);
-                }
-            }
+            //        const Int32 SERVICE_CONFIG_DESCRIPTION = 1;
+            //        ChangeServiceConfig2(service, SERVICE_CONFIG_DESCRIPTION, lpInfo);
+            //    }
+            //    finally
+            //    {
+            //        Marshal.FreeHGlobal(lpInfo);
+            //        Marshal.FreeHGlobal(sd.Description);
+            //    }
+            //}
 
             return true;
         }

@@ -134,20 +134,20 @@ namespace NewLife.Agent
         [Flags]
         public enum ControlsAccepted : Int32
         {
-            SERVICE_ACCEPT_NETBINDCHANGE = 0x00000010,
-            SERVICE_ACCEPT_PARAMCHANGE = 0x00000008,
+            NetBindChange = 0x00000010,
+            ParamChange = 0x00000008,
             CanPauseAndContinue = 0x00000002,
-            SERVICE_ACCEPT_PRESHUTDOWN = 0x00000100,
+            PreShutdown = 0x00000100,
             CanShutdown = 0x00000004,
             CanStop = 0x00000001,
 
             //supported only by HandlerEx
-            SERVICE_ACCEPT_HARDWAREPROFILECHANGE = 0x00000020,
+            HardwareProfileChange = 0x00000020,
             CanHandlePowerEvent = 0x00000040,
             CanHandleSessionChangeEvent = 0x00000080,
-            SERVICE_ACCEPT_TIMECHANGE = 0x00000200,
-            SERVICE_ACCEPT_TRIGGEREVENT = 0x00000400,
-            SERVICE_ACCEPT_USERMODEREBOOT = 0x00000800
+            TimeChange = 0x00000200,
+            TriggerEvent = 0x00000400,
+            UserModeReboot = 0x00000800
         }
 
         public delegate void ServiceMainCallback(Int32 argCount, IntPtr argPointer);
@@ -163,7 +163,7 @@ namespace NewLife.Agent
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         public struct SERVICE_DESCRIPTION
         {
-            public String Description;
+            public IntPtr Description;
         }
 
         public delegate Int32 ServiceControlCallbackEx(Int32 control, Int32 eventType, IntPtr eventData, IntPtr eventContext);
