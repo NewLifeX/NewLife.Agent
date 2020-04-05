@@ -6,6 +6,9 @@
 国内文档中心：[http://doc.newlifex.com/](http://doc.newlifex.com/)  
 国外文档中心：[https://newlifex.github.io/XDoc/](https://newlifex.github.io/XDoc/)  
 
+找到Agent查询和停止服务时报错的根本原因了！  
+windows服务启动，在ServiceMain正式进入running之前，不允许调用任何WinApi函数，否则主线程会“自残”，尽管服务能启动起来，但后续任意操作都会失败！  
+
 ## 新生命开源项目矩阵
 各项目默认支持netstandard2.0/net4.5/net4.0/  
 
