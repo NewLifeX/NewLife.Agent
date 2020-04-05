@@ -161,7 +161,7 @@ namespace NewLife.Agent
         private Int32 ServiceCommandCallbackEx(ControlOptions command, Int32 eventType, IntPtr eventData, IntPtr eventContext)
         {
             if (command != ControlOptions.PowerEvent && command != ControlOptions.SessionChange)
-                XTrace.WriteLine("ServiceCommandCallbackEx(command={0}, eventType={1}, eventData=0x{2:x}, eventContext=0x{3:x})", command, eventType, eventData, eventContext);
+                XTrace.WriteLine("ServiceCommandCallbackEx(command={0}, eventType={1}, eventData={2:x}, eventContext={3:x})", command, eventType, eventData, eventContext);
 
             switch (command)
             {
@@ -319,26 +319,26 @@ namespace NewLife.Agent
             using var service = new SafeServiceHandle(CreateService(manager, serviceName, displayName, ServiceOptions.SERVICE_ALL_ACCESS, 0x10, 2, 1, binPath, null, 0, null, null, null));
             if (service.IsInvalid) throw new Win32Exception(Marshal.GetLastWin32Error());
 
-            //// 设置描述信息
-            //if (!description.IsNullOrEmpty())
-            //{
-            //    SERVICE_DESCRIPTION sd;
-            //    sd.Description = Marshal.StringToHGlobalUni(description);
-            //    var lpInfo = Marshal.AllocHGlobal(Marshal.SizeOf(sd));
+            // 设置描述信息
+            if (!description.IsNullOrEmpty())
+            {
+                SERVICE_DESCRIPTION sd;
+                sd.Description = Marshal.StringToHGlobalUni(description);
+                var lpInfo = Marshal.AllocHGlobal(Marshal.SizeOf(sd));
 
-            //    try
-            //    {
-            //        Marshal.StructureToPtr(sd, lpInfo, false);
+                try
+                {
+                    Marshal.StructureToPtr(sd, lpInfo, false);
 
-            //        const Int32 SERVICE_CONFIG_DESCRIPTION = 1;
-            //        ChangeServiceConfig2(service, SERVICE_CONFIG_DESCRIPTION, lpInfo);
-            //    }
-            //    finally
-            //    {
-            //        Marshal.FreeHGlobal(lpInfo);
-            //        Marshal.FreeHGlobal(sd.Description);
-            //    }
-            //}
+                    const Int32 SERVICE_CONFIG_DESCRIPTION = 1;
+                    ChangeServiceConfig2(service, SERVICE_CONFIG_DESCRIPTION, lpInfo);
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(lpInfo);
+                    Marshal.FreeHGlobal(sd.Description);
+                }
+            }
 
             return true;
         }

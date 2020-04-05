@@ -66,6 +66,6 @@
     <Content Include="..\Doc\leaf.png" Link="leaf.png" PackagePath="\" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="NewLife.Core" Version="8.7.2020.403" />
+    <PackageReference Include="NewLife.Core" Version="8.7.2020.405-beta" />
   </ItemGroup>
 </Project>
