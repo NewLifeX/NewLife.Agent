@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using NewLife.Log;
+using NewLife.Threading;
 using static NewLife.Agent.Advapi32;
 
 namespace NewLife.Agent
@@ -108,7 +109,7 @@ namespace NewLife.Agent
 
             //_status.currentState = ServiceControllerStatus.StartPending;
             //_status.currentState = ServiceControllerStatus.Running;
-            if (ReportStatus(ServiceControllerStatus.Running, 3000))
+            if (ReportStatus(ServiceControllerStatus.StartPending, 3000))
             {
                 //// 使用线程池启动服务Start函数，并等待信号量
                 //_startCompletedSignal = new ManualResetEvent(initialState: false);
@@ -118,21 +119,37 @@ namespace NewLife.Agent
 
                 try
                 {
-                    // 启动初始化
-                    _service.StartLoop();
+                    //// 启动初始化
+                    //_service.StartLoop();
 
-                    //ReportStatus(ServiceControllerStatus.Running);
+                    ////ReportStatus(ServiceControllerStatus.Running);
 
-                    // 阻塞
-                    _service.DoLoop();
+                    //// 阻塞
+                    //_service.DoLoop();
+
+                    //!!! 不要在ServiceMain里面调用系统函数
+                    ThreadPoolX.QueueUserWorkItem(() =>
+                    {
+                        // 启动初始化
+                        _service.StartLoop();
+
+                        ReportStatus(ServiceControllerStatus.Running);
+
+                        // 阻塞
+                        _service.DoLoop();
+
+                        ReportStatus(ServiceControllerStatus.Stopped);
+                    });
                 }
                 catch (Exception ex)
                 {
                     XTrace.WriteException(ex);
                     XTrace.WriteLine("运行服务{0}失败，{1}", _service.ServiceName, new Win32Exception(Marshal.GetLastWin32Error()).Message);
+
+                    ReportStatus(ServiceControllerStatus.Stopped);
                 }
 
-                ReportStatus(ServiceControllerStatus.Stopped);
+                //ReportStatus(ServiceControllerStatus.Stopped);
                 //XTrace.WriteLine("OK!");
             }
         }
