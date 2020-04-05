@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Threading;
 using NewLife.Log;
 using NewLife.Threading;
 using static NewLife.Agent.Advapi32;
@@ -9,6 +10,9 @@ using static NewLife.Agent.Advapi32;
 namespace NewLife.Agent
 {
     /// <summary>Windows服务</summary>
+    /// <remarks>
+    /// 特别注意，主线程和服务内部线程，不要调用任何系统WinApi
+    /// </remarks>
     public class WindowsService : Host
     {
         private ServiceBase _service;
@@ -72,7 +76,7 @@ namespace NewLife.Agent
                  * 2、当服务有请求时（注意：请求是由SCM发给它的），调用它对应的处理函数（主意：这相当于主线程“陷入”了，它在等待控制消息并对消息做处理）。
                  */
 
-                XTrace.WriteLine("运行服务 {0}", service.ServiceName);
+                //XTrace.WriteLine("运行服务 {0}", service.ServiceName);
 
                 var flag = StartServiceCtrlDispatcher(table);
                 if (!flag)
@@ -100,82 +104,45 @@ namespace NewLife.Agent
         [EditorBrowsable(EditorBrowsableState.Never)]
         private void ServiceMainCallback(Int32 argCount, IntPtr argPointer)
         {
-            // 我们直接忽略传入参数 argCount/argPointer
-            //XTrace.WriteLine("ServiceMainCallback");
-
             _statusHandle = RegisterServiceCtrlHandlerEx(_service.ServiceName, ServiceCommandCallbackEx, IntPtr.Zero);
 
-            //_status.currentState = ServiceControllerStatus.StartPending;
-            //_status.currentState = ServiceControllerStatus.Running;
             if (ReportStatus(ServiceControllerStatus.StartPending, 3000))
             {
-                //// 使用线程池启动服务Start函数，并等待信号量
-                //_startCompletedSignal = new ManualResetEvent(initialState: false);
-                //ThreadPool.QueueUserWorkItem(ServiceQueuedMainCallback, array);
-                //_startCompletedSignal.WaitOne();
-                //ServiceQueuedMainCallback(null);
-
-                try
-                {
-                    //// 启动初始化
-                    //_service.StartLoop();
-
-                    ////ReportStatus(ServiceControllerStatus.Running);
-
-                    //// 阻塞
-                    //_service.DoLoop();
-
-                    //!!! 不要在ServiceMain里面调用系统函数
-                    ThreadPoolX.QueueUserWorkItem(() =>
-                    {
-                        // 启动初始化
-                        _service.StartLoop();
-
-                        ReportStatus(ServiceControllerStatus.Running);
-
-                        // 阻塞
-                        _service.DoLoop();
-
-                        ReportStatus(ServiceControllerStatus.StopPending);
-
-                        _service.StopLoop();
-
-                        ReportStatus(ServiceControllerStatus.Stopped);
-                    });
-                }
-                catch (Exception ex)
-                {
-                    XTrace.WriteException(ex);
-                    XTrace.WriteLine("运行服务{0}失败，{1}", _service.ServiceName, new Win32Exception(Marshal.GetLastWin32Error()).Message);
-
-                    ReportStatus(ServiceControllerStatus.Stopped);
-                }
-
-                //ReportStatus(ServiceControllerStatus.Stopped);
-                //XTrace.WriteLine("OK!");
+                //!!! 不要在ServiceMain里面调用系统函数
+                ThreadPoolX.QueueUserWorkItem(ServiceQueuedMainCallback);
             }
         }
 
-        //private ManualResetEvent _startCompletedSignal;
-        //private void ServiceQueuedMainCallback(Object state)
-        //{
-        //    try
-        //    {
-        //        var source = new CancellationTokenSource();
-        //        _service.StartAsync(source.Token);
+        private void ServiceQueuedMainCallback()
+        {
+            try
+            {
+                // 启动初始化
+                _service.StartLoop();
 
-        //        _status.checkPoint = 0;
-        //        _status.waitHint = 0;
-        //        _status.currentState = ServiceControllerStatus.Running;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        XTrace.WriteException(ex);
+                ReportStatus(ServiceControllerStatus.Running);
 
-        //        _status.currentState = ServiceControllerStatus.Stopped;
-        //    }
-        //    _startCompletedSignal.Set();
-        //}
+                // 阻塞
+                _service.DoLoop();
+
+                if (_status.currentState == ServiceControllerStatus.Running)
+                {
+                    ReportStatus(ServiceControllerStatus.StopPending);
+
+                    // 停止
+                    _service.StopLoop();
+
+                    ReportStatus(ServiceControllerStatus.Stopped);
+                }
+            }
+            catch (Exception ex)
+            {
+                XTrace.WriteException(ex);
+                XTrace.WriteLine("运行服务{0}失败，{1}", _service.ServiceName, new Win32Exception(Marshal.GetLastWin32Error()).Message);
+
+                ReportStatus(ServiceControllerStatus.Stopped);
+            }
+        }
 
         private Int32 ServiceCommandCallbackEx(ControlOptions command, Int32 eventType, IntPtr eventData, IntPtr eventContext)
         {
@@ -188,10 +155,10 @@ namespace NewLife.Agent
                     ReportStatus(_status.currentState);
                     break;
                 case ControlOptions.Stop:
-                    if (_status.currentState == ServiceControllerStatus.Paused ||
-                        _status.currentState == ServiceControllerStatus.Running)
+                case ControlOptions.Shutdown:
+                    ReportStatus(ServiceControllerStatus.StopPending);
+                    ThreadPoolX.QueueUserWorkItem(() =>
                     {
-                        ReportStatus(ServiceControllerStatus.StopPending);
                         try
                         {
                             _service.StopLoop();
@@ -201,19 +168,7 @@ namespace NewLife.Agent
                             XTrace.WriteException(ex);
                         }
                         ReportStatus(ServiceControllerStatus.Stopped);
-                    }
-                    break;
-                case ControlOptions.Shutdown:
-                    ReportStatus(ServiceControllerStatus.StopPending);
-                    try
-                    {
-                        _service.StopLoop();
-                    }
-                    catch (Exception ex)
-                    {
-                        XTrace.WriteException(ex);
-                    }
-                    ReportStatus(ServiceControllerStatus.Stopped);
+                    });
                     break;
                 case ControlOptions.PowerEvent:
                     XTrace.WriteLine("PowerEvent {0}", (PowerBroadcastStatus)eventType);
@@ -235,33 +190,6 @@ namespace NewLife.Agent
 
             return 0;
         }
-
-        //private unsafe void DeferredStop()
-        //{
-        //    fixed (SERVICE_STATUS* status = &_status)
-        //    {
-        //        var currentState = _status.currentState;
-        //        _status.checkPoint = 0;
-        //        _status.waitHint = 0;
-        //        _status.currentState = ServiceControllerStatus.StopPending;
-        //        SetServiceStatus(_statusHandle, status);
-        //        try
-        //        {
-        //            //var source = new CancellationTokenSource();
-        //            //_service.StopAsync(source.Token);
-        //            _service.StopLoop();
-
-        //            _status.currentState = ServiceControllerStatus.Stopped;
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            XTrace.WriteException(ex);
-
-        //            _status.currentState = currentState;
-        //        }
-        //        SetServiceStatus(_statusHandle, status);
-        //    }
-        //}
 
         private Int32 _checkPoint = 1;
         private unsafe Boolean ReportStatus(ServiceControllerStatus state, Int32 waitHint = 0)

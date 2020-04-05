@@ -10,8 +10,7 @@ namespace Test
             Environment.SetEnvironmentVariable("DOTNET_SYSTEM_GLOBALIZATION_INVARIANT", "1");
 
             var svc = new MyXService();
-            svc.Main();
+            svc.Main(args);
         }
-
     }
 }

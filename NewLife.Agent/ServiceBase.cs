@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Security;
@@ -50,15 +51,16 @@ namespace NewLife.Agent
 
         #region 主函数
         /// <summary>服务主函数</summary>
-        public void Main()
+        /// <param name="args"></param>
+        public void Main(String[] args)
         {
             //#if NETSTANDARD2_0
             //MachineInfo.RegisterAsync();
             //#endif
 
             // 以服务方式启动时，不写控制台日志
-            var args = Environment.GetCommandLineArgs();
-            var isService = !(args == null || args.Length <= 1 || args[1].ToLower() != "-s");
+            if (args == null) args = Environment.GetCommandLineArgs();
+            var isService = args != null && args.Length > 0 || args.Contains("-s");
             if (!isService)
                 XTrace.UseConsole();
 
@@ -73,33 +75,30 @@ namespace NewLife.Agent
             var service = this;
             service.Log = XTrace.Log;
 
+            // 初始化配置
             var set = Setting.Current;
-            if (!isService)
-            {
-                // 初始化配置
-                if (set.ServiceName.IsNullOrEmpty()) set.ServiceName = service.ServiceName;
-                if (set.DisplayName.IsNullOrEmpty()) set.DisplayName = service.DisplayName;
-                if (set.Description.IsNullOrEmpty()) set.Description = service.Description;
+            if (set.ServiceName.IsNullOrEmpty()) set.ServiceName = service.ServiceName;
+            if (set.DisplayName.IsNullOrEmpty()) set.DisplayName = service.DisplayName;
+            if (set.Description.IsNullOrEmpty()) set.Description = service.Description;
 
-                // 从程序集构造配置
-                var asm = AssemblyX.Entry;
-                if (set.ServiceName.IsNullOrEmpty()) set.ServiceName = asm.Name;
-                if (set.DisplayName.IsNullOrEmpty()) set.DisplayName = asm.Title;
-                if (set.Description.IsNullOrEmpty()) set.Description = asm.Description;
+            // 从程序集构造配置
+            var asm = AssemblyX.Entry;
+            if (set.ServiceName.IsNullOrEmpty()) set.ServiceName = asm.Name;
+            if (set.DisplayName.IsNullOrEmpty()) set.DisplayName = asm.Title;
+            if (set.Description.IsNullOrEmpty()) set.Description = asm.Description;
 
-                set.Save();
-            }
+            set.Save();
 
             // 用配置覆盖
             service.ServiceName = set.ServiceName;
             service.DisplayName = set.DisplayName;
             service.Description = set.Description;
 
-            if (args.Length > 1)
+            if (args.Length > 0)
             {
                 #region 命令
                 var name = ServiceName;
-                var cmd = args[1].ToLower();
+                var cmd = args[0].ToLower();
                 switch (cmd)
                 {
                     case "-s":
@@ -341,8 +340,6 @@ namespace NewLife.Agent
         /// <summary>主循环</summary>
         internal void DoLoop()
         {
-            GetType().Assembly.WriteVersion();
-
             // 启动后命令，服务启动后执行的命令
             var set = Setting.Current;
             if (!set.AfterStart.IsNullOrEmpty())
@@ -390,6 +387,8 @@ namespace NewLife.Agent
         internal void StartLoop()
         {
             AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
+
+            GetType().Assembly.WriteVersion();
 
             StartWork("StartLoop");
         }
