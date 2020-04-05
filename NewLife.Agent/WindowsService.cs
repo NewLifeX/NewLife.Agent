@@ -108,7 +108,7 @@ namespace NewLife.Agent
 
             //_status.currentState = ServiceControllerStatus.StartPending;
             //_status.currentState = ServiceControllerStatus.Running;
-            if (ReportStatus(ServiceControllerStatus.StartPending, 3000))
+            if (ReportStatus(ServiceControllerStatus.Running, 3000))
             {
                 //// 使用线程池启动服务Start函数，并等待信号量
                 //_startCompletedSignal = new ManualResetEvent(initialState: false);
@@ -121,7 +121,7 @@ namespace NewLife.Agent
                     // 启动初始化
                     _service.StartLoop();
 
-                    ReportStatus(ServiceControllerStatus.Running);
+                    //ReportStatus(ServiceControllerStatus.Running);
 
                     // 阻塞
                     _service.DoLoop();

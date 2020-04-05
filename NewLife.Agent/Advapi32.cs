@@ -39,19 +39,15 @@ namespace NewLife.Agent
 
         internal enum ControlOptions
         {
-            Continue = 3,
-
-            Interrogate = 4,
-
+            Stop = 1,
             Pause = 2,
-
-            PowerEvent = 13,
-
-            SessionChange = 14,
-
+            Continue = 3,
+            Interrogate = 4,
             Shutdown = 5,
 
-            Stop = 1,
+            PowerEvent = 13,
+            SessionChange = 14,
+            TimeChange = 16,
         }
 
         internal class ServiceOptions
@@ -134,16 +130,22 @@ namespace NewLife.Agent
             NetBindChange = 0x00000010,
             ParamChange = 0x00000008,
             CanPauseAndContinue = 0x00000002,
+            /// <summary>系统将关闭</summary>
             PreShutdown = 0x00000100,
             CanShutdown = 0x00000004,
             CanStop = 0x00000001,
 
             //supported only by HandlerEx
             HardwareProfileChange = 0x00000020,
+            /// <summary>电源状态更改</summary>
             CanHandlePowerEvent = 0x00000040,
+            /// <summary>会话状态发生更改</summary>
             CanHandleSessionChangeEvent = 0x00000080,
+            /// <summary>系统时间已更改</summary>
             TimeChange = 0x00000200,
+            /// <summary>注册为已发生事件的服务触发事件</summary>
             TriggerEvent = 0x00000400,
+            /// <summary>用户已开始重新启动</summary>
             UserModeReboot = 0x00000800
         }
 
