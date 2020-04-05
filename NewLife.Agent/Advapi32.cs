@@ -199,6 +199,13 @@ namespace NewLife.Agent
             public Int32 sessionId;
         }
 
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        public class SERVICE_TIMECHANGE_INFO
+        {
+            public Int64 NewTime;
+            public Int64 OldTime;
+        }
+
         public delegate Int32 ServiceControlCallbackEx(ControlOptions control, Int32 eventType, IntPtr eventData, IntPtr eventContext);
 
         [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]

@@ -204,6 +204,11 @@ namespace NewLife.Agent
                     Marshal.PtrToStructure(eventData, sessionNotification);
                     XTrace.WriteLine("SessionChange {0}, {1}", (SessionChangeReason)eventType, sessionNotification.sessionId);
                     break;
+                case ControlOptions.TimeChange:
+                    var time = new SERVICE_TIMECHANGE_INFO();
+                    Marshal.PtrToStructure(eventData, time);
+                    XTrace.WriteLine("TimeChange {0}=>{1}", DateTime.FromFileTime(time.OldTime), DateTime.FromFileTime(time.NewTime));
+                    break;
                 default:
                     ReportStatus(_status.currentState);
                     break;
