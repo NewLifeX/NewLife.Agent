@@ -52,7 +52,9 @@ namespace NewLife.Agent
         /// <summary>服务主函数</summary>
         public void Main()
         {
-            //MachineInfo.RegisterAsync();
+#if NETSTANDARD2_0
+            MachineInfo.RegisterAsync();
+#endif
 
             // 以服务方式启动时，不写控制台日志
             var args = Environment.GetCommandLineArgs();
@@ -92,7 +94,7 @@ namespace NewLife.Agent
 
             if (args.Length > 1)
             {
-                #region 命令
+#region 命令
                 var name = ServiceName;
                 var cmd = args[1].ToLower();
                 switch (cmd)
@@ -116,7 +118,7 @@ namespace NewLife.Agent
                         Host.Restart(name);
                         break;
                 }
-                #endregion
+#endregion
             }
             else
             {
@@ -213,7 +215,7 @@ namespace NewLife.Agent
                             Thread.Sleep(500);
                             break;
                         case '5':
-                            #region 循环调试
+#region 循环调试
                             try
                             {
                                 Console.WriteLine("正在循环调试……");
@@ -228,7 +230,7 @@ namespace NewLife.Agent
                             {
                                 Console.WriteLine(ex.ToString());
                             }
-                            #endregion
+#endregion
                             break;
                         case '7':
                             if (WatchDogs.Length > 0) CheckWatchDog();
@@ -327,9 +329,9 @@ namespace NewLife.Agent
                 Callback = callback;
             }
         }
-        #endregion
+#endregion
 
-        #region 服务控制
+#region 服务控制
         private Boolean _running;
         private AutoResetEvent _event;
         private Process _process;
@@ -420,7 +422,7 @@ namespace NewLife.Agent
         private void OnProcessExit(Object sender, EventArgs e)
         {
             StopWork("ProcessExit");
-            Environment.ExitCode = 0;
+            //Environment.ExitCode = 0;
 
             if (XTrace.Log is CompositeLog compositeLog)
             {
@@ -467,9 +469,9 @@ namespace NewLife.Agent
 
             return filename;
         }
-        #endregion
+#endregion
 
-        #region 服务维护
+#region 服务维护
         //private TimerX _Timer;
 
         /// <summary>服务管理线程封装</summary>
@@ -569,9 +571,9 @@ namespace NewLife.Agent
 
             return true;
         }
-        #endregion
+#endregion
 
-        #region 看门狗
+#region 看门狗
         /// <summary>看门狗要保护的服务</summary>
         public static String[] WatchDogs => Setting.Current.WatchDog.Split(",", ";");
 
@@ -598,9 +600,9 @@ namespace NewLife.Agent
                 }
             }
         }
-        #endregion
+#endregion
 
-        #region 日志
+#region 日志
         /// <summary>日志</summary>
         public ILog Log { get; set; } = Logger.Null;
 
@@ -608,6 +610,6 @@ namespace NewLife.Agent
         /// <param name="format"></param>
         /// <param name="args"></param>
         public void WriteLog(String format, params Object[] args) => Log?.Info(format, args);
-        #endregion
+#endregion
     }
 }
