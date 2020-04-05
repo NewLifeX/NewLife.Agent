@@ -53,7 +53,7 @@ namespace NewLife.Agent
         public void Main()
         {
             //#if NETSTANDARD2_0
-            MachineInfo.RegisterAsync();
+            //MachineInfo.RegisterAsync();
             //#endif
 
             // 以服务方式启动时，不写控制台日志
