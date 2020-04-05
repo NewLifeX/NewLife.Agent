@@ -138,6 +138,10 @@ namespace NewLife.Agent
                         // 阻塞
                         _service.DoLoop();
 
+                        ReportStatus(ServiceControllerStatus.StopPending);
+
+                        _service.StopLoop();
+
                         ReportStatus(ServiceControllerStatus.Stopped);
                     });
                 }
