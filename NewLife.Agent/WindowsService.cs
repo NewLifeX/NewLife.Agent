@@ -1,10 +1,10 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using NewLife.Log;
+using NewLife.Threading;
 using static NewLife.Agent.Advapi32;
 
 namespace NewLife.Agent
@@ -14,35 +14,24 @@ namespace NewLife.Agent
     {
         private ServiceBase _service;
         private SERVICE_STATUS _status;
-        private IntPtr _handleName;
-
-        /// <summary>销毁</summary>
-        /// <param name="disposing"></param>
-        protected override void Dispose(Boolean disposing)
-        {
-            base.Dispose(disposing);
-
-            if (_handleName != IntPtr.Zero)
-            {
-                Marshal.FreeHGlobal(_handleName);
-                _handleName = IntPtr.Zero;
-            }
-        }
+        private ControlsAccepted _acceptedCommands;
+        private IntPtr _statusHandle;
 
         /// <summary>开始执行服务</summary>
         /// <param name="service"></param>
         public override void Run(ServiceBase service)
         {
-            if (service == null) throw new ArgumentNullException(nameof(service));
+            _service = service ?? throw new ArgumentNullException(nameof(service));
 
-            _service = service;
+            GetType().Assembly.WriteVersion();
 
             var num = Marshal.SizeOf(typeof(SERVICE_TABLE_ENTRY));
-            var intPtr = Marshal.AllocHGlobal((IntPtr)((1 + 1) * num));
+            var table = Marshal.AllocHGlobal((IntPtr)((1 + 1) * num));
+            var handleName = Marshal.StringToHGlobalUni(service.ServiceName);
             try
             {
                 // Win32OwnProcess/StartPending
-                _status.serviceType = 16;
+                _status.serviceType = ServiceType.Win32OwnProcess;
                 _status.currentState = ServiceControllerStatus.StartPending;
                 _status.controlsAccepted = 0;
                 _status.win32ExitCode = 0;
@@ -50,24 +39,26 @@ namespace NewLife.Agent
                 _status.checkPoint = 0;
                 _status.waitHint = 0;
 
-                // CanStop | CanShutdown | CanPauseAndContinue | CanHandlePowerEvent | CanHandleSessionChangeEvent
-                //_acceptedCommands = 1 | 4 | 2 | 64 | 128;
-                // CanStop | CanShutdown
-                //_acceptedCommands = 1 | 4;
+                // 正常运行后可接受的命令
+                _acceptedCommands = ControlsAccepted.CanStop
+                    | ControlsAccepted.CanShutdown
+                    | ControlsAccepted.CanPauseAndContinue
+                    | ControlsAccepted.CanHandlePowerEvent
+                    | ControlsAccepted.CanHandleSessionChangeEvent;
 
                 var result = new SERVICE_TABLE_ENTRY
                 {
                     callback = ServiceMainCallback,
-                    name = _handleName = Marshal.StringToHGlobalUni(service.ServiceName)
+                    name = handleName
                 };
-                Marshal.StructureToPtr(result, intPtr, false);
+                Marshal.StructureToPtr(result, table, true);
 
                 var result2 = new SERVICE_TABLE_ENTRY
                 {
                     callback = null,
                     name = IntPtr.Zero
                 };
-                Marshal.StructureToPtr(result2, intPtr + num, false);
+                Marshal.StructureToPtr(result2, table + num, true);
 
                 /*
                  * 如果StartServiceCtrlDispatcher函数执行成功，调用线程（也就是服务进程的主线程）不会返回，直到所有的服务进入到SERVICE_STOPPED状态。
@@ -78,75 +69,66 @@ namespace NewLife.Agent
 
                 XTrace.WriteLine("运行服务 {0}", service.ServiceName);
 
-                var flag = StartServiceCtrlDispatcher(intPtr);
-                //if (!flag) XTrace.WriteLine("服务启动失败！");
+                var flag = StartServiceCtrlDispatcher(table);
+                if (!flag)
+                {
+                    XTrace.WriteLine(new Win32Exception().Message);
+                }
 
                 XTrace.WriteLine("退出服务 {0} CtrlDispatcher={1}", service.ServiceName, flag);
             }
             catch (Exception ex)
             {
                 XTrace.WriteException(ex);
+                XTrace.WriteLine("运行服务 {0} 出错，{1}", _service.ServiceName, new Win32Exception(Marshal.GetLastWin32Error()).Message);
             }
-            //finally
-            //{
-            //    Marshal.FreeHGlobal(intPtr);
-            //}
+            finally
+            {
+                if (table != IntPtr.Zero) Marshal.FreeHGlobal(table);
+                if (handleName != IntPtr.Zero) Marshal.FreeHGlobal(handleName);
+
+                _service.TryDispose();
+            }
         }
 
+        [ComVisible(false)]
         [EditorBrowsable(EditorBrowsableState.Never)]
-        private unsafe void ServiceMainCallback(Int32 argCount, IntPtr argPointer)
+        private void ServiceMainCallback(Int32 argCount, IntPtr argPointer)
         {
-            XTrace.WriteLine("ServiceMainCallback");
+            // 我们直接忽略传入参数 argCount/argPointer
+            //XTrace.WriteLine("ServiceMainCallback");
 
-            fixed (SERVICE_STATUS* status = &_status)
+            _statusHandle = RegisterServiceCtrlHandlerEx(_service.ServiceName, ServiceCommandCallbackEx, IntPtr.Zero);
+
+            //_status.currentState = ServiceControllerStatus.StartPending;
+            //_status.currentState = ServiceControllerStatus.Running;
+            if (ReportStatus(ServiceControllerStatus.StartPending, 3000))
             {
-                // 我们直接忽略传入参数 argCount/argPointer
+                //// 使用线程池启动服务Start函数，并等待信号量
+                //_startCompletedSignal = new ManualResetEvent(initialState: false);
+                //ThreadPool.QueueUserWorkItem(ServiceQueuedMainCallback, array);
+                //_startCompletedSignal.WaitOne();
+                //ServiceQueuedMainCallback(null);
 
-                _statusHandle = RegisterServiceCtrlHandlerEx(_service.ServiceName, ServiceCommandCallbackEx, IntPtr.Zero);
-
-                //_status.controlsAccepted = _acceptedCommands;
-                //if ((_status.controlsAccepted & 1) != 0)
-                //{
-                //    _status.controlsAccepted |= 4;
-                //}
-                _status.controlsAccepted = ControlsAccepted.CanStop
-                    | ControlsAccepted.CanShutdown
-                    | ControlsAccepted.CanPauseAndContinue
-                    | ControlsAccepted.CanHandlePowerEvent
-                    | ControlsAccepted.CanHandleSessionChangeEvent;
-                //_status.currentState = ServiceControllerStatus.StartPending;
-                _status.currentState = ServiceControllerStatus.Running;
-                if (SetServiceStatus(_statusHandle, status))
+                try
                 {
-                    //// 使用线程池启动服务Start函数，并等待信号量
-                    //_startCompletedSignal = new ManualResetEvent(initialState: false);
-                    //ThreadPool.QueueUserWorkItem(ServiceQueuedMainCallback, null);
-                    //_startCompletedSignal.WaitOne();
-                    //ServiceQueuedMainCallback(null);
+                    // 启动初始化
+                    _service.StartLoop();
 
-                    try
-                    {
-                        // 阻塞
-                        _service.DoLoop();
-                    }
-                    catch (Exception ex)
-                    {
-                        XTrace.WriteException(ex);
+                    ReportStatus(ServiceControllerStatus.Running);
 
-                        // 设置服务状态
-                        _status.currentState = ServiceControllerStatus.Stopped;
-                        if (!SetServiceStatus(_statusHandle, status))
-                        {
-                            XTrace.WriteLine("运行服务{0}失败，{1}", _service.ServiceName, new Win32Exception().Message);
-
-                            _status.currentState = ServiceControllerStatus.Stopped;
-                            SetServiceStatus(_statusHandle, status);
-                        }
-                    }
+                    // 阻塞
+                    _service.DoLoop();
                 }
-            }
+                catch (Exception ex)
+                {
+                    XTrace.WriteException(ex);
+                    XTrace.WriteLine("运行服务{0}失败，{1}", _service.ServiceName, new Win32Exception(Marshal.GetLastWin32Error()).Message);
+                }
 
-            //Thread.Sleep(30_000);
+                ReportStatus(ServiceControllerStatus.Stopped);
+                //XTrace.WriteLine("OK!");
+            }
         }
 
         //private ManualResetEvent _startCompletedSignal;
@@ -170,112 +152,143 @@ namespace NewLife.Agent
         //    _startCompletedSignal.Set();
         //}
 
-        private IntPtr _statusHandle;
-        private unsafe Int32 ServiceCommandCallbackEx(Int32 command, Int32 eventType, IntPtr eventData, IntPtr eventContext)
+        private Int32 ServiceCommandCallbackEx(Int32 command, Int32 eventType, IntPtr eventData, IntPtr eventContext)
         {
             XTrace.WriteLine("ServiceCommandCallbackEx(command={0}, eventType={1}, eventData={2}, eventContext={3})", command, eventType, eventData, eventContext);
 
             // Power | SessionChange
             if (command == ControlOptions.CONTROL_POWEREVENT || command == ControlOptions.CONTROL_SESSIONCHANGE) return 0;
 
-            fixed (SERVICE_STATUS* status = &_status)
+            if (command == ControlOptions.CONTROL_INTERROGATE)
             {
-                if (command == ControlOptions.CONTROL_INTERROGATE)
+                //SetServiceStatus(_statusHandle, status);
+                ReportStatus(_status.currentState);
+            }
+            else if (_status.currentState != ServiceControllerStatus.ContinuePending &&
+                _status.currentState != ServiceControllerStatus.StartPending &&
+                _status.currentState != ServiceControllerStatus.StopPending &&
+                _status.currentState != ServiceControllerStatus.PausePending)
+            {
+                switch (command)
                 {
-                    SetServiceStatus(_statusHandle, status);
-                }
-                else if (_status.currentState != ServiceControllerStatus.ContinuePending &&
-                    _status.currentState != ServiceControllerStatus.StartPending &&
-                    _status.currentState != ServiceControllerStatus.StopPending &&
-                    _status.currentState != ServiceControllerStatus.PausePending)
-                {
-                    switch (command)
-                    {
-                        //case ControlOptions.CONTROL_CONTINUE:
-                        //    if (_status.currentState == ServiceControllerStatus.Paused)
-                        //    {
-                        //        _status.currentState = ServiceControllerStatus.ContinuePending;
-                        //        SetServiceStatus(_statusHandle, status);
-                        //        //ThreadPool.QueueUserWorkItem(delegate
-                        //        //{
-                        //        //    DeferredContinue();
-                        //        //});
-                        //    }
-                        //    break;
-                        //case ControlOptions.CONTROL_PAUSE:
-                        //    if (_status.currentState == ServiceControllerStatus.Running)
-                        //    {
-                        //        _status.currentState = ServiceControllerStatus.PausePending;
-                        //        SetServiceStatus(_statusHandle, status);
-                        //        //ThreadPool.QueueUserWorkItem(delegate
-                        //        //{
-                        //        //    DeferredPause();
-                        //        //});
-                        //    }
-                        //    break;
-                        case ControlOptions.CONTROL_STOP:
-                            var currentState = _status.currentState;
-                            if (_status.currentState == ServiceControllerStatus.Paused ||
-                                _status.currentState == ServiceControllerStatus.Running)
+                    //case ControlOptions.CONTROL_CONTINUE:
+                    //    if (_status.currentState == ServiceControllerStatus.Paused)
+                    //    {
+                    //        _status.currentState = ServiceControllerStatus.ContinuePending;
+                    //        SetServiceStatus(_statusHandle, status);
+                    //        //ThreadPool.QueueUserWorkItem(delegate
+                    //        //{
+                    //        //    DeferredContinue();
+                    //        //});
+                    //    }
+                    //    break;
+                    //case ControlOptions.CONTROL_PAUSE:
+                    //    if (_status.currentState == ServiceControllerStatus.Running)
+                    //    {
+                    //        _status.currentState = ServiceControllerStatus.PausePending;
+                    //        SetServiceStatus(_statusHandle, status);
+                    //        //ThreadPool.QueueUserWorkItem(delegate
+                    //        //{
+                    //        //    DeferredPause();
+                    //        //});
+                    //    }
+                    //    break;
+                    case ControlOptions.CONTROL_STOP:
+                        if (_status.currentState == ServiceControllerStatus.Paused ||
+                            _status.currentState == ServiceControllerStatus.Running)
+                        {
+                            ReportStatus(ServiceControllerStatus.StopPending);
+                            try
                             {
-                                // 设置为StopPending，然后线程池去执行停止
-                                _status.currentState = ServiceControllerStatus.StopPending;
-                                SetServiceStatus(_statusHandle, status);
-                                _status.currentState = currentState;
-
-                                ThreadPool.QueueUserWorkItem(s => DeferredStop());
+                                _service.StopLoop();
                             }
-                            break;
-                        case ControlOptions.CONTROL_SHUTDOWN:
-                            if (_status.currentState == ServiceControllerStatus.Paused ||
-                                _status.currentState == ServiceControllerStatus.Running)
+                            catch (Exception ex)
                             {
-                                _status.checkPoint = 0;
-                                _status.waitHint = 0;
-                                _status.currentState = ServiceControllerStatus.Stopped;
-                                SetServiceStatus(_statusHandle, status);
-
-                                ThreadPool.QueueUserWorkItem(s => DeferredStop());
+                                XTrace.WriteException(ex);
                             }
-                            break;
-                        default:
-                            //ThreadPool.QueueUserWorkItem(delegate
-                            //{
-                            //    DeferredCustomCommand(command);
-                            //});
-                            SetServiceStatus(_statusHandle, status);
-                            break;
-                    }
+                            ReportStatus(ServiceControllerStatus.Stopped);
+                        }
+                        break;
+                    case ControlOptions.CONTROL_SHUTDOWN:
+                        ReportStatus(ServiceControllerStatus.StopPending);
+                        try
+                        {
+                            _service.StopLoop();
+                        }
+                        catch (Exception ex)
+                        {
+                            XTrace.WriteException(ex);
+                        }
+                        ReportStatus(ServiceControllerStatus.Stopped);
+                        break;
+                    default:
+                        //ThreadPool.QueueUserWorkItem(delegate
+                        //{
+                        //    DeferredCustomCommand(command);
+                        //});
+                        //SetServiceStatus(_statusHandle, status);
+                        break;
                 }
             }
 
             return 0;
         }
 
-        private unsafe void DeferredStop()
+        //private unsafe void DeferredStop()
+        //{
+        //    fixed (SERVICE_STATUS* status = &_status)
+        //    {
+        //        var currentState = _status.currentState;
+        //        _status.checkPoint = 0;
+        //        _status.waitHint = 0;
+        //        _status.currentState = ServiceControllerStatus.StopPending;
+        //        SetServiceStatus(_statusHandle, status);
+        //        try
+        //        {
+        //            //var source = new CancellationTokenSource();
+        //            //_service.StopAsync(source.Token);
+        //            _service.StopLoop();
+
+        //            _status.currentState = ServiceControllerStatus.Stopped;
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            XTrace.WriteException(ex);
+
+        //            _status.currentState = currentState;
+        //        }
+        //        SetServiceStatus(_statusHandle, status);
+        //    }
+        //}
+
+        private Int32 _checkPoint = 1;
+        private unsafe Boolean ReportStatus(ServiceControllerStatus state, Int32? waitHint = null)
         {
+            if (waitHint != null)
+                XTrace.WriteLine("ReportStatus {0}, {1}", state, waitHint);
+            else
+                XTrace.WriteLine("ReportStatus {0}", state);
+
             fixed (SERVICE_STATUS* status = &_status)
             {
-                var currentState = _status.currentState;
-                _status.checkPoint = 0;
-                _status.waitHint = 0;
-                _status.currentState = ServiceControllerStatus.StopPending;
-                SetServiceStatus(_statusHandle, status);
-                try
-                {
-                    //var source = new CancellationTokenSource();
-                    //_service.StopAsync(source.Token);
-                    _service.StopLoop();
+                // 开始挂起时，不接受任何命令；其它状态下允许停止
+                if (state == ServiceControllerStatus.StartPending)
+                    _status.controlsAccepted = 0;
+                else
+                    //_status.controlsAccepted = ControlsAccepted.CanStop;
+                    _status.controlsAccepted = _acceptedCommands;
 
-                    _status.currentState = ServiceControllerStatus.Stopped;
-                }
-                catch (Exception ex)
-                {
-                    XTrace.WriteException(ex);
+                // 正在运行和已经停止，检查点为0；其它状态累加检查点
+                if (state == ServiceControllerStatus.Running ||
+                    state == ServiceControllerStatus.Stopped)
+                    _status.checkPoint = 0;
+                else
+                    _status.checkPoint = _checkPoint++;
 
-                    _status.currentState = currentState;
-                }
-                SetServiceStatus(_statusHandle, status);
+                if (waitHint != null) _status.waitHint = waitHint.Value;
+                _status.currentState = state;
+
+                return SetServiceStatus(_statusHandle, status);
             }
         }
 
