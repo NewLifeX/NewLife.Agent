@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Text;
-using System.Threading;
 using NewLife.Log;
 
 namespace NewLife.Agent
@@ -36,16 +35,20 @@ namespace NewLife.Agent
         /// <param name="service"></param>
         public override void Run(ServiceBase service)
         {
-            if (service == null) throw new ArgumentNullException(nameof(service));
+            _service = service ?? throw new ArgumentNullException(nameof(service));
 
-            _service = service;
+            try
+            {
+                // 启动初始化
+                service.StartLoop();
 
-            //var source = new CancellationTokenSource();
-            //service.StartAsync(source.Token);
-
-            // 阻塞
-            //Thread.Sleep(-1);
-            service.DoLoop();
+                // 阻塞
+                service.DoLoop();
+            }
+            catch (Exception ex)
+            {
+                XTrace.WriteException(ex);
+            }
         }
 
         /// <summary>服务是否已安装</summary>

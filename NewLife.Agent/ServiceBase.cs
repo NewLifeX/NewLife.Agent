@@ -4,11 +4,13 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Security;
 using System.Threading;
 using NewLife.Log;
 using NewLife.Reflection;
 
-[assembly: RuntimeCompatibilityAttribute(WrapNonExceptionThrows = true)]
+[assembly: RuntimeCompatibility(WrapNonExceptionThrows = true)]
+[module: UnverifiableCode]
 
 namespace NewLife.Agent
 {
@@ -50,11 +52,12 @@ namespace NewLife.Agent
         /// <summary>服务主函数</summary>
         public void Main()
         {
-            MachineInfo.RegisterAsync();
+            //MachineInfo.RegisterAsync();
 
             // 以服务方式启动时，不写控制台日志
             var args = Environment.GetCommandLineArgs();
-            if (args == null || args.Length <= 1 || args[1].ToLower() != "-s")
+            //if (args == null || args.Length <= 1 || args[1].ToLower() != "-s")
+            if (Environment.UserInteractive)
                 XTrace.UseConsole();
 
             if (Host == null)
@@ -122,6 +125,12 @@ namespace NewLife.Agent
                 // 输出状态，菜单循环
                 service.ShowStatus();
                 service.ProcessMenu();
+            }
+
+            if (XTrace.Log is CompositeLog compositeLog)
+            {
+                var log = compositeLog.Get<TextFileLog>();
+                log.TryDispose();
             }
         }
 
@@ -325,12 +334,8 @@ namespace NewLife.Agent
         private AutoResetEvent _event;
         private Process _process;
         /// <summary>主循环</summary>
-        public void DoLoop()
+        internal void DoLoop()
         {
-            AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
-
-            StartWork("DoLoop");
-
             // 启动后命令，服务启动后执行的命令
             var set = Setting.Current;
             if (!set.AfterStart.IsNullOrEmpty())
@@ -369,15 +374,21 @@ namespace NewLife.Agent
                     XTrace.WriteException(ex);
                 }
 
-                //Thread.Sleep(10_000);
                 _event.WaitOne(10_000);
             }
 
             _event.Dispose();
         }
 
+        internal void StartLoop()
+        {
+            AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
+
+            StartWork("StartLoop");
+        }
+
         /// <summary>停止循环</summary>
-        public void StopLoop()
+        internal void StopLoop()
         {
             if (!_running) return;
 
@@ -410,6 +421,12 @@ namespace NewLife.Agent
         {
             StopWork("ProcessExit");
             Environment.ExitCode = 0;
+
+            if (XTrace.Log is CompositeLog compositeLog)
+            {
+                var log = compositeLog.Get<TextFileLog>();
+                log.TryDispose();
+            }
         }
 
         /// <summary>停止服务</summary>

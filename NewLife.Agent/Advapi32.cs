@@ -160,6 +160,7 @@ namespace NewLife.Agent
             public ServiceMainCallback callback;
         }
 
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         public struct SERVICE_DESCRIPTION
         {
             public String Description;
