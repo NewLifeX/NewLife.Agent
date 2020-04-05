@@ -41,6 +41,7 @@ namespace NewLife.Agent
                 _status.waitHint = 0;
 
                 // 正常运行后可接受的命令
+#if NETSTANDARD2_0
                 _acceptedCommands = ControlsAccepted.CanStop
                     | ControlsAccepted.CanShutdown
                     //| ControlsAccepted.CanPauseAndContinue
@@ -54,6 +55,11 @@ namespace NewLife.Agent
                     | ControlsAccepted.TriggerEvent
                     //| ControlsAccepted.UserModeReboot
                     ;
+#else
+                _acceptedCommands = ControlsAccepted.CanStop
+                    | ControlsAccepted.CanShutdown
+                    ;
+#endif
 
                 var result = new SERVICE_TABLE_ENTRY
                 {
