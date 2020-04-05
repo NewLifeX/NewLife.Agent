@@ -22,8 +22,6 @@ namespace NewLife.Agent
         {
             _service = service ?? throw new ArgumentNullException(nameof(service));
 
-            GetType().Assembly.WriteVersion();
-
             var num = Marshal.SizeOf(typeof(SERVICE_TABLE_ENTRY));
             var table = Marshal.AllocHGlobal((IntPtr)((1 + 1) * num));
             var handleName = Marshal.StringToHGlobalUni(service.ServiceName);

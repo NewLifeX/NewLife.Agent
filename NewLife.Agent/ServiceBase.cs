@@ -58,8 +58,8 @@ namespace NewLife.Agent
 
             // 以服务方式启动时，不写控制台日志
             var args = Environment.GetCommandLineArgs();
-            //if (args == null || args.Length <= 1 || args[1].ToLower() != "-s")
-            if (Environment.UserInteractive)
+            var isService = !(args == null || args.Length <= 1 || args[1].ToLower() != "-s");
+            if (!isService)
                 XTrace.UseConsole();
 
             if (Host == null)
@@ -73,19 +73,22 @@ namespace NewLife.Agent
             var service = this;
             service.Log = XTrace.Log;
 
-            // 初始化配置
             var set = Setting.Current;
-            if (set.ServiceName.IsNullOrEmpty()) set.ServiceName = service.ServiceName;
-            if (set.DisplayName.IsNullOrEmpty()) set.DisplayName = service.DisplayName;
-            if (set.Description.IsNullOrEmpty()) set.Description = service.Description;
+            if (!isService)
+            {
+                // 初始化配置
+                if (set.ServiceName.IsNullOrEmpty()) set.ServiceName = service.ServiceName;
+                if (set.DisplayName.IsNullOrEmpty()) set.DisplayName = service.DisplayName;
+                if (set.Description.IsNullOrEmpty()) set.Description = service.Description;
 
-            // 从程序集构造配置
-            var asm = AssemblyX.Entry;
-            if (set.ServiceName.IsNullOrEmpty()) set.ServiceName = asm.Name;
-            if (set.DisplayName.IsNullOrEmpty()) set.DisplayName = asm.Title;
-            if (set.Description.IsNullOrEmpty()) set.Description = asm.Description;
+                // 从程序集构造配置
+                var asm = AssemblyX.Entry;
+                if (set.ServiceName.IsNullOrEmpty()) set.ServiceName = asm.Name;
+                if (set.DisplayName.IsNullOrEmpty()) set.DisplayName = asm.Title;
+                if (set.Description.IsNullOrEmpty()) set.Description = asm.Description;
 
-            set.Save();
+                set.Save();
+            }
 
             // 用配置覆盖
             service.ServiceName = set.ServiceName;
@@ -338,6 +341,8 @@ namespace NewLife.Agent
         /// <summary>主循环</summary>
         internal void DoLoop()
         {
+            GetType().Assembly.WriteVersion();
+
             // 启动后命令，服务启动后执行的命令
             var set = Setting.Current;
             if (!set.AfterStart.IsNullOrEmpty())
