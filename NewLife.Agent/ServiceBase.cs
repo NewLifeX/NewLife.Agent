@@ -346,11 +346,17 @@ namespace NewLife.Agent
             {
                 try
                 {
-                    var file = set.AfterStart.Substring(null, " ");
-                    var args = set.AfterStart.Substring(" ", null);
+                    var file = set.AfterStart;
+                    var args = "";
+                    var p = file.IndexOf(" ");
+                    if (p > 0)
+                    {
+                        args = file.Substring(p + 1);
+                        file = file.Substring(0, p);
+                    }
                     WriteLog("启动后执行：FileName={0} Args={1}", file, args);
 
-                    var si = new ProcessStartInfo(file, args)
+                    var si = new ProcessStartInfo(file.GetFullPath(), args)
                     {
                         WorkingDirectory = ".".GetFullPath()
                     };

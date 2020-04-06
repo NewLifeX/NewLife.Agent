@@ -7,7 +7,7 @@
     <Description>应用程序注册为系统服务，支持Windows/Linux</Description>
     <Company>新生命开发团队</Company>
     <Copyright>©2002-2020 NewLife</Copyright>
-    <Version>8.7.2020.0403</Version>
+    <Version>8.7.2020.0407-beta</Version>
     <FileVersion>8.7.2020.0403</FileVersion>
     <AssemblyVersion>8.7.*</AssemblyVersion>
     <Deterministic>false</Deterministic>
