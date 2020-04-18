@@ -1,13 +1,40 @@
-![XCode](https://www.newlifex.com/logo.png)
-新生命团队基础框架X组件，包括`算法、日志、数据库、网络、RPC、序列化、缓存、Windows服务、多线程`等模块，支持`.Net Framework/.netstandard/Mono`。
+# 服务管理NewLife.Agent
 
-2002~2020，成千上万兄弟姐妹们努力的见证！  
+# 功能特点
+NewLife.Agent是一个服务管理框架，用于开发随系统自动启动的长时间运行后台应用程序，支持Windows/Linux。  
+在Windows上注册为Windows服务，在Linux上注册为Systemd守护进程。  
+Agent支持`netstandard2.0/net45/net40/mono`，旧版本还支持net20（已不再维护）。  
+源码库：[https://github.com/NewLifeX/NewLife.Agent](https://github.com/NewLifeX/NewLife.Agent)  
 
-国内文档中心：[http://doc.newlifex.com/](http://doc.newlifex.com/)  
-国外文档中心：[https://newlifex.github.io/XDoc/](https://newlifex.github.io/XDoc/)  
+Agent常用于各种后台应用，如aspnetcore应用、RPC网络服务器、MQTT服务器、数据处理应用、数据消费应用（Redis/RocketMQ）等。同类软件有 NSSM、srvany，但并不一样，Agent是框架，而它们是具体软件，更像星尘代理 StarAgent。  
 
-找到Agent查询和停止服务时报错的根本原因了！  
-windows服务启动，在ServiceMain正式进入running之前，不允许调用任何WinApi函数，否则主线程会“自残”，尽管服务能启动起来，但后续任意操作都会失败！  
+NewLife.Agent主要功能：  
+1. 注册应用为系统服务或守护进程，随系统自动启动
+1. 支持控制台菜单控制安装、卸载、启动、停止，以及查看状态
+1. 支持控制台调试应用，解决Windows服务难以调试的问题
+1. 支持健康检测，限制内存、线程数、句柄数，超限时重启应用服务
+1. 支持应用服务定时重启，通过配置指定
+1. 支持看门狗WatchDog，通过配置指定要守护的目标应用服务，如果目标停止则启动
+1. 支持配置文件修改服务名，一个应用程序可在多个目录上部署为不同的系统服务
+
+# 服务控制
+一个服务代理示例跑起来的样子  
+![image.png](https://cdn.nlark.com/yuque/0/2020/png/1144030/1585307461258-ca6e7880-b2ef-4d87-aed7-35bace08a149.png#align=left&display=inline&height=202&name=image.png&originHeight=404&originWidth=926&size=60071&status=done&style=none&width=463)  
+![image.png](https://cdn.nlark.com/yuque/0/2020/png/1144030/1585547897654-f6b570c5-cbfd-4f4e-86c2-a9d711a53c58.png#align=left&display=inline&height=207&name=image.png&originHeight=414&originWidth=1129&size=60665&status=done&style=none&width=564.5)  
+这是Agent的标准控制台（Windows和Centos）。上面是该服务的状态信息，下面是控制菜单。  
+示例分析：  
+- 服务名 XAgent/StarAgent，可以命令启动停止，Windows是`net start XAgent/net stop XAgent`，Linux是`systemctl start StarAgent/systemctl stop StarAgent`。
+- 显示名“新生命服务代理”是在windows服务控制板里面看到的名字
+- 下一段信息给出了NewLife.Agent和当前应用的版本信息和编译时间
+- 黄色菜单可通过按键选择相应操作，内置012345，可自定义其它按键操作
+- 菜单1，显示状态，按下1后刷新状态信息
+- 菜单2，安装服务或卸载服务，安装成功后，显示信息变为卸载服务，反之亦然
+- 菜单3，启动服务或停止服务，安装后才可以看见
+- 菜单4，重启服务，安装且运行后可以看见
+- 菜单5，循环调试，在当前进程启动应用主逻辑，用于业务逻辑调试，等同于Windows服务调用
+- 菜单0，退出应用服务
+
+**！！！注意，服务安装、卸载、启动、停止，在Windows上需要管理员权限运行**  
 
 ## 新生命开源项目矩阵
 各项目默认支持netstandard2.0/net4.5/net4.0/  
@@ -19,6 +46,7 @@ windows服务启动，在ServiceMain正式进入running之前，不允许调用�
 |              [XCode](https://github.com/NewLifeX/X)              | 2005  | 维护中 |     √     | 数据中间件，MySQL、SQLite、SqlServer、Oracle       |
 |      [NewLife.Net](https://github.com/NewLifeX/NewLife.Net)      | 2005  | 维护中 |     √     | 网络库，千万级吞吐率，学习gRPC、Thrift             |
 |     [NewLife.Cube](https://github.com/NewLifeX/NewLife.Cube)     | 2010  | 维护中 |     √     | Web魔方，权限基础框架，集成OAuth                   |
+|    [NewLife.Agent](https://github.com/NewLifeX/NewLife.Agent)    | 2008  | 维护中 |     √     | 服务管理框架，Windows服务、Linux的Systemd          |
 |                              中间件                              |       |        |           | 对接各知名中间件平台                               |
 |    [NewLife.Redis](https://github.com/NewLifeX/NewLife.Redis)    | 2017  | 维护中 |     √     | Redis客户端，微秒级延迟，百亿级项目验证            |
 | [NewLife.RocketMQ](https://github.com/NewLifeX/NewLife.RocketMQ) | 2018  | 维护中 |     √     | 支持Apache RocketMQ和阿里云消息队列                |
@@ -47,53 +75,9 @@ windows服务启动，在ServiceMain正式进入running之前，不允许调用�
 |       [X组件 .NET2.0](https://github.com/NewLifeX/X_NET20)       | 2002  | 存档中 |  .NET2.0  | 日志、网络、RPC、序列化、缓存、Windows服务、多线程 |
 |       [X组件 .NET4.0](https://github.com/NewLifeX/X_NET40)       | 2002  | 存档中 |  .NET4.0  | 日志、网络、RPC、序列化、缓存、Windows服务、多线程 |
 
-## 组件各组成部分
-### 核心库 NewLife.Core
-核心组件，支撑其它所有组件。
-主要功能包括：
-+ **[日志]** 统一ILog接口，内置控制台、文本文件、WinForm控件和网络日志等实现
-+ **[网络]** 单点最高84.5万长连接
-+ **[RPC]** 单点最高处理能力2256万tps
-+ **[缓存]** 统一ICache接口，内置MemoryCache、Redis、DbCache实现
-+ **[安全]** AES/DES/RC4/RSA/DSA/CRC
-+ **[多线程]** 定时调度TimerX
-+ **[反射]** 快速反射、脚本引擎ScriptEngine
-+ **[序列化]** Binary/Json/Xml
-+ **[服务代理]** Windows服务、守护、监控
-
-[日志]:https://github.com/NewLifeX/X/tree/master/NewLife.Core/Log
-[网络]:https://github.com/NewLifeX/X/tree/master/NewLife.Core/Net
-[RPC]:https://github.com/NewLifeX/X/tree/master/NewLife.Core/Remoting
-[缓存]:https://github.com/NewLifeX/X/tree/master/NewLife.Core/Caching
-[安全]:https://github.com/NewLifeX/X/tree/master/NewLife.Core/Security
-[多线程]:https://github.com/NewLifeX/X/tree/master/NewLife.Core/Threading
-[反射]:https://github.com/NewLifeX/X/tree/master/NewLife.Core/Reflection
-[序列化]:https://github.com/NewLifeX/X/tree/master/NewLife.Core/Serialization
-[服务代理]:https://github.com/NewLifeX/X/tree/master/NewLife.Core/Agent
-
-### 数据中间件 [NewLife.XCode]
-[NewLife.XCode](https://github.com/NewLifeX/X/tree/master/XCode)主要特点：
-1，设计极致的缓存，超高性能
-2，反向工程，根据实体类主动建立数据库表结构并初始化数据，支持8种数据库
-3，无限分表分库，支持任意数据库，无需修改业务代码
-
-
-## 未来路线图
-1. [x] [魔方netcore版](https://github.com/NewLifeX/NewLife.Cube)。需要尽快推出，其它所有组件都已经支持netcore
-2. [x] 产品级反向代理[XProxy](https://github.com/NewLifeX/XProxy)。一个XProxy服务支持多组反向代理设置，支持数据库和远程桌面等，netcore版，Web管理得等netcore魔方。比较简单，可以尽快完成。
-3. [ ] 产品级分布式服务代理[XAgent](https://github.com/NewLifeX/XAgent)。XAgent.exe安装到各个Windows/Linux节点并注册成为服务，控制中心推送应用包到个节点，由XAgent启动并负责监管。工程量大，预计年底开工。
-4. [x] ApiServer支持http协议。ApiServer在Linux上大量使用，验证了它的可靠性和性能，如果能够直接支持http协议，即可在一定程度上替代WebApi，避免维护两套系统。
-5. [ ] ApiServer支持非标协议。标准协议是4字节头部，为了在物联网领域得到扩大，有必要支持非标协议。工作量不小，需要考虑的东西挺多。
-6. [ ] 发布[NewLife.MySql](https://github.com/NewLifeX/NewLife.MySql)驱动。现在官方新版MySql驱动用起来还不错，自己的驱动倒是动力不强了，慢慢推进吧。
-7. [ ] 发布NoDb数据库。至今为止最期待的大数据存储方案，各种算法，比较伤脑细胞。
-8. [x] 开源[NewLife.Redis](https://github.com/NewLifeX/NewLife.Redis)。实现更多的Redis命令，列表、哈希字典等。比较简单，可以尽快搞定
-9. [ ] 开源NewLife.Kafka。封装Apache官方驱动，实现生产消费接口IProducerConsumer。比较简单，尽快
-10. [x] 升级[NewLife.Cache](https://github.com/NewLifeX/NewLife.Cache)。CacheServer/CacheClient由Json协议改为二进制协议，以获取极致性能。不太难
-11. [x] 开源[NewLife.RocketMQ](https://github.com/NewLifeX/NewLife.RocketMQ)。实现发布消息、消费消息、负载均衡，支持Apache RocketMQ和阿里云消息队列
-
 #### 新生命开发团队
 `新生命团队始于2002年，部分开源项目具有15年以上漫长历史，源码库保留有2010年以来所有修改记录，并一直保持更新，请确保获取得到最新版本源代码`  
-网站：http://www.NewLifeX.com  
+网站：https://www.NewLifeX.com  
 开源：https://github.com/NewLifeX  
 博客：https://nnhy.cnblogs.com  
 QQ群：1600800/1600838  
