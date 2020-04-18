@@ -1,4 +1,5 @@
 # 服务管理NewLife.Agent
+使用教程：[https://www.yuque.com/smartstone/nx/agent](https://www.yuque.com/smartstone/nx/agent)  
 
 # 功能特点
 NewLife.Agent是一个服务管理框架，用于开发随系统自动启动的长时间运行后台应用程序，支持Windows/Linux。  
