@@ -152,7 +152,9 @@ namespace NewLife.Agent
 
         private Int32 ServiceCommandCallbackEx(ControlOptions command, Int32 eventType, IntPtr eventData, IntPtr eventContext)
         {
-            if (command != ControlOptions.PowerEvent && command != ControlOptions.SessionChange)
+            if (command != ControlOptions.PowerEvent &&
+                command != ControlOptions.SessionChange &&
+                command != ControlOptions.Interrogate)
                 XTrace.WriteLine("ServiceCommandCallbackEx(command={0}, eventType={1}, eventData={2:x}, eventContext={3:x})", command, eventType, eventData, eventContext);
 
             switch (command)
