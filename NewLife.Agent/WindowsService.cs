@@ -2,7 +2,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Threading;
 using NewLife.Log;
 using NewLife.Threading;
 using static NewLife.Agent.Advapi32;
@@ -19,6 +18,8 @@ namespace NewLife.Agent
         private SERVICE_STATUS _status;
         private ControlsAccepted _acceptedCommands;
         private IntPtr _statusHandle;
+        private SERVICE_TABLE_ENTRY _table;
+        private ServiceControlCallbackEx _commandHandler;
 
         /// <summary>开始执行服务</summary>
         /// <param name="service"></param>
@@ -61,12 +62,13 @@ namespace NewLife.Agent
                     ;
 #endif
 
-                var result = new SERVICE_TABLE_ENTRY
+                //!!! 函数委托必须引着，避免GC回收导致PInvoke内部报错
+                _table = new SERVICE_TABLE_ENTRY
                 {
                     callback = ServiceMainCallback,
                     name = handleName
                 };
-                Marshal.StructureToPtr(result, table, true);
+                Marshal.StructureToPtr(_table, table, true);
 
                 var result2 = new SERVICE_TABLE_ENTRY
                 {
@@ -110,7 +112,9 @@ namespace NewLife.Agent
         [EditorBrowsable(EditorBrowsableState.Never)]
         private void ServiceMainCallback(Int32 argCount, IntPtr argPointer)
         {
-            _statusHandle = RegisterServiceCtrlHandlerEx(_service.ServiceName, ServiceCommandCallbackEx, IntPtr.Zero);
+            //!!! 函数委托必须引着，避免GC回收导致PInvoke内部报错
+            _commandHandler = ServiceCommandCallbackEx;
+            _statusHandle = RegisterServiceCtrlHandlerEx(_service.ServiceName, _commandHandler, IntPtr.Zero);
 
             if (ReportStatus(ServiceControllerStatus.StartPending, 3000))
             {
@@ -160,7 +164,7 @@ namespace NewLife.Agent
             switch (command)
             {
                 case ControlOptions.Interrogate:
-                    ReportStatus(_status.currentState);
+                    ReportStatus(_status.currentState, 0, false);
                     break;
                 case ControlOptions.Stop:
                 case ControlOptions.Shutdown:
@@ -200,12 +204,15 @@ namespace NewLife.Agent
         }
 
         private Int32 _checkPoint = 1;
-        private unsafe Boolean ReportStatus(ServiceControllerStatus state, Int32 waitHint = 0)
+        private unsafe Boolean ReportStatus(ServiceControllerStatus state, Int32 waitHint = 0, Boolean showLog = true)
         {
-            if (waitHint > 0)
-                XTrace.WriteLine("ReportStatus {0}, {1}", state, waitHint);
-            else
-                XTrace.WriteLine("ReportStatus {0}", state);
+            if (showLog)
+            {
+                if (waitHint > 0)
+                    XTrace.WriteLine("ReportStatus {0}, {1}", state, waitHint);
+                else
+                    XTrace.WriteLine("ReportStatus {0}", state);
+            }
 
             fixed (SERVICE_STATUS* status = &_status)
             {
