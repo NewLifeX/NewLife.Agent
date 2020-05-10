@@ -88,7 +88,7 @@ namespace NewLife.Agent
             var file = _path.CombinePath($"{serviceName}.service");
             XTrace.WriteLine(file);
 
-            var asm = Assembly.GetEntryAssembly();
+            //var asm = Assembly.GetEntryAssembly();
             var des = !displayName.IsNullOrEmpty() ? displayName : description;
 
             var sb = new StringBuilder();
@@ -159,7 +159,11 @@ namespace NewLife.Agent
         {
             if (writeLog) XTrace.WriteLine("{0} {1}", cmd, arguments);
 
-            var psi = new ProcessStartInfo(cmd, arguments) { RedirectStandardOutput = true };
+            var psi = new ProcessStartInfo(cmd, arguments)
+            {
+                UseShellExecute = false,
+                RedirectStandardOutput = true
+            };
             var process = Process.Start(psi);
             if (!process.WaitForExit(3_000))
             {

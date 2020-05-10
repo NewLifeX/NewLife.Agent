@@ -458,13 +458,16 @@ namespace NewLife.Agent
 
             // 兼容dotnet
             var args = Environment.GetCommandLineArgs();
-            if (args.Length >= 1 && Path.GetFileName(exe).EqualIgnoreCase("dotnet", "dotnet.exe"))
-                exe += " " + args[0].GetFullPath();
-            //else
-            //    exe = exe.GetFullPath();
+            if (args.Length >= 1)
+            {
+                var fileName = Path.GetFileName(exe);
+                if (fileName.EqualIgnoreCase("dotnet", "dotnet.exe"))
+                    exe += " " + args[0].GetFullPath();
+                else if (fileName.EqualIgnoreCase("mono", "mono.exe", "mono-sgen"))
+                    exe = args[0].GetFullPath();
+            }
 
             var bin = $"{exe} -s";
-            //RunSC($"create {name} BinPath= \"{bin}\" start= auto DisplayName= \"{svc.DisplayName}\"");
 
             Host.Install(ServiceName, DisplayName, bin, Description);
         }
