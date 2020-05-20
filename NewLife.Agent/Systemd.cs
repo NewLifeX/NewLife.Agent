@@ -44,6 +44,9 @@ namespace NewLife.Agent
 
                 // 阻塞
                 service.DoLoop();
+
+                // 停止
+                service.StopLoop();
             }
             catch (Exception ex)
             {
