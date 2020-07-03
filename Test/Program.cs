@@ -9,7 +9,7 @@ namespace Test
         {
             Environment.SetEnvironmentVariable("DOTNET_SYSTEM_GLOBALIZATION_INVARIANT", "1");
 
-            var svc = new MyXService();
+            var svc = new MyServices();
             svc.Main(args);
         }
     }
