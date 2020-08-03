@@ -60,7 +60,7 @@ namespace NewLife.Agent
 
             // 以服务方式启动时，不写控制台日志
             if (args == null) args = Environment.GetCommandLineArgs();
-            var isService = args != null && args.Length > 0 || args.Contains("-s");
+            var isService = args != null && args.Length > 0 && args.Contains("-s");
             if (!isService)
                 XTrace.UseConsole();
 
@@ -118,6 +118,11 @@ namespace NewLife.Agent
                         break;
                     case "-restart":
                         Host.Restart(name);
+                        break;
+                    case "-run":
+                        StartLoop();
+                        DoLoop();
+                        StopLoop();
                         break;
                 }
                 #endregion
@@ -439,6 +444,9 @@ namespace NewLife.Agent
                 var log = compositeLog.Get<TextFileLog>();
                 log.TryDispose();
             }
+
+            _running = false;
+            _event?.Set();
         }
 
         /// <summary>停止服务</summary>

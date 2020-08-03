@@ -34,8 +34,8 @@ namespace Test
 
             // 5秒开始，每60秒执行一次
             _timer = new TimerX(DoWork, null, 5_000, 60_000) { Async = true };
-            // 每天凌晨执行一次
-            _timer2 = new TimerX(DoWork, null, DateTime.Today, 24 * 3600 * 1000) { Async = true };
+            // 每天凌晨2点13分执行一次
+            _timer2 = new TimerX(DoWork, null, DateTime.Today.AddMinutes(2 * 60 + 13), 24 * 3600 * 1000) { Async = true };
 
             base.StartWork(reason);
         }
