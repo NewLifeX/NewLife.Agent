@@ -129,7 +129,7 @@ namespace NewLife.Agent
             }
             else
             {
-                Console.Title = service.DisplayName;
+                if (!service.DisplayName.IsNullOrEmpty()) Console.Title = service.DisplayName;
 
                 // 输出状态，菜单循环
                 service.ShowStatus();
