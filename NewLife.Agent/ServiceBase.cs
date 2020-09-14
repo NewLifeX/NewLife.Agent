@@ -124,6 +124,11 @@ namespace NewLife.Agent
                         DoLoop();
                         StopLoop();
                         break;
+                    default:
+                        // 快速调用自定义菜单
+                        if (cmd.Length == 2 && cmd[0] == '-' && _Menus.TryGetValue(cmd[1], out var menu)) 
+                            menu.Callback();
+                        break;
                 }
                 #endregion
             }
