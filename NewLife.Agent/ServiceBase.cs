@@ -131,6 +131,8 @@ namespace NewLife.Agent
                         break;
                 }
                 #endregion
+
+                ProcessCommand(args);
             }
             else
             {
@@ -341,6 +343,10 @@ namespace NewLife.Agent
                 Callback = callback;
             }
         }
+
+        /// <summary>处理命令</summary>
+        /// <param name="args"></param>
+        protected virtual void ProcessCommand(String[] args) { }
         #endregion
 
         #region 服务控制
