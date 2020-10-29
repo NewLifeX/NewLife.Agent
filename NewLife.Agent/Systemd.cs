@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
-using System.Reflection;
 using System.Text;
 using NewLife.Log;
 
@@ -10,8 +9,14 @@ namespace NewLife.Agent
     /// <summary>Linux版进程守护</summary>
     public class Systemd : Host
     {
-        private String _path;
+        private readonly String _path;
         private ServiceBase _service;
+
+        /// <summary>用于执行服务的用户</summary>
+        public String User { get; set; }
+
+        /// <summary>用于执行服务的用户组</summary>
+        public String Group { get; set; }
 
         /// <summary>实例化</summary>
         public Systemd()
@@ -86,9 +91,46 @@ namespace NewLife.Agent
         /// <returns></returns>
         public override Boolean Install(String serviceName, String displayName, String binPath, String description)
         {
-            XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", GetType().Name, serviceName, displayName, binPath, description);
+            if (User.IsNullOrEmpty())
+            {
+                // 从命令行参数加载用户设置 -user
+                var args = Environment.GetCommandLineArgs();
+                if (args.Length >= 1)
+                {
+                    for (var i = 0; i < args.Length; i++)
+                    {
+                        if (args[i].EqualIgnoreCase("-user") && i + 1 < args.Length)
+                        {
+                            User = args[i + 1];
+                            break;
+                        }
+                        if (args[i].EqualIgnoreCase("-group") && i + 1 < args.Length)
+                        {
+                            Group = args[i + 1];
+                            break;
+                        }
+                    }
+                    if (!User.IsNullOrEmpty() && Group.IsNullOrEmpty()) Group = User;
+                }
+            }
 
-            var file = _path.CombinePath($"{serviceName}.service");
+            return Install(_path, serviceName, displayName, binPath, description, User, Group);
+        }
+
+        /// <summary>安装服务</summary>
+        /// <param name="systemdPath">systemd目录有</param>
+        /// <param name="serviceName">服务名</param>
+        /// <param name="displayName">显示名</param>
+        /// <param name="binPath">文件路径</param>
+        /// <param name="description">描述信息</param>
+        /// <param name="user">用户</param>
+        /// <param name="group">用户组</param>
+        /// <returns></returns>
+        public static Boolean Install(String systemdPath, String serviceName, String displayName, String binPath, String description, String user, String group)
+        {
+            XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", typeof(Systemd).Name, serviceName, displayName, binPath, description);
+
+            var file = systemdPath.CombinePath($"{serviceName}.service");
             XTrace.WriteLine(file);
 
             //var asm = Assembly.GetEntryAssembly();
@@ -104,6 +146,8 @@ namespace NewLife.Agent
             //sb.AppendLine($"ExecStart=/usr/bin/dotnet {asm.Location}");
             sb.AppendLine($"ExecStart={binPath}");
             sb.AppendLine($"WorkingDirectory={".".GetFullPath()}");
+            if (!user.IsNullOrEmpty()) sb.AppendLine($"User={user}");
+            if (!group.IsNullOrEmpty()) sb.AppendLine($"Group={group}");
             sb.AppendLine("Restart=on-failure");
 
             sb.AppendLine();
