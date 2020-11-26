@@ -36,6 +36,16 @@ namespace NewLife.Agent
         /// <summary>初始化</summary>
         public ServiceBase()
         {
+            //#if NETSTANDARD2_0
+            //MachineInfo.RegisterAsync();
+            //#endif
+
+            // 以服务方式启动时，不写控制台日志
+            var args = Environment.GetCommandLineArgs();
+            var isService = args != null && args.Length > 0 && args.Contains("-s");
+            if (!isService)
+                XTrace.UseConsole();
+
         }
 
         /// <summary>销毁</summary>
@@ -54,15 +64,7 @@ namespace NewLife.Agent
         /// <param name="args"></param>
         public void Main(String[] args)
         {
-            //#if NETSTANDARD2_0
-            //MachineInfo.RegisterAsync();
-            //#endif
-
-            // 以服务方式启动时，不写控制台日志
             if (args == null) args = Environment.GetCommandLineArgs();
-            var isService = args != null && args.Length > 0 && args.Contains("-s");
-            if (!isService)
-                XTrace.UseConsole();
 
             if (Host == null)
             {
@@ -87,12 +89,12 @@ namespace NewLife.Agent
             if (set.DisplayName.IsNullOrEmpty()) set.DisplayName = asm.Title;
             if (set.Description.IsNullOrEmpty()) set.Description = asm.Description;
 
-            set.Save();
-
             // 用配置覆盖
             service.ServiceName = set.ServiceName;
             service.DisplayName = set.DisplayName;
             service.Description = set.Description;
+
+            set.Save();
 
             if (args.Length > 0)
             {
@@ -126,7 +128,7 @@ namespace NewLife.Agent
                         break;
                     default:
                         // 快速调用自定义菜单
-                        if (cmd.Length == 2 && cmd[0] == '-' && _Menus.TryGetValue(cmd[1], out var menu)) 
+                        if (cmd.Length == 2 && cmd[0] == '-' && _Menus.TryGetValue(cmd[1], out var menu))
                             menu.Callback();
                         break;
                 }
