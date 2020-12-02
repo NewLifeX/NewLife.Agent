@@ -160,8 +160,8 @@ namespace NewLife.Agent
             // sudo systemctl enable StarAgent
             // sudo systemctl start StarAgent
 
-            Execute("systemctl", "daemon-reload");
-            Execute("systemctl", $"enable {serviceName}");
+            Process.Start("systemctl", "daemon-reload");
+            Process.Start("systemctl", $"enable {serviceName}");
             //Execute("systemctl", $"start {serviceName}");
 
             return true;
@@ -183,24 +183,16 @@ namespace NewLife.Agent
         /// <summary>启动服务</summary>
         /// <param name="serviceName">服务名</param>
         /// <returns></returns>
-        public override Boolean Start(String serviceName) => Execute("systemctl", $"start {serviceName}") != null;
+        public override Boolean Start(String serviceName) => Process.Start("systemctl", $"start {serviceName}") != null;
 
         /// <summary>停止服务</summary>
         /// <param name="serviceName">服务名</param>
         /// <returns></returns>
-        public override Boolean Stop(String serviceName) => Execute("systemctl", $"stop {serviceName}") != null;
+        public override Boolean Stop(String serviceName) => Process.Start("systemctl", $"stop {serviceName}") != null;
 
         /// <summary>重启服务</summary>
         /// <param name="serviceName">服务名</param>
-        public override Boolean Restart(String serviceName)
-        {
-            XTrace.WriteLine("{0}.Stop {1}", GetType().Name, serviceName);
-
-            var cmd = $"systemctl stop {serviceName} && systemctl start {serviceName}";
-            Process.Start(cmd);
-
-            return true;
-        }
+        public override Boolean Restart(String serviceName) => Process.Start("systemctl", $"restart {serviceName}") != null;
 
         private static String Execute(String cmd, String arguments, Boolean writeLog = true)
         {
