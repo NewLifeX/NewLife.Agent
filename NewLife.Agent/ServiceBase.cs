@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Security;
 using System.Threading;
+using System.Threading.Tasks;
 using NewLife.Log;
 using NewLife.Reflection;
 
@@ -43,9 +44,7 @@ namespace NewLife.Agent
             // 以服务方式启动时，不写控制台日志
             var args = Environment.GetCommandLineArgs();
             var isService = args != null && args.Length > 0 && args.Contains("-s");
-            if (!isService)
-                XTrace.UseConsole();
-
+            if (!isService) XTrace.UseConsole();
         }
 
         /// <summary>销毁</summary>
@@ -414,7 +413,10 @@ namespace NewLife.Agent
 
             GetType().Assembly.WriteVersion();
 
-            StartWork("StartLoop");
+            //StartWork("StartLoop");
+
+            var task = Task.Factory.StartNew(() => StartWork("StartLoop"));
+            if (!task.Wait(3_000)) XTrace.WriteLine("服务启动函数StartWork耗时过长，建议优化，StartWork应该避免阻塞操作！");
         }
 
         /// <summary>停止循环</summary>
@@ -441,10 +443,6 @@ namespace NewLife.Agent
         protected virtual void StartWork(String reason)
         {
             WriteLog("服务启动 {0}", reason);
-
-            //if (_Timer == null) AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
-
-            //_Timer = new TimerX(DoCheck, null, 10_000, 10_000, "AM") { Async = true };
         }
 
         private void OnProcessExit(Object sender, EventArgs e)
@@ -466,10 +464,6 @@ namespace NewLife.Agent
         /// <param name="reason"></param>
         protected virtual void StopWork(String reason)
         {
-            //if (_Timer != null) AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
-            //_Timer.TryDispose();
-            //_Timer = null;
-
             WriteLog("服务停止 {0}", reason);
         }
 
@@ -506,8 +500,6 @@ namespace NewLife.Agent
         #endregion
 
         #region 服务维护
-        //private TimerX _Timer;
-
         /// <summary>服务管理线程封装</summary>
         /// <param name="data"></param>
         protected virtual void DoCheck(Object data)
