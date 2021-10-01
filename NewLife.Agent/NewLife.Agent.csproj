@@ -7,8 +7,8 @@
     <Description>应用程序注册为系统服务，支持Windows/Linux</Description>
     <Company>新生命开发团队</Company>
     <Copyright>©2002-2021 NewLife</Copyright>
-    <Version>8.7.2021.0708</Version>
-    <FileVersion>8.7.2021.0708</FileVersion>
+    <Version>8.7.2021.1001</Version>
+    <FileVersion>8.7.2021.1001</FileVersion>
     <AssemblyVersion>8.7.*</AssemblyVersion>
     <Deterministic>false</Deterministic>
     <OutputPath>..\..\Bin</OutputPath>
@@ -64,6 +64,6 @@
     <Content Include="..\Doc\leaf.png" Link="leaf.png" PackagePath="\" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="NewLife.Core" Version="8.10.2021.708" />
+    <PackageReference Include="NewLife.Core" Version="8.11.2021.1001" />
   </ItemGroup>
 </Project>
