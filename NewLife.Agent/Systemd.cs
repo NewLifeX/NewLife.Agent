@@ -10,7 +10,7 @@ namespace NewLife.Agent
     public class Systemd : Host
     {
         private readonly String _path;
-        private ServiceBase _service;
+        //private ServiceBase _service;
 
         /// <summary>用于执行服务的用户</summary>
         public String User { get; set; }
@@ -40,7 +40,10 @@ namespace NewLife.Agent
         /// <param name="service"></param>
         public override void Run(ServiceBase service)
         {
-            _service = service ?? throw new ArgumentNullException(nameof(service));
+            if (service == null) throw new ArgumentNullException(nameof(service));
+
+            // 以服务运行
+            InService = true;
 
             try
             {
@@ -192,7 +195,13 @@ namespace NewLife.Agent
 
         /// <summary>重启服务</summary>
         /// <param name="serviceName">服务名</param>
-        public override Boolean Restart(String serviceName) => Process.Start("systemctl", $"restart {serviceName}") != null;
+        public override Boolean Restart(String serviceName)
+        {
+            if (InService)
+                return Process.Start("systemctl", $"restart {serviceName}") != null;
+            else
+                return Process.Start(Service.GetExeName(), "-run -delay") != null;
+        }
 
         private static String Execute(String cmd, String arguments, Boolean writeLog = true)
         {

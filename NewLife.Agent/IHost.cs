@@ -53,6 +53,16 @@ namespace NewLife.Agent
     /// <summary>服务主机。用于管理控制服务</summary>
     public abstract class Host : DisposeBase, IHost
     {
+        /// <summary>
+        /// 主服务
+        /// </summary>
+        public ServiceBase Service { get; set; }
+
+        /// <summary>
+        /// 是否以服务形式运行
+        /// </summary>
+        public Boolean InService { get; set; }
+
         /// <summary>服务是否已安装</summary>
         /// <param name="serviceName">服务名</param>
         /// <returns></returns>

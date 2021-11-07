@@ -14,7 +14,7 @@ namespace NewLife.Agent
     /// </remarks>
     public class WindowsService : Host
     {
-        private ServiceBase _service;
+        //private ServiceBase _service;
         private SERVICE_STATUS _status;
         private ControlsAccepted _acceptedCommands;
         private IntPtr _statusHandle;
@@ -25,7 +25,10 @@ namespace NewLife.Agent
         /// <param name="service"></param>
         public override void Run(ServiceBase service)
         {
-            _service = service ?? throw new ArgumentNullException(nameof(service));
+            if (service == null) throw new ArgumentNullException(nameof(service));
+
+            // 以服务运行
+            InService = true;
 
             var num = Marshal.SizeOf(typeof(SERVICE_TABLE_ENTRY));
             var table = Marshal.AllocHGlobal((IntPtr)((1 + 1) * num));
@@ -97,7 +100,7 @@ namespace NewLife.Agent
             catch (Exception ex)
             {
                 XTrace.WriteException(ex);
-                XTrace.WriteLine("运行服务 {0} 出错，{1}", _service.ServiceName, new Win32Exception(Marshal.GetLastWin32Error()).Message);
+                XTrace.WriteLine("运行服务 {0} 出错，{1}", Service.ServiceName, new Win32Exception(Marshal.GetLastWin32Error()).Message);
             }
             finally
             {
@@ -114,7 +117,7 @@ namespace NewLife.Agent
         {
             //!!! 函数委托必须引着，避免GC回收导致PInvoke内部报错
             _commandHandler = ServiceCommandCallbackEx;
-            _statusHandle = RegisterServiceCtrlHandlerEx(_service.ServiceName, _commandHandler, IntPtr.Zero);
+            _statusHandle = RegisterServiceCtrlHandlerEx(Service.ServiceName, _commandHandler, IntPtr.Zero);
 
             if (ReportStatus(ServiceControllerStatus.StartPending, 3000))
             {
@@ -128,19 +131,19 @@ namespace NewLife.Agent
             try
             {
                 // 启动初始化
-                _service.StartLoop();
+                Service.StartLoop();
 
                 ReportStatus(ServiceControllerStatus.Running);
 
                 // 阻塞
-                _service.DoLoop();
+                Service.DoLoop();
 
                 if (_status.currentState == ServiceControllerStatus.Running)
                 {
                     ReportStatus(ServiceControllerStatus.StopPending);
 
                     // 停止
-                    _service.StopLoop();
+                    Service.StopLoop();
 
                     ReportStatus(ServiceControllerStatus.Stopped);
                 }
@@ -148,7 +151,7 @@ namespace NewLife.Agent
             catch (Exception ex)
             {
                 XTrace.WriteException(ex);
-                XTrace.WriteLine("运行服务{0}失败，{1}", _service.ServiceName, new Win32Exception(Marshal.GetLastWin32Error()).Message);
+                XTrace.WriteLine("运行服务{0}失败，{1}", Service.ServiceName, new Win32Exception(Marshal.GetLastWin32Error()).Message);
 
                 ReportStatus(ServiceControllerStatus.Stopped);
             }
@@ -173,7 +176,7 @@ namespace NewLife.Agent
                     {
                         try
                         {
-                            _service.StopLoop();
+                            Service.StopLoop();
                         }
                         catch (Exception ex)
                         {
@@ -376,8 +379,15 @@ namespace NewLife.Agent
         {
             XTrace.WriteLine("{0}.Stop {1}", GetType().Name, serviceName);
 
-            var cmd = $"/c net stop {serviceName} & ping 127.0.0.1 -n 5 & net start {serviceName}";
-            Process.Start("cmd.exe", cmd);
+            if (InService)
+            {
+                var cmd = $"/c net stop {serviceName} & ping 127.0.0.1 -n 5 & net start {serviceName}";
+                Process.Start("cmd.exe", cmd);
+            }
+            else
+            {
+                Process.Start(Service.GetExeName(), "-run -delay");
+            }
 
             //// 在临时目录生成重启服务的批处理文件
             //var filename = "重启.bat".GetFullPath();

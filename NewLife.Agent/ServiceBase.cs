@@ -68,9 +68,9 @@ namespace NewLife.Agent
             if (Host == null)
             {
                 if (Runtime.Windows)
-                    Host = new WindowsService();
+                    Host = new WindowsService { Service = this };
                 else
-                    Host = new Systemd();
+                    Host = new Systemd { Service = this };
             }
 
             var service = this;
@@ -121,6 +121,7 @@ namespace NewLife.Agent
                         Host.Restart(name);
                         break;
                     case "-run":
+                        if ("-delay".EqualIgnoreCase(args)) Thread.Sleep(5_000);
                         StartLoop();
                         DoLoop();
                         StopLoop();
@@ -488,7 +489,7 @@ namespace NewLife.Agent
         }
 
         /// <summary>Exe程序名</summary>
-        static String GetExeName()
+        public virtual String GetExeName()
         {
             var p = Process.GetCurrentProcess();
             var filename = p.MainModule.FileName;
@@ -594,6 +595,8 @@ namespace NewLife.Agent
             WriteLog("服务已运行 {0:n0}分钟，达到预设重启时间（{1:n0}分钟），准备重启！", ts.TotalMinutes, auto);
 
             Host.Restart(ServiceName);
+
+            if (Host is Host host && !host.InService) StopLoop();
 
             return true;
         }
