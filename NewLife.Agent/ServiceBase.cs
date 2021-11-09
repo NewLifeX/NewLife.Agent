@@ -484,6 +484,9 @@ namespace NewLife.Agent
             }
 
             var bin = $"{exe} -s";
+            //兼容更多参数做为服务启动，譬如：--urls
+            if (args.Length > 2)
+                bin += $" {string.Join(" ", args.Skip(2))}";
 
             Host.Install(ServiceName, DisplayName, bin, Description);
         }
