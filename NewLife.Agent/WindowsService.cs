@@ -377,7 +377,7 @@ namespace NewLife.Agent
         /// <param name="serviceName">服务名</param>
         public override Boolean Restart(String serviceName)
         {
-            XTrace.WriteLine("{0}.Stop {1}", GetType().Name, serviceName);
+            XTrace.WriteLine("{0}.Restart {1}", GetType().Name, serviceName);
 
             if (InService)
             {
