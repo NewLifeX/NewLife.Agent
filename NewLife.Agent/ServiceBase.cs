@@ -332,7 +332,7 @@ namespace NewLife.Agent
             }
         }
 
-        class Menu
+        private class Menu
         {
             public Char Key { get; set; }
             public String Name { get; set; }
@@ -441,10 +441,7 @@ namespace NewLife.Agent
 
         /// <summary>开始工作</summary>
         /// <param name="reason"></param>
-        protected virtual void StartWork(String reason)
-        {
-            WriteLog("服务启动 {0}", reason);
-        }
+        protected virtual void StartWork(String reason) => WriteLog("服务启动 {0}", reason);
 
         private void OnProcessExit(Object sender, EventArgs e)
         {
@@ -463,10 +460,7 @@ namespace NewLife.Agent
 
         /// <summary>停止服务</summary>
         /// <param name="reason"></param>
-        protected virtual void StopWork(String reason)
-        {
-            WriteLog("服务停止 {0}", reason);
-        }
+        protected virtual void StopWork(String reason) => WriteLog("服务停止 {0}", reason);
 
         private void Install()
         {
@@ -484,9 +478,21 @@ namespace NewLife.Agent
             }
 
             var bin = $"{exe} -s";
-            //兼容更多参数做为服务启动，譬如：--urls
+
+            // 兼容更多参数做为服务启动，譬如：--urls
             if (args.Length > 2)
-                bin += $" {string.Join(" ", args.Skip(2))}";
+            {
+                // 跳过系统内置参数
+                var list = new List<String>();
+                for (var i = 2; i < args.Length; i++)
+                {
+                    if (args[i].EqualIgnoreCase("-server", "-user", "-group"))
+                        i++;
+                    else
+                        list.Add(args[i]);
+                }
+                if (list.Count > 0) bin += " " + list.Join(" ");
+            }
 
             Host.Install(ServiceName, DisplayName, bin, Description);
         }
