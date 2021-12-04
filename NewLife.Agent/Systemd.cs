@@ -186,17 +186,29 @@ namespace NewLife.Agent
         /// <summary>启动服务</summary>
         /// <param name="serviceName">服务名</param>
         /// <returns></returns>
-        public override Boolean Start(String serviceName) => Process.Start("systemctl", $"start {serviceName}") != null;
+        public override Boolean Start(String serviceName)
+        {
+            XTrace.WriteLine("{0}.Start {1}", GetType().Name, serviceName);
+
+            return Process.Start("systemctl", $"start {serviceName}") != null;
+        }
 
         /// <summary>停止服务</summary>
         /// <param name="serviceName">服务名</param>
         /// <returns></returns>
-        public override Boolean Stop(String serviceName) => Process.Start("systemctl", $"stop {serviceName}") != null;
+        public override Boolean Stop(String serviceName)
+        {
+            XTrace.WriteLine("{0}.Stop {1}", GetType().Name, serviceName);
+
+            return Process.Start("systemctl", $"stop {serviceName}") != null;
+        }
 
         /// <summary>重启服务</summary>
         /// <param name="serviceName">服务名</param>
         public override Boolean Restart(String serviceName)
         {
+            XTrace.WriteLine("{0}.Restart {1}", GetType().Name, serviceName);
+
             if (InService)
                 return Process.Start("systemctl", $"restart {serviceName}") != null;
             else
