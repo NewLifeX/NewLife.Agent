@@ -408,7 +408,8 @@ namespace NewLife.Agent
             _event.Dispose();
         }
 
-        internal void StartLoop()
+        /// <summary>开始循环</summary>
+        internal protected void StartLoop()
         {
             AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
 
@@ -421,7 +422,7 @@ namespace NewLife.Agent
         }
 
         /// <summary>停止循环</summary>
-        internal void StopLoop()
+        internal protected void StopLoop()
         {
             if (!_running) return;
 
