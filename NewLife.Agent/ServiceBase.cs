@@ -120,6 +120,20 @@ namespace NewLife.Agent
                     case "-restart":
                         Host.Restart(name);
                         break;
+                    case "-install":
+                        Install();
+                        // 稍微等待
+                        for (var i = 0; i < 50; i++)
+                        {
+                            if (Host.IsInstalled(name)) break;
+                            Thread.Sleep(100);
+                        }
+                        Host.Start(name);
+                        break;
+                    case "-uninstall":
+                        Host.Stop(name);
+                        Host.Remove(name);
+                        break;
                     case "-run":
                         if ("-delay".EqualIgnoreCase(args)) Thread.Sleep(5_000);
                         StartLoop();
@@ -409,7 +423,7 @@ namespace NewLife.Agent
         }
 
         /// <summary>开始循环</summary>
-        internal protected void StartLoop()
+        protected internal void StartLoop()
         {
             AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
 
@@ -422,7 +436,7 @@ namespace NewLife.Agent
         }
 
         /// <summary>停止循环</summary>
-        internal protected void StopLoop()
+        protected internal void StopLoop()
         {
             if (!_running) return;
 
