@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>netcoreapp3.1;net45</TargetFrameworks>
+    <TargetFrameworks>net6.0</TargetFrameworks>
     <AssemblyTitle>系统守护服务</AssemblyTitle>
     <Description>数据处理，定时任务，MQ生产消费，系统监控</Description>
     <Company>新生命开发团队</Company>
@@ -25,7 +25,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NewLife.Core" Version="8.11.2021.1225" />
     <PackageReference Include="NewLife.Stardust" Version="1.5.2021.1225" />
     <PackageReference Include="NewLife.XCode" Version="10.3.2021.1225" />
   </ItemGroup>
