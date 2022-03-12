@@ -1,4 +1,11 @@
-# 服务管理NewLife.Agent
+# NewLife.Agent - 守护服务管理组件
+
+![GitHub top language](https://img.shields.io/github/languages/top/newlifex/newlife.agent?logo=github)
+![GitHub License](https://img.shields.io/github/license/newlifex/newlife.agent?logo=github)
+![Nuget Downloads](https://img.shields.io/nuget/dt/newlife.agent?logo=nuget)
+![Nuget](https://img.shields.io/nuget/v/newlife.agent?logo=nuget)
+![Nuget (with prereleases)](https://img.shields.io/nuget/vpre/newlife.agent?label=dev%20nuget&logo=nuget)
+
 使用教程：[https://www.yuque.com/smartstone/nx/agent](https://www.yuque.com/smartstone/nx/agent)  
 
 # 功能特点

@@ -1,4 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="Current">
+  
   <PropertyGroup>
     <TargetFrameworks>net40;net45;netstandard2.0;netstandard2.1</TargetFrameworks>
     <AssemblyName>NewLife.Agent</AssemblyName>
@@ -7,20 +8,23 @@
     <Description>应用程序注册为系统服务，支持Windows/Linux</Description>
     <Company>新生命开发团队</Company>
     <Copyright>©2002-2022 NewLife</Copyright>
-    <Version>9.0.2022.0101</Version>
-    <FileVersion>9.0.2022.0101</FileVersion>
-    <AssemblyVersion>9.0.*</AssemblyVersion>
+    <VersionPrefix>9.0</VersionPrefix>
+    <VersionSuffix>$([System.DateTime]::Now.ToString(`yyyy.MMdd`))</VersionSuffix>
+    <Version>$(VersionPrefix).$(VersionSuffix)</Version>
+    <FileVersion>$(Version)</FileVersion>
+    <AssemblyVersion>$(VersionPrefix).*</AssemblyVersion>
     <Deterministic>false</Deterministic>
     <OutputPath>..\..\Bin</OutputPath>
-    <DocumentationFile>$(OutputPath)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
-    <!--<Nullable>enable</Nullable>-->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+  
   <PropertyGroup>
     <PackageId>$(AssemblyName)</PackageId>
     <Authors>$(Company)</Authors>
-    <ProjectUrl>https://github.com/NewLifeX</ProjectUrl>
+    <PackageProjectUrl>https://www.yuque.com/smartstone/nx/agent</PackageProjectUrl>
     <PackageIcon>leaf.png</PackageIcon>
     <RepositoryUrl>https://github.com/NewLifeX/NewLife.Agent</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -33,6 +37,7 @@
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
+  
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1">
       <PrivateAssets>all</PrivateAssets>
@@ -52,9 +57,6 @@
     <DefineConstants>$(DefineConstants);DEBUG</DefineConstants>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)'=='Release'">
-    <!--<GeneratePackageOnBuild>true</GeneratePackageOnBuild>-->
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="BackgroundService.cs" />
