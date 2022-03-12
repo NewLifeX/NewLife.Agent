@@ -18,10 +18,10 @@ jobs:
         include-prerelease: true
     - name: Restore
       run: |
-        dotnet restore NewLife.RocketMQ/NewLife.RocketMQ.csproj
+        dotnet restore NewLife.Agent/NewLife.Agent.csproj
     - name: Build
       run: |
-        dotnet pack --no-restore --version-suffix $(date "+%Y.%m%d") -o out NewLife.RocketMQ/NewLife.RocketMQ.csproj
+        dotnet pack --no-restore --version-suffix $(date "+%Y.%m%d") -o out NewLife.Agent/NewLife.Agent.csproj
     - name: Publish
       run: |
         dotnet nuget push ./out/*.nupkg --skip-duplicate --source https://nuget.pkg.github.com/NewLifeX/index.json --api-key ${{ github.token }}
