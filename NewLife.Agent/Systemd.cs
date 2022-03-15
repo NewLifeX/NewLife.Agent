@@ -209,10 +209,10 @@ namespace NewLife.Agent
         {
             XTrace.WriteLine("{0}.Restart {1}", GetType().Name, serviceName);
 
-            if (InService)
-                return Process.Start("systemctl", $"restart {serviceName}") != null;
-            else
-                return Process.Start(Service.GetExeName(), "-run -delay") != null;
+            //if (InService)
+            return Process.Start("systemctl", $"restart {serviceName}") != null;
+            //else
+            //    return Process.Start(Service.GetExeName(), "-run -delay") != null;
         }
 
         private static String Execute(String cmd, String arguments, Boolean writeLog = true)
