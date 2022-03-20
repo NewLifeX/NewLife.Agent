@@ -1,12 +1,14 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.28803.202
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32228.430
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Others", "Others", "{32891F65-FBA1-42B2-918E-61F3A9623F2A}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 		.gitignore = .gitignore
+		.github\workflows\publish-beta.yml = .github\workflows\publish-beta.yml
+		.github\workflows\publish.yml = .github\workflows\publish.yml
 		Readme.MD = Readme.MD
 	EndProjectSection
 EndProject

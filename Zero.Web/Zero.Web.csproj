@@ -5,10 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NewLife.Core" Version="9.0.2022.202" />
-    <PackageReference Include="NewLife.Cube.Core" Version="5.0.2022.101" />
-    <PackageReference Include="NewLife.Stardust" Version="2.0.2022.101" />
-    <PackageReference Include="NewLife.XCode" Version="11.0.2022.202" />
+    <PackageReference Include="NewLife.Cube.Core" Version="5.0.2022.319-beta1351" />
+    <PackageReference Include="NewLife.Stardust" Version="2.0.2022.319-beta0414" />
   </ItemGroup>
 
   <ItemGroup>
