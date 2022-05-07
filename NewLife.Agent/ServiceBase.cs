@@ -1,13 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
+﻿using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Security;
-using System.Threading;
-using System.Threading.Tasks;
 using NewLife.Log;
 using NewLife.Reflection;
 
@@ -69,8 +63,12 @@ namespace NewLife.Agent
             {
                 if (Runtime.Windows)
                     Host = new WindowsService { Service = this };
-                else
+                else if (Systemd.Available)
                     Host = new Systemd { Service = this };
+                else if (RcInit.Available)
+                    Host = new RcInit { Service = this };
+                else
+                    throw new NotSupportedException($"不支持该操作系统！");
             }
 
             var service = this;

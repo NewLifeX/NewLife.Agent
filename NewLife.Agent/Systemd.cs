@@ -1,25 +1,21 @@
-﻿using System;
-using System.Diagnostics;
-using System.IO;
+﻿using System.Diagnostics;
 using System.Text;
 using NewLife.Log;
 
 namespace NewLife.Agent
 {
-    /// <summary>Linux版进程守护</summary>
+    /// <summary>systemd版进程守护</summary>
     public class Systemd : Host
     {
-        private readonly String _path;
+        #region 静态
+        private static String _path;
         //private ServiceBase _service;
 
-        /// <summary>用于执行服务的用户</summary>
-        public String User { get; set; }
-
-        /// <summary>用于执行服务的用户组</summary>
-        public String Group { get; set; }
+        /// <summary>是否可用</summary>
+        public static Boolean Available => !_path.IsNullOrEmpty();
 
         /// <summary>实例化</summary>
-        public Systemd()
+        static Systemd()
         {
             var ps = new[] {
                 "/etc/systemd/system",
@@ -35,6 +31,15 @@ namespace NewLife.Agent
                 }
             }
         }
+        #endregion
+
+        #region 属性
+        /// <summary>用于执行服务的用户</summary>
+        public String User { get; set; }
+
+        /// <summary>用于执行服务的用户组</summary>
+        public String Group { get; set; }
+        #endregion
 
         /// <summary>启动服务</summary>
         /// <param name="service"></param>
