@@ -130,6 +130,19 @@ public class RcInit : Host
         //File.WriteAllText(file, sb.ToString());
         File.WriteAllBytes(file, sb.ToString().GetBytes());
 
+        // 创建链接文件
+        for (var i = 0; i < 7; i++)
+        {
+            var dir = $"/etc/rc{i}.d/";
+            if (Directory.Exists(dir))
+            {
+                if (i is 0 or 1 or 6)
+                    Process.Start("ln", $"-s {systemdPath}/{serviceName} {dir}K90{serviceName}");
+                else
+                    Process.Start("ln", $"-s {systemdPath}/{serviceName} {dir}S10{serviceName}");
+            }
+        }
+
         return true;
     }
 
@@ -142,6 +155,20 @@ public class RcInit : Host
 
         var file = _path.CombinePath($"{serviceName}");
         if (File.Exists(file)) File.Delete(file);
+
+        // 删除链接文件
+        for (var i = 0; i < 7; i++)
+        {
+            var dir = $"/etc/rc{i}.d/";
+            if (Directory.Exists(dir))
+            {
+                file = $"{dir}S10{serviceName}";
+                if (File.Exists(file)) File.Delete(file);
+
+                file = $"{dir}K90{serviceName}";
+                if (File.Exists(file)) File.Delete(file);
+            }
+        }
 
         return true;
     }
