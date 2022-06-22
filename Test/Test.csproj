@@ -2,7 +2,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net45;netcoreapp3.1</TargetFrameworks>
-    <OutputPath>..\BinTest\</OutputPath>
+    <OutputPath>..\Bin\Test\</OutputPath>
     <LangVersion>latest</LangVersion>
     <Version>1.0.0.1130</Version>
     <FileVersion>1.0.0.1130</FileVersion>

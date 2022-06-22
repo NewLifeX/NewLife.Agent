@@ -14,7 +14,7 @@
     <FileVersion>$(Version)</FileVersion>
     <AssemblyVersion>$(VersionPrefix).*</AssemblyVersion>
     <Deterministic>false</Deterministic>
-    <OutputPath>..\..\Bin</OutputPath>
+    <OutputPath>..\Bin</OutputPath>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
@@ -66,7 +66,7 @@
     <Content Include="..\Doc\leaf.png" Link="leaf.png" PackagePath="\" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.1'">
-    <PackageReference Include="NewLife.Core" Version="9.0.2022.0501" />
+    <PackageReference Include="NewLife.Core" Version="9.2.2022.0601" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'!='netstandard2.1'">
     <PackageReference Include="NewLife.Core" Version="8.11.2021.1225" />
