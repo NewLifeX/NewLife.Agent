@@ -122,11 +122,11 @@ namespace NewLife.Agent
             if (ReportStatus(ServiceControllerStatus.StartPending, 3000))
             {
                 //!!! 不要在ServiceMain里面调用系统函数
-                ThreadPoolX.QueueUserWorkItem(ServiceQueuedMainCallback);
+                ThreadPool.QueueUserWorkItem(ServiceQueuedMainCallback);
             }
         }
 
-        private void ServiceQueuedMainCallback()
+        private void ServiceQueuedMainCallback(Object state)
         {
             try
             {
@@ -172,7 +172,7 @@ namespace NewLife.Agent
                 case ControlOptions.Stop:
                 case ControlOptions.Shutdown:
                     ReportStatus(ServiceControllerStatus.StopPending);
-                    ThreadPoolX.QueueUserWorkItem(() =>
+                    ThreadPool.QueueUserWorkItem(s =>
                     {
                         try
                         {
