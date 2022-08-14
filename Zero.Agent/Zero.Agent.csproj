@@ -25,7 +25,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NewLife.Stardust" Version="2.3.2022.810-beta1054" />
+    <PackageReference Include="NewLife.Stardust" Version="2.3.2022.814-beta0337" />
     <PackageReference Include="NewLife.XCode" Version="11.3.2022.813-beta1439" />
   </ItemGroup>
 
