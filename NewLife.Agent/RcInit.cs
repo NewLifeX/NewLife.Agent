@@ -124,7 +124,7 @@ public class RcInit : Host
 
         sb.AppendLine();
         sb.AppendLine($"cd {".".GetFullPath()}");
-        sb.AppendLine(binPath);
+        sb.AppendLine($"nohup {binPath} >/dev/null 2>&1 &");
         sb.AppendLine($"exit 0");
 
         //File.WriteAllText(file, sb.ToString());
