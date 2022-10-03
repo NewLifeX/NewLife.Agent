@@ -35,6 +35,12 @@ public abstract class ServiceBase : DisposeBase
         //MachineInfo.RegisterAsync();
         //#endif
 
+        InitService();
+    }
+
+    /// <summary>初始化服务。Agent组件内部使用</summary>
+    public static void InitService()
+    {
         // 以服务方式启动时，不写控制台日志，修正当前目录，帮助用户处理路径问题
         var args = Environment.GetCommandLineArgs();
         var isService = args != null && args.Length > 0 && args.Contains("-s");

@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection.Extensions;
+using NewLife.Agent;
 using NewLife.Log;
 
 namespace NewLife.Extensions.Hosting.AgentService;
@@ -15,6 +16,8 @@ public static class ServiceLifetimeHostBuilderExtensions
         hostBuilder.UseContentRoot(AppContext.BaseDirectory);
         hostBuilder.ConfigureServices(delegate (HostBuilderContext hostContext, IServiceCollection services)
         {
+            ServiceBase.InitService();
+
             services.AddSingleton<IHostLifetime, ServiceLifetime>();
             services.TryAddSingleton(XTrace.Log);
             services.Configure(configure);
