@@ -124,7 +124,8 @@ public class ServiceLifetime : ServiceBase, IHostLifetime
     /// <returns></returns>
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        Task.Run(() => Host.Stop(ServiceName), CancellationToken.None);
+        if (Host is NewLife.Agent.Host host && host.InService)
+            Task.Run(() => Host.Stop(ServiceName), CancellationToken.None);
 
         return Task.CompletedTask;
     }
