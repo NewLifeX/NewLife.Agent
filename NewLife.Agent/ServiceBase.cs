@@ -35,10 +35,13 @@ public abstract class ServiceBase : DisposeBase
         //MachineInfo.RegisterAsync();
         //#endif
 
-        // 以服务方式启动时，不写控制台日志
+        // 以服务方式启动时，不写控制台日志，修正当前目录，帮助用户处理路径问题
         var args = Environment.GetCommandLineArgs();
         var isService = args != null && args.Length > 0 && args.Contains("-s");
-        if (!isService) XTrace.UseConsole();
+        if (isService)
+            Environment.CurrentDirectory = ".".GetFullPath();
+        else
+            XTrace.UseConsole();
     }
 
     /// <summary>销毁</summary>
@@ -57,7 +60,7 @@ public abstract class ServiceBase : DisposeBase
     /// <param name="args"></param>
     public void Main(String[] args)
     {
-        if (args == null) args = Environment.GetCommandLineArgs();
+        args ??= Environment.GetCommandLineArgs();
 
         if (Host == null)
         {
@@ -157,6 +160,7 @@ public abstract class ServiceBase : DisposeBase
             service.ProcessMenu();
         }
 
+        // 释放文本文件日志对象，确保日志队列内容写入磁盘
         if (XTrace.Log is CompositeLog compositeLog)
         {
             var log = compositeLog.Get<TextFileLog>();
