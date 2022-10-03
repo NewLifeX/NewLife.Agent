@@ -457,6 +457,7 @@ public abstract class ServiceBase : DisposeBase
     }
 
     /// <summary>开始工作</summary>
+    /// <remarks>基类实现用于输出日志</remarks>
     /// <param name="reason"></param>
     protected virtual void StartWork(String reason) => WriteLog("服务启动 {0}", reason);
 
@@ -476,6 +477,7 @@ public abstract class ServiceBase : DisposeBase
     }
 
     /// <summary>停止服务</summary>
+    /// <remarks>基类实现用于输出日志</remarks>
     /// <param name="reason"></param>
     protected virtual void StopWork(String reason) => WriteLog("服务停止 {0}", reason);
 
