@@ -364,7 +364,14 @@ public abstract class ServiceBase : DisposeBase
                 Host.Start(name);
                 break;
             case "-uninstall":
-                Host.Stop(name);
+                try
+                {
+                    Host.Stop(name);
+                }
+                catch (Exception ex)
+                {
+                    XTrace.WriteException(ex);
+                }
                 Host.Remove(name);
                 break;
             case "-run":
