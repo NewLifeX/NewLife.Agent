@@ -5,6 +5,7 @@ on:
     branches: [ master ]
     paths:
         - 'NewLife.Agent/**'
+        - 'NewLife.Extensions.Hosting.AgentService/**'
   workflow_dispatch:
 
 jobs:
@@ -21,9 +22,11 @@ jobs:
     - name: Restore
       run: |
         dotnet restore NewLife.Agent/NewLife.Agent.csproj
+        dotnet restore NewLife.Extensions.Hosting.AgentService/NewLife.Extensions.Hosting.AgentService.csproj
     - name: Build
       run: |
         dotnet pack --no-restore --version-suffix $(date "+%Y.%m%d-beta%H%M") -c Release -o out NewLife.Agent/NewLife.Agent.csproj
+        dotnet pack --no-restore --version-suffix $(date "+%Y.%m%d-beta%H%M") -c Release -o out NewLife.Extensions.Hosting.AgentService/NewLife.Extensions.Hosting.AgentService.csproj
     - name: Publish
       run: |
         dotnet nuget push ./out/*.nupkg --skip-duplicate --source https://nuget.pkg.github.com/NewLifeX/index.json --api-key ${{ github.token }}

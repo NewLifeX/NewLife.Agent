@@ -2,20 +2,14 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net461;netcoreapp3.1</TargetFrameworks>
+    <VersionPrefix>1.0</VersionPrefix>
+    <VersionSuffix>$([System.DateTime]::Now.ToString(`yyyy.MMdd`))</VersionSuffix>
+    <Version>$(VersionPrefix).$(VersionSuffix)</Version>
+    <FileVersion>$(Version)</FileVersion>
+    <AssemblyVersion>$(VersionPrefix).*</AssemblyVersion>
+    <Deterministic>false</Deterministic>
     <OutputPath>..\Bin\Test\</OutputPath>
     <LangVersion>latest</LangVersion>
-    <Version>1.0.0.1130</Version>
-    <FileVersion>1.0.0.1130</FileVersion>
-    <AssemblyVersion>1.0.*</AssemblyVersion>
-    <Deterministic>false</Deterministic>
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <DefineConstants>TRACE</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
-    <DefineConstants>$(DefineConstants);DEBUG</DefineConstants>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\NewLife.Agent\NewLife.Agent.csproj" />

@@ -6,10 +6,12 @@
     <AssemblyTitle>系统守护服务</AssemblyTitle>
     <Description>数据处理，定时任务，MQ生产消费，系统监控</Description>
     <Company>新生命开发团队</Company>
-    <Copyright>©2002-2020 NewLife</Copyright>
-    <Version>1.0.2020.0803</Version>
-    <FileVersion>1.0.2020.0803</FileVersion>
-    <AssemblyVersion>1.0.*</AssemblyVersion>
+    <Copyright>©2002-2022 NewLife</Copyright>
+    <VersionPrefix>1.0</VersionPrefix>
+    <VersionSuffix>$([System.DateTime]::Now.ToString(`yyyy.MMdd`))</VersionSuffix>
+    <Version>$(VersionPrefix).$(VersionSuffix)</Version>
+    <FileVersion>$(Version)</FileVersion>
+    <AssemblyVersion>$(VersionPrefix).*</AssemblyVersion>
     <Deterministic>false</Deterministic>
     <OutputPath>..\Bin\Agent</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
