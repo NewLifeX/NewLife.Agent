@@ -1,9 +1,8 @@
-﻿#if NETCOREAPP
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Options;
+using NewLife.Agent;
 using NewLife.Log;
 
-namespace NewLife.Agent.Services;
+namespace NewLife.Extensions.Hosting.AgentService;
 
 /// <summary>服务生命周期</summary>
 public class ServiceLifetime : ServiceBase, IHostLifetime
@@ -64,7 +63,7 @@ public class ServiceLifetime : ServiceBase, IHostLifetime
         });
         ApplicationLifetime.ApplicationStarted.Register(delegate
         {
-            Logger.Info("Application started. Hosting environment: {envName}; Content root path: {contentRoot}", Environment.EnvironmentName, Environment.ContentRootPath);
+            Logger.Info("Application started. Hosting environment: {0}; Content root path: {1}", Environment.EnvironmentName, Environment.ContentRootPath);
         });
         ApplicationLifetime.ApplicationStopping.Register(delegate
         {
@@ -88,8 +87,9 @@ public class ServiceLifetime : ServiceBase, IHostLifetime
     {
         try
         {
-            System.ServiceProcess.ServiceBase.Run(this);
-            _delayStart.TrySetException(new InvalidOperationException("Stopped without starting"));
+            //System.ServiceProcess.ServiceBase.Run(this);
+            Main(null);
+            //_delayStart.TrySetException(new InvalidOperationException("Stopped without starting"));
         }
         catch (Exception exception)
         {
@@ -131,10 +131,7 @@ public class ServiceLifetime : ServiceBase, IHostLifetime
     protected override void Dispose(Boolean disposing)
     {
         if (disposing)
-        {
             _delayStop.Set();
-        }
         base.Dispose(disposing);
     }
 }
-#endif

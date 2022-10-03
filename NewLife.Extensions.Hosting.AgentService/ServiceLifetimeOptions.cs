@@ -1,5 +1,4 @@
-﻿#if NETCOREAPP
-namespace NewLife.Agent.Services;
+﻿namespace NewLife.Extensions.Hosting.AgentService;
 
 /// <summary>服务生命周期选项</summary>
 public class ServiceLifetimeOptions
@@ -13,4 +12,3 @@ public class ServiceLifetimeOptions
     /// <summary>描述</summary>
     public String Description { get; set; }
 }
-#endif

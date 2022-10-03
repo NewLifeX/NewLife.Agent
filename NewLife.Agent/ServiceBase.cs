@@ -96,11 +96,12 @@ public abstract class ServiceBase : DisposeBase
 
         set.Save();
 
-        if (args.Length > 0)
+        var cmd = args?.FirstOrDefault(e => !e.IsNullOrEmpty() && e.Length > 1 && e[0] == '-');
+        if (!cmd.IsNullOrEmpty())
         {
             #region 命令
             var name = ServiceName;
-            var cmd = args[0].ToLower();
+            cmd = cmd.ToLower();
             switch (cmd)
             {
                 case "-s":

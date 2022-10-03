@@ -1,10 +1,9 @@
-﻿<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="Current">
-  
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
   <PropertyGroup>
-    <TargetFrameworks>net461;netstandard2.0;netstandard2.1</TargetFrameworks>
-    <AssemblyName>NewLife.Agent</AssemblyName>
-    <RootNamespace>NewLife.Agent</RootNamespace>
-    <AssemblyTitle>服务管理</AssemblyTitle>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <AssemblyTitle>主机服务扩展</AssemblyTitle>
     <Description>应用程序注册为系统服务，支持Windows/Linux</Description>
     <Company>新生命开发团队</Company>
     <Copyright>©2002-2022 NewLife</Copyright>
@@ -22,7 +21,7 @@
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Doc\newlife.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
-  
+
   <PropertyGroup>
     <PackageId>$(AssemblyName)</PackageId>
     <Authors>$(Company)</Authors>
@@ -31,14 +30,14 @@
     <RepositoryUrl>https://github.com/NewLifeX/NewLife.Agent</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>新生命团队;X组件;NewLife;$(AssemblyName)</PackageTags>
-    <PackageReleaseNotes>支持Linux的rc.init</PackageReleaseNotes>
+    <PackageReleaseNotes>支持Web、WebApi和Worker等现代化项目</PackageReleaseNotes>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
-  
+
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1">
       <PrivateAssets>all</PrivateAssets>
@@ -46,13 +45,14 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Remove="BackgroundService.cs" />
-    <Compile Remove="IHostedService.cs" />
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="..\Doc\leaf.png" Link="leaf.png" PackagePath="\" />
   </ItemGroup>
+
   <ItemGroup>
-    <PackageReference Include="NewLife.Core" Version="10.0.2022.1001" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NewLife.Agent\NewLife.Agent.csproj" />
   </ItemGroup>
 </Project>

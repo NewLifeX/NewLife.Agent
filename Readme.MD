@@ -5,6 +5,9 @@
 ![Nuget Downloads](https://img.shields.io/nuget/dt/newlife.agent?logo=nuget)
 ![Nuget](https://img.shields.io/nuget/v/newlife.agent?logo=nuget)
 ![Nuget (with prereleases)](https://img.shields.io/nuget/vpre/newlife.agent?label=dev%20nuget&logo=nuget)
+![Nuget Downloads](https://img.shields.io/nuget/dt/NewLife.Extensions.Hosting.AgentService?logo=nuget)
+![Nuget](https://img.shields.io/nuget/v/NewLife.Extensions.Hosting.AgentService?logo=nuget)
+![Nuget (with prereleases)](https://img.shields.io/nuget/vpre/NewLife.Extensions.Hosting.AgentService?label=dev%20nuget&logo=nuget)
 
 使用教程：[https://newlifex.com/core/agent](https://newlifex.com/core/agent)  
 

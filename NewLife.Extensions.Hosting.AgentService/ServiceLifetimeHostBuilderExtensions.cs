@@ -1,11 +1,7 @@
-﻿#if NETCOREAPP
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.DependencyInjection.Extensions;
 using NewLife.Log;
 
-namespace NewLife.Agent.Services;
+namespace NewLife.Extensions.Hosting.AgentService;
 
 /// <summary>服务声明周期扩展</summary>
 public static class ServiceLifetimeHostBuilderExtensions
@@ -27,4 +23,3 @@ public static class ServiceLifetimeHostBuilderExtensions
         return hostBuilder;
     }
 }
-#endif
