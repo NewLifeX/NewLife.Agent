@@ -62,6 +62,36 @@ public abstract class ServiceBase : DisposeBase
     {
         args ??= Environment.GetCommandLineArgs();
 
+        Init();
+
+        var cmd = args?.FirstOrDefault(e => !e.IsNullOrEmpty() && e.Length > 1 && e[0] == '-');
+        if (!cmd.IsNullOrEmpty())
+        {
+            ProcessCommand(cmd, args);
+        }
+        else
+        {
+            if (!DisplayName.IsNullOrEmpty()) Console.Title = DisplayName;
+
+            // 输出状态，菜单循环
+            ShowStatus();
+            ProcessMenu();
+        }
+
+        // 释放文本文件日志对象，确保日志队列内容写入磁盘
+        if (XTrace.Log is CompositeLog compositeLog)
+        {
+            var log = compositeLog.Get<TextFileLog>();
+            log.TryDispose();
+        }
+    }
+
+    /// <summary>
+    /// 初始化服务
+    /// </summary>
+    /// <exception cref="NotSupportedException"></exception>
+    protected virtual void Init()
+    {
         if (Host == null)
         {
             if (Runtime.Windows)
@@ -74,14 +104,13 @@ public abstract class ServiceBase : DisposeBase
                 throw new NotSupportedException($"不支持该操作系统！");
         }
 
-        var service = this;
-        service.Log = XTrace.Log;
+        Log = XTrace.Log;
 
         // 初始化配置
         var set = Setting.Current;
-        if (set.ServiceName.IsNullOrEmpty()) set.ServiceName = service.ServiceName;
-        if (set.DisplayName.IsNullOrEmpty()) set.DisplayName = service.DisplayName;
-        if (set.Description.IsNullOrEmpty()) set.Description = service.Description;
+        if (set.ServiceName.IsNullOrEmpty()) set.ServiceName = ServiceName;
+        if (set.DisplayName.IsNullOrEmpty()) set.DisplayName = DisplayName;
+        if (set.Description.IsNullOrEmpty()) set.Description = Description;
 
         // 从程序集构造配置
         var asm = AssemblyX.Entry;
@@ -90,83 +119,11 @@ public abstract class ServiceBase : DisposeBase
         if (set.Description.IsNullOrEmpty()) set.Description = asm.Description;
 
         // 用配置覆盖
-        service.ServiceName = set.ServiceName;
-        service.DisplayName = set.DisplayName;
-        service.Description = set.Description;
+        ServiceName = set.ServiceName;
+        DisplayName = set.DisplayName;
+        Description = set.Description;
 
         set.Save();
-
-        var cmd = args?.FirstOrDefault(e => !e.IsNullOrEmpty() && e.Length > 1 && e[0] == '-');
-        if (!cmd.IsNullOrEmpty())
-        {
-            #region 命令
-            var name = ServiceName;
-            cmd = cmd.ToLower();
-            switch (cmd)
-            {
-                case "-s":
-                    Host.Run(this);
-                    break;
-                case "-i":
-                    Install();
-                    break;
-                case "-u":
-                    Host.Remove(name);
-                    break;
-                case "-start":
-                    Host.Start(name);
-                    break;
-                case "-stop":
-                    Host.Stop(name);
-                    break;
-                case "-restart":
-                    Host.Restart(name);
-                    break;
-                case "-install":
-                    Install();
-                    // 稍微等待
-                    for (var i = 0; i < 50; i++)
-                    {
-                        if (Host.IsInstalled(name)) break;
-                        Thread.Sleep(100);
-                    }
-                    Host.Start(name);
-                    break;
-                case "-uninstall":
-                    Host.Stop(name);
-                    Host.Remove(name);
-                    break;
-                case "-run":
-                    if ("-delay".EqualIgnoreCase(args)) Thread.Sleep(5_000);
-                    StartLoop();
-                    DoLoop();
-                    StopLoop();
-                    break;
-                default:
-                    // 快速调用自定义菜单
-                    if (cmd.Length == 2 && cmd[0] == '-' && _Menus.TryGetValue(cmd[1], out var menu))
-                        menu.Callback();
-                    break;
-            }
-            #endregion
-
-            ProcessCommand(args);
-        }
-        else
-        {
-            if (!service.DisplayName.IsNullOrEmpty()) Console.Title = service.DisplayName;
-
-            // 输出状态，菜单循环
-            service.ShowStatus();
-            service.ProcessMenu();
-        }
-
-        // 释放文本文件日志对象，确保日志队列内容写入磁盘
-        if (XTrace.Log is CompositeLog compositeLog)
-        {
-            var log = compositeLog.Get<TextFileLog>();
-            log.TryDispose();
-        }
     }
 
     /// <summary>显示状态</summary>
@@ -248,16 +205,16 @@ public abstract class ServiceBase : DisposeBase
                         Thread.Sleep(500);
                         break;
                     case '5':
-                        #region 循环调试
+                        #region 模拟运行
                         try
                         {
-                            Console.WriteLine("正在循环调试……");
-                            StartWork("循环开始");
+                            Console.WriteLine("正在模拟运行……");
+                            StartWork("模拟运行开始");
 
-                            Console.WriteLine("任意键结束循环调试！");
+                            Console.WriteLine("任意键结束模拟运行！");
                             Console.ReadKey(true);
 
-                            StopWork("循环停止");
+                            StopWork("模拟运行停止");
                         }
                         catch (Exception ex)
                         {
@@ -314,7 +271,7 @@ public abstract class ServiceBase : DisposeBase
 
         if (!run)
         {
-            Console.WriteLine("5 循环调试 -run");
+            Console.WriteLine("5 模拟运行 -run");
         }
 
         var dogs = WatchDogs;
@@ -364,8 +321,59 @@ public abstract class ServiceBase : DisposeBase
     }
 
     /// <summary>处理命令</summary>
+    /// <param name="cmd"></param>
     /// <param name="args"></param>
-    protected virtual void ProcessCommand(String[] args) { }
+    protected virtual void ProcessCommand(String cmd, String[] args)
+    {
+        var name = ServiceName;
+        cmd = cmd.ToLower();
+        switch (cmd)
+        {
+            case "-s":
+                Host.Run(this);
+                break;
+            case "-i":
+                Install();
+                break;
+            case "-u":
+                Host.Remove(name);
+                break;
+            case "-start":
+                Host.Start(name);
+                break;
+            case "-stop":
+                Host.Stop(name);
+                break;
+            case "-restart":
+                Host.Restart(name);
+                break;
+            case "-install":
+                Install();
+                // 稍微等待
+                for (var i = 0; i < 50; i++)
+                {
+                    if (Host.IsInstalled(name)) break;
+                    Thread.Sleep(100);
+                }
+                Host.Start(name);
+                break;
+            case "-uninstall":
+                Host.Stop(name);
+                Host.Remove(name);
+                break;
+            case "-run":
+                if ("-delay".EqualIgnoreCase(args)) Thread.Sleep(5_000);
+                StartLoop();
+                DoLoop();
+                StopLoop();
+                break;
+            default:
+                // 快速调用自定义菜单
+                if (cmd.Length == 2 && cmd[0] == '-' && _Menus.TryGetValue(cmd[1], out var menu))
+                    menu.Callback();
+                break;
+        }
+    }
     #endregion
 
     #region 服务控制

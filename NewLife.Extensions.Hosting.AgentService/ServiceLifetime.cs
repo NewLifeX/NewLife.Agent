@@ -2,9 +2,24 @@
 using NewLife.Agent;
 using NewLife.Log;
 
+/*
+ * IHost主机主流程：
+ * IHost.RunAsync
+ *   IHost.StartAsync
+ *     await _hostLifetime.WaitForStartAsync
+ *     foreach await IHostedService.StartAsync
+ *     ApplicationLifetime.ApplicationStarted
+ *   IHost.WaitForShutdownAsync
+ *   IHost.StopAsync
+ *     ApplicationLifetime.ApplicationStopping
+ *     foreach.Reverse await IHostedService.StopAsync
+ *     ApplicationLifetime.ApplicationStopped
+ *     _hostLifetime.StopAsync
+ */
+
 namespace NewLife.Extensions.Hosting.AgentService;
 
-/// <summary>服务生命周期</summary>
+/// <summary>Agent服务主机。接管IHost应用的启动和停止</summary>
 public class ServiceLifetime : ServiceBase, IHostLifetime
 {
     private readonly TaskCompletionSource<Object> _delayStart = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -17,7 +32,7 @@ public class ServiceLifetime : ServiceBase, IHostLifetime
 
     private IHostEnvironment Environment { get; }
 
-    private ILog Logger { get; }
+    //private ILog Logger { get; }
 
     /// <summary>实例化服务生命周期</summary>
     /// <param name="environment"></param>
@@ -40,7 +55,7 @@ public class ServiceLifetime : ServiceBase, IHostLifetime
     {
         Environment = environment ?? throw new ArgumentNullException(nameof(environment));
         ApplicationLifetime = applicationLifetime ?? throw new ArgumentNullException(nameof(applicationLifetime));
-        Logger = log;
+        Log = log;
         if (optionsAccessor == null) throw new ArgumentNullException(nameof(optionsAccessor));
         if (serviceOptionsAccessor == null) throw new ArgumentNullException(nameof(serviceOptionsAccessor));
 
@@ -52,7 +67,7 @@ public class ServiceLifetime : ServiceBase, IHostLifetime
         Description = opt.Description;
     }
 
-    /// <summary>等待启动</summary>
+    /// <summary>等待启动。IHost.StartAsync调用</summary>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     public Task WaitForStartAsync(CancellationToken cancellationToken)
@@ -63,23 +78,25 @@ public class ServiceLifetime : ServiceBase, IHostLifetime
         });
         ApplicationLifetime.ApplicationStarted.Register(delegate
         {
-            Logger.Info("Application started. Hosting environment: {0}; Content root path: {1}", Environment.EnvironmentName, Environment.ContentRootPath);
+            Log.Info("Application started. Hosting environment: {0}", Environment.EnvironmentName);
         });
         ApplicationLifetime.ApplicationStopping.Register(delegate
         {
-            Logger.Info("Application is shutting down...");
+            Log.Info("Application is shutting down...");
         });
         ApplicationLifetime.ApplicationStopped.Register(delegate
         {
             _delayStop.Set();
         });
 
+        // 独立线程启动主逻辑
         var thread = new Thread(new ThreadStart(Run))
         {
             IsBackground = true
         };
         thread.Start();
 
+        // 当前方法返回Task，直到该Task完成，IHost的启动初始化才算完成
         return _delayStart.Task;
     }
 
@@ -89,10 +106,15 @@ public class ServiceLifetime : ServiceBase, IHostLifetime
         {
             //System.ServiceProcess.ServiceBase.Run(this);
             Main(null);
-            //_delayStart.TrySetException(new InvalidOperationException("Stopped without starting"));
+
+            //todo 这里很遗憾，如果菜单使用0退出，这里不得不抛出异常，以打断IHost.StartAsync向下执行IHostedService
+            //Log.Info("退出菜单，后续异常无需理会");
+            _delayStart.TrySetException(new InvalidOperationException("正常退出菜单"));
+            //_delayStart.TrySetResult(null);
         }
         catch (Exception exception)
         {
+            // 通知IHost启动失败
             _delayStart.TrySetException(exception);
         }
     }
@@ -111,6 +133,7 @@ public class ServiceLifetime : ServiceBase, IHostLifetime
     /// <param name="reason"></param>
     protected override void StartWork(String reason)
     {
+        // 设置结果，说明IHost启动已完成
         _delayStart.TrySetResult(null);
 
         base.StartWork(reason);
@@ -123,15 +146,15 @@ public class ServiceLifetime : ServiceBase, IHostLifetime
         base.StopWork(reason);
 
         ApplicationLifetime.StopApplication();
-        _delayStop.Wait(_hostOptions.ShutdownTimeout);
+        //_delayStop.Wait(_hostOptions.ShutdownTimeout);
     }
 
     /// <summary>销毁</summary>
     /// <param name="disposing"></param>
     protected override void Dispose(Boolean disposing)
     {
-        if (disposing)
-            _delayStop.Set();
+        if (disposing) _delayStop.Set();
+
         base.Dispose(disposing);
     }
 }

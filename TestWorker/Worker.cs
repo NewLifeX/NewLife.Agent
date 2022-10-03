@@ -4,9 +4,9 @@ namespace TestWorker
 {
     public class Worker : BackgroundService
     {
-        private readonly ILogger<Worker> _logger;
+        private readonly ILog _logger;
 
-        public Worker(ILogger<Worker> logger)
+        public Worker(ILog logger)
         {
             _logger = logger;
         }
@@ -15,7 +15,7 @@ namespace TestWorker
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
+                _logger.Info("Worker running at: {0}", DateTimeOffset.Now);
                 await Task.Delay(1000, stoppingToken);
             }
         }
