@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using NewLife.Agent;
 using NewLife.Log;
 
@@ -26,7 +27,7 @@ public class ServiceLifetime : ServiceBase, IHostLifetime
 
     private readonly ManualResetEventSlim _delayStop = new();
 
-    private readonly HostOptions _hostOptions;
+    //private readonly HostOptions _hostOptions;
 
     private IHostApplicationLifetime ApplicationLifetime { get; }
 
@@ -38,9 +39,8 @@ public class ServiceLifetime : ServiceBase, IHostLifetime
     /// <param name="environment"></param>
     /// <param name="applicationLifetime"></param>
     /// <param name="log"></param>
-    /// <param name="optionsAccessor"></param>
-    public ServiceLifetime(IHostEnvironment environment, IHostApplicationLifetime applicationLifetime, ILog log, IOptions<HostOptions> optionsAccessor)
-        : this(environment, applicationLifetime, log, optionsAccessor, Options.Create(new ServiceLifetimeOptions()))
+    public ServiceLifetime(IHostEnvironment environment, IHostApplicationLifetime applicationLifetime, ILog log)
+        : this(environment, applicationLifetime, log, Options.Create(new ServiceLifetimeOptions()))
     {
     }
 
@@ -48,18 +48,17 @@ public class ServiceLifetime : ServiceBase, IHostLifetime
     /// <param name="environment"></param>
     /// <param name="applicationLifetime"></param>
     /// <param name="log"></param>
-    /// <param name="optionsAccessor"></param>
     /// <param name="serviceOptionsAccessor"></param>
     /// <exception cref="ArgumentNullException"></exception>
-    public ServiceLifetime(IHostEnvironment environment, IHostApplicationLifetime applicationLifetime, ILog log, IOptions<HostOptions> optionsAccessor, IOptions<ServiceLifetimeOptions> serviceOptionsAccessor)
+    public ServiceLifetime(IHostEnvironment environment, IHostApplicationLifetime applicationLifetime, ILog log, IOptions<ServiceLifetimeOptions> serviceOptionsAccessor)
     {
         Environment = environment ?? throw new ArgumentNullException(nameof(environment));
         ApplicationLifetime = applicationLifetime ?? throw new ArgumentNullException(nameof(applicationLifetime));
         Log = log;
-        if (optionsAccessor == null) throw new ArgumentNullException(nameof(optionsAccessor));
+        //if (optionsAccessor == null) throw new ArgumentNullException(nameof(optionsAccessor));
         if (serviceOptionsAccessor == null) throw new ArgumentNullException(nameof(serviceOptionsAccessor));
 
-        _hostOptions = optionsAccessor.Value;
+        //_hostOptions = optionsAccessor.Value;
 
         var opt = serviceOptionsAccessor.Value;
         ServiceName = opt.ServiceName;

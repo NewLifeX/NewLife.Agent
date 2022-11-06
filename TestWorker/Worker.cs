@@ -1,37 +1,36 @@
 ﻿using NewLife.Log;
 
-namespace TestWorker
+namespace TestWorker;
+
+public class Worker : BackgroundService
 {
-    public class Worker : BackgroundService
+    private readonly ILog _logger;
+
+    public Worker(ILog logger)
     {
-        private readonly ILog _logger;
+        _logger = logger;
+    }
 
-        public Worker(ILog logger)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
         {
-            _logger = logger;
+            _logger.Info("Worker running at: {0}", DateTimeOffset.Now);
+            await Task.Delay(1000, stoppingToken);
         }
+    }
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-        {
-            while (!stoppingToken.IsCancellationRequested)
-            {
-                _logger.Info("Worker running at: {0}", DateTimeOffset.Now);
-                await Task.Delay(1000, stoppingToken);
-            }
-        }
+    public override Task StartAsync(CancellationToken cancellationToken)
+    {
+        XTrace.WriteLine(nameof(StartAsync));
 
-        public override Task StartAsync(CancellationToken cancellationToken)
-        {
-            XTrace.WriteLine(nameof(StartAsync));
+        return base.StartAsync(cancellationToken);
+    }
 
-            return base.StartAsync(cancellationToken);
-        }
+    public override Task StopAsync(CancellationToken cancellationToken)
+    {
+        XTrace.WriteLine(nameof(StopAsync));
 
-        public override Task StopAsync(CancellationToken cancellationToken)
-        {
-            XTrace.WriteLine(nameof(StopAsync));
-
-            return base.StopAsync(cancellationToken);
-        }
+        return base.StopAsync(cancellationToken);
     }
 }

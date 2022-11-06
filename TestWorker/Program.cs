@@ -4,6 +4,8 @@ using TestWorker;
 IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices(services =>
     {
+        services.AddStardust();
+
         services.AddHostedService<Worker>();
     })
     //.UseWindowsService(options =>

@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.DependencyInjection.Extensions;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using NewLife.Agent;
 using NewLife.Log;
 
@@ -13,7 +15,7 @@ public static class ServiceLifetimeHostBuilderExtensions
     /// <returns></returns>
     public static IHostBuilder UseAgentService(this IHostBuilder hostBuilder, Action<ServiceLifetimeOptions> configure = null)
     {
-        hostBuilder.UseContentRoot(AppContext.BaseDirectory);
+        //hostBuilder.UseContentRoot(AppContext.BaseDirectory);
         hostBuilder.ConfigureServices(delegate (HostBuilderContext hostContext, IServiceCollection services)
         {
             ServiceBase.InitService();
