@@ -44,10 +44,10 @@ public abstract class ServiceBase : DisposeBase
         // 以服务方式启动时，不写控制台日志，修正当前目录，帮助用户处理路径问题
         var args = Environment.GetCommandLineArgs();
         var isService = args != null && args.Length > 0 && args.Contains("-s");
-        if (isService)
-            Environment.CurrentDirectory = ".".GetFullPath();
-        else
+        if (!isService)
             XTrace.UseConsole();
+
+        Environment.CurrentDirectory = ".".GetBasePath();
     }
 
     /// <summary>销毁</summary>

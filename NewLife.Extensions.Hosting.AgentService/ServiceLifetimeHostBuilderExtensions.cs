@@ -15,11 +15,11 @@ public static class ServiceLifetimeHostBuilderExtensions
     /// <returns></returns>
     public static IHostBuilder UseAgentService(this IHostBuilder hostBuilder, Action<ServiceLifetimeOptions> configure = null)
     {
+        ServiceBase.InitService();
+
         //hostBuilder.UseContentRoot(AppContext.BaseDirectory);
         hostBuilder.ConfigureServices(delegate (HostBuilderContext hostContext, IServiceCollection services)
         {
-            ServiceBase.InitService();
-
             services.AddSingleton<IHostLifetime, ServiceLifetime>();
             services.TryAddSingleton(XTrace.Log);
             services.Configure(configure);

@@ -1,7 +1,7 @@
 ﻿using NewLife.Extensions.Hosting.AgentService;
 using TestWorker;
 
-IHost host = Host.CreateDefaultBuilder(args)
+var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices(services =>
     {
         services.AddStardust();
