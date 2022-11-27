@@ -19,9 +19,10 @@ public class Systemd : Host
     {
         var ps = new[] {
             "/etc/systemd/system",
+            "/lib/systemd/system",
             "/run/systemd/system",
             "/usr/lib/systemd/system",
-            "/lib/systemd/system" };
+        };
         foreach (var p in ps)
         {
             if (Directory.Exists(p))
@@ -147,6 +148,7 @@ public class Systemd : Host
         var sb = new StringBuilder();
         sb.AppendLine("[Unit]");
         sb.AppendLine($"Description={des}");
+        //sb.AppendLine("StartLimitIntervalSec=0");
 
         sb.AppendLine();
         sb.AppendLine("[Service]");
@@ -156,7 +158,12 @@ public class Systemd : Host
         sb.AppendLine($"WorkingDirectory={".".GetFullPath()}");
         if (!user.IsNullOrEmpty()) sb.AppendLine($"User={user}");
         if (!group.IsNullOrEmpty()) sb.AppendLine($"Group={group}");
+
+        // no 表示服务退出时，服务不会自动重启，默认值。
+        // on-failure 表示当进程以非零退出代码退出，由信号终止；当操作(如服务重新加载)超时；以及何时触发配置的监视程序超时时，服务会自动重启。
+        // always 表示只要服务退出，则服务将自动重启。
         sb.AppendLine("Restart=on-failure");
+        //sb.AppendLine("RestartSec=1");
 
         sb.AppendLine();
         sb.AppendLine("[Install]");
