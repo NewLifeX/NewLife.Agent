@@ -393,15 +393,15 @@ public class WindowsService : Host
     {
         XTrace.WriteLine("{0}.Restart {1}", GetType().Name, serviceName);
 
-        if (InService)
+        //if (InService)
         {
             var cmd = $"/c net stop {serviceName} & ping 127.0.0.1 -n 5 & net start {serviceName}";
             Process.Start("cmd.exe", cmd);
         }
-        else
-        {
-            Process.Start(Service.GetExeName(), "-run -delay");
-        }
+        //else
+        //{
+        //    Process.Start(Service.GetExeName(), "-run -delay");
+        //}
 
         //// 在临时目录生成重启服务的批处理文件
         //var filename = "重启.bat".GetFullPath();
