@@ -332,6 +332,8 @@ public abstract class ServiceBase : DisposeBase
     protected virtual void ProcessCommand(String cmd, String[] args)
     {
         var name = ServiceName;
+        WriteLog("ProcessCommand cmd={0} args={1}", cmd, args.Join(" "));
+
         cmd = cmd.ToLower();
         switch (cmd)
         {
@@ -386,6 +388,8 @@ public abstract class ServiceBase : DisposeBase
                     menu.Callback();
                 break;
         }
+
+        WriteLog("ProcessFinished cmd={0}", cmd);
     }
     #endregion
 
