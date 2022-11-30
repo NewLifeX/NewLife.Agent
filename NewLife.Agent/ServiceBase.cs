@@ -43,11 +43,13 @@ public abstract class ServiceBase : DisposeBase
     {
         // 以服务方式启动时，不写控制台日志，修正当前目录，帮助用户处理路径问题
         var args = Environment.GetCommandLineArgs();
-        var isService = args != null && args.Length > 0 && args.Contains("-s");
+        var isService = args != null && "-s".EqualIgnoreCase(args);
         if (!isService)
             XTrace.UseConsole();
 
         Environment.CurrentDirectory = ".".GetBasePath();
+
+        typeof(ServiceBase).Assembly.WriteVersion();
     }
 
     /// <summary>销毁</summary>
@@ -455,7 +457,7 @@ public abstract class ServiceBase : DisposeBase
     {
         AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
 
-        GetType().Assembly.WriteVersion();
+        //GetType().Assembly.WriteVersion();
 
         //StartWork("StartLoop");
 
