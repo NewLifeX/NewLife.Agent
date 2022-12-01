@@ -2,6 +2,7 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Security;
+using System.Xml.Linq;
 using NewLife.Log;
 using NewLife.Reflection;
 
@@ -378,6 +379,9 @@ public abstract class ServiceBase : DisposeBase
                 }
                 Host.Remove(name);
                 break;
+            case "-reinstall":
+                Reinstall(name);
+                break;
             case "-run":
                 if ("-delay".EqualIgnoreCase(args)) Thread.Sleep(5_000);
                 StartLoop();
@@ -553,6 +557,28 @@ public abstract class ServiceBase : DisposeBase
         filename = filename.Replace(".vshost.", ".");
 
         return filename;
+    }
+
+    private void Reinstall(String name)
+    {
+        try
+        {
+            Host.Stop(name);
+        }
+        catch (Exception ex)
+        {
+            XTrace.WriteException(ex);
+        }
+        Host.Remove(name);
+
+        Install();
+        // 稍微等待
+        for (var i = 0; i < 50; i++)
+        {
+            if (Host.IsInstalled(name)) break;
+            Thread.Sleep(100);
+        }
+        Host.Start(name);
     }
     #endregion
 
