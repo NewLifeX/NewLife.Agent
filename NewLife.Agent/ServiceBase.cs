@@ -76,7 +76,14 @@ public abstract class ServiceBase : DisposeBase
         var cmd = args?.FirstOrDefault(e => !e.IsNullOrEmpty() && e.Length > 1 && e[0] == '-');
         if (!cmd.IsNullOrEmpty())
         {
-            ProcessCommand(cmd, args);
+            try
+            {
+                ProcessCommand(cmd, args);
+            }
+            catch (Exception ex)
+            {
+                XTrace.WriteException(ex);
+            }
         }
         else
         {
