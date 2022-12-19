@@ -76,14 +76,7 @@ public abstract class ServiceBase : DisposeBase
         var cmd = args?.FirstOrDefault(e => !e.IsNullOrEmpty() && e.Length > 1 && e[0] == '-');
         if (!cmd.IsNullOrEmpty())
         {
-            try
-            {
-                ProcessCommand(cmd, args);
-            }
-            catch (Exception ex)
-            {
-                XTrace.WriteException(ex);
-            }
+            ProcessCommand(cmd, args);
         }
         else
         {
@@ -243,7 +236,8 @@ public abstract class ServiceBase : DisposeBase
                         break;
                     default:
                         // 自定义菜单
-                        if (_Menus.TryGetValue(key.KeyChar, out var menu)) menu.Callback();
+                        var menu = _Menus.FirstOrDefault(e => e.Key == key.KeyChar);
+                        menu?.Callback();
                         break;
                 }
             }
@@ -298,10 +292,11 @@ public abstract class ServiceBase : DisposeBase
 
         if (_Menus.Count > 0)
         {
-            foreach (var item in _Menus)
-            {
-                Console.WriteLine("{0} {1}", item.Key, item.Value.Name);
-            }
+            //foreach (var item in _Menus)
+            //{
+            //    Console.WriteLine("{0} {1}", item.Key, item.Value.Name);
+            //}
+            OnShowMenu(_Menus);
         }
 
         Console.WriteLine("0 退出");
@@ -309,25 +304,50 @@ public abstract class ServiceBase : DisposeBase
         Console.ForegroundColor = color;
     }
 
-    private readonly Dictionary<Char, Menu> _Menus = new Dictionary<Char, Menu>();
+    /// <summary>
+    /// 显示自定义菜单
+    /// </summary>
+    /// <param name="menus"></param>
+    protected virtual void OnShowMenu(IList<Menu> menus)
+    {
+        foreach (var item in menus)
+        {
+            Console.WriteLine("{0} {1}", item.Key, item.Name);
+        }
+    }
+
+    private readonly List<Menu> _Menus = new();
     /// <summary>添加菜单</summary>
     /// <param name="key"></param>
     /// <param name="name"></param>
     /// <param name="callbak"></param>
     public void AddMenu(Char key, String name, Action callbak)
     {
-        if (!_Menus.ContainsKey(key))
-        {
-            _Menus.Add(key, new Menu(key, name, callbak));
-        }
+        //if (!_Menus.ContainsKey(key))
+        //{
+        _Menus.RemoveAll(e => e.Key == key);
+        _Menus.Add(new Menu(key, name, callbak));
+        //}
     }
 
-    private class Menu
+    /// <summary>菜单项</summary>
+    public class Menu
     {
+        /// <summary>按键</summary>
         public Char Key { get; set; }
+
+        /// <summary>名称</summary>
         public String Name { get; set; }
+
+        /// <summary>回调方法</summary>
         public Action Callback { get; set; }
 
+        /// <summary>
+        /// 实例化
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="name"></param>
+        /// <param name="callback"></param>
         public Menu(Char key, String name, Action callback)
         {
             Key = key;
@@ -397,8 +417,11 @@ public abstract class ServiceBase : DisposeBase
                 break;
             default:
                 // 快速调用自定义菜单
-                if (cmd.Length == 2 && cmd[0] == '-' && _Menus.TryGetValue(cmd[1], out var menu))
-                    menu.Callback();
+                if (cmd.Length == 2 && cmd[0] == '-')
+                {
+                    var menu = _Menus.FirstOrDefault(e => e.Key == cmd[1]);
+                    menu?.Callback();
+                }
                 break;
         }
 
