@@ -2,7 +2,6 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Security;
-using System.Xml.Linq;
 using NewLife.Log;
 using NewLife.Reflection;
 
@@ -646,7 +645,7 @@ public abstract class ServiceBase : DisposeBase
         if (cur < max) return false;
 
         // 执行一次GC回收
-#if NET4
+#if NETFRAMEWORK
         GC.Collect(2, GCCollectionMode.Forced);
 #else
         GC.Collect(2, GCCollectionMode.Forced, false);

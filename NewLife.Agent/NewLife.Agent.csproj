@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="Current">
   
   <PropertyGroup>
-    <TargetFrameworks>net461;netstandard2.0;netstandard2.1</TargetFrameworks>
+    <TargetFrameworks>net40;net45;net461;netstandard2.0;netstandard2.1</TargetFrameworks>
     <AssemblyName>NewLife.Agent</AssemblyName>
     <RootNamespace>NewLife.Agent</RootNamespace>
     <AssemblyTitle>服务管理</AssemblyTitle>
@@ -59,7 +59,10 @@
       <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)'=='net461' or '$(TargetFramework)'=='netstandard2.0' or '$(TargetFramework)'=='netstandard2.1'">
     <PackageReference Include="NewLife.Core" Version="10.1.2022.1201" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)'=='net40' or '$(TargetFramework)'=='net45'">
+    <PackageReference Include="NewLife.Core" Version="8.11.2022.1225" />
   </ItemGroup>
 </Project>
