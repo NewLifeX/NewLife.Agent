@@ -2,6 +2,7 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Security;
+using System.Security.Principal;
 using NewLife.Log;
 using NewLife.Reflection;
 
@@ -29,14 +30,12 @@ public abstract class ServiceBase : DisposeBase
 
     #region 构造
     /// <summary>初始化</summary>
-    public ServiceBase()
-    {
+    public ServiceBase() =>
         //#if NETSTANDARD2_0
         //MachineInfo.RegisterAsync();
         //#endif
 
         InitService();
-    }
 
     /// <summary>初始化服务。Agent组件内部使用</summary>
     public static void InitService()
@@ -113,10 +112,7 @@ public abstract class ServiceBase : DisposeBase
                 Host = new WindowsService { Service = this };
             else if (Systemd.Available)
                 Host = new Systemd { Service = this };
-            else if (RcInit.Available)
-                Host = new RcInit { Service = this };
-            else
-                throw new NotSupportedException($"不支持该操作系统！");
+            else Host = RcInit.Available ? (IHost)new RcInit { Service = this } : throw new NotSupportedException($"不支持该操作系统！");
         }
 
         Log = XTrace.Log;
@@ -155,12 +151,19 @@ public abstract class ServiceBase : DisposeBase
         Console.WriteLine("描述：{0}", Description);
         Console.Write("状态：{0} ", Host.GetType().Name);
 
+        String status;
         if (!Host.IsInstalled(name))
-            Console.WriteLine("未安装");
+            status = "未安装";
         else if (Host.IsRunning(name))
-            Console.WriteLine("运行中");
+            status = "运行中";
         else
-            Console.WriteLine("未启动");
+            status = "未启动";
+
+#if !NETSTANDARD
+        if (Runtime.Windows) status += $"（{(IsAdministrator() ? "管理员" : "普通用户")}）";
+#endif
+
+        Console.WriteLine(status);
 
         var asm = AssemblyX.Create(Assembly.GetExecutingAssembly());
         Console.WriteLine();
@@ -172,6 +175,15 @@ public abstract class ServiceBase : DisposeBase
 
         Console.ForegroundColor = color;
     }
+
+#if !NETSTANDARD
+    private Boolean IsAdministrator()
+    {
+        var current = WindowsIdentity.GetCurrent();
+        var windowsPrincipal = new WindowsPrincipal(current);
+        return windowsPrincipal.IsInRole(WindowsBuiltInRole.Administrator);
+    }
+#endif
 
     /// <summary>处理菜单</summary>
     protected virtual void ProcessMenu()

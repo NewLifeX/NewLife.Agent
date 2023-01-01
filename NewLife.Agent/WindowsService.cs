@@ -1,6 +1,11 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security;
+using System.Security.Permissions;
+using System.Security.Principal;
+using System.Text;
 using NewLife.Log;
 using static NewLife.Agent.Advapi32;
 
@@ -157,9 +162,9 @@ public class WindowsService : Host
 
     private Int32 ServiceCommandCallbackEx(ControlOptions command, Int32 eventType, IntPtr eventData, IntPtr eventContext)
     {
-        if (command != ControlOptions.PowerEvent &&
-            command != ControlOptions.SessionChange &&
-            command != ControlOptions.Interrogate)
+        if (command is not ControlOptions.PowerEvent and
+            not ControlOptions.SessionChange and
+            not ControlOptions.Interrogate)
             XTrace.WriteLine("ServiceCommandCallbackEx(command={0}, eventType={1}, eventData={2:x}, eventContext={3:x})", command, eventType, eventData, eventContext);
 
         switch (command)
@@ -225,11 +230,10 @@ public class WindowsService : Host
                 _status.controlsAccepted = _acceptedCommands;
 
             // 正在运行和已经停止，检查点为0；其它状态累加检查点
-            if (state == ServiceControllerStatus.Running ||
-                state == ServiceControllerStatus.Stopped)
-                _status.checkPoint = 0;
-            else
-                _status.checkPoint = _checkPoint++;
+            _status.checkPoint = state is ServiceControllerStatus.Running or
+                ServiceControllerStatus.Stopped
+                ? 0
+                : _checkPoint++;
 
             _status.waitHint = waitHint;
             _status.currentState = state;
@@ -248,9 +252,7 @@ public class WindowsService : Host
         if (manager == null || manager.IsInvalid) return false;
 
         using var service = new SafeServiceHandle(OpenService(manager, serviceName, ServiceOptions.SERVICE_QUERY_CONFIG));
-        if (service == null || service.IsInvalid) return false;
-
-        return true;
+        return service != null && !service.IsInvalid;
     }
 
     /// <summary>服务是否已启动</summary>
@@ -265,10 +267,9 @@ public class WindowsService : Host
         if (service == null || service.IsInvalid) return false;
 
         SERVICE_STATUS status = default;
-        if (!QueryServiceStatus(service, &status))
-            throw new Win32Exception(Marshal.GetLastWin32Error());
-
-        return status.currentState == ServiceControllerStatus.Running;
+        return !QueryServiceStatus(service, &status)
+            ? throw new Win32Exception(Marshal.GetLastWin32Error())
+            : status.currentState == ServiceControllerStatus.Running;
     }
 
     /// <summary>安装服务</summary>
@@ -280,6 +281,10 @@ public class WindowsService : Host
     public override Boolean Install(String serviceName, String displayName, String binPath, String description)
     {
         XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", GetType().Name, serviceName, displayName, binPath, description);
+
+#if !NETSTANDARD
+        if (!IsAdministrator()) return RunAsAdministrator("-install");
+#endif
 
         using var manager = new SafeServiceHandle(OpenSCManager(null, null, ServiceControllerOptions.SC_MANAGER_CREATE_SERVICE));
         if (manager.IsInvalid)
@@ -322,6 +327,10 @@ public class WindowsService : Host
     {
         XTrace.WriteLine("{0}.Remove {1}", GetType().Name, serviceName);
 
+#if !NETSTANDARD
+        if (!IsAdministrator()) return RunAsAdministrator("-uninstall");
+#endif
+
         using var manager = new SafeServiceHandle(OpenSCManager(null, null, ServiceControllerOptions.SC_MANAGER_ALL));
         if (manager.IsInvalid)
         {
@@ -335,9 +344,7 @@ public class WindowsService : Host
         SERVICE_STATUS status = default;
         ControlService(service, ControlOptions.Stop, &status);
 
-        if (DeleteService(service) == 0) throw new Win32Exception(Marshal.GetLastWin32Error());
-
-        return true;
+        return DeleteService(service) == 0 ? throw new Win32Exception(Marshal.GetLastWin32Error()) : true;
     }
 
     /// <summary>启动服务</summary>
@@ -347,6 +354,10 @@ public class WindowsService : Host
     {
         XTrace.WriteLine("{0}.Start {1}", GetType().Name, serviceName);
 
+#if !NETSTANDARD
+        if (!IsAdministrator()) return RunAsAdministrator("-start");
+#endif
+
         using var manager = new SafeServiceHandle(OpenSCManager(null, null, ServiceControllerOptions.SC_MANAGER_CONNECT));
         if (manager.IsInvalid)
         {
@@ -355,12 +366,9 @@ public class WindowsService : Host
         }
 
         using var service = new SafeServiceHandle(OpenService(manager, serviceName, ServiceOptions.SERVICE_START));
-        if (service.IsInvalid) throw new Win32Exception(Marshal.GetLastWin32Error());
-
-        if (!StartService(service, 0, IntPtr.Zero))
-            throw new Win32Exception(Marshal.GetLastWin32Error());
-
-        return true;
+        return service.IsInvalid
+            ? throw new Win32Exception(Marshal.GetLastWin32Error())
+            : !StartService(service, 0, IntPtr.Zero) ? throw new Win32Exception(Marshal.GetLastWin32Error()) : true;
     }
 
     /// <summary>停止服务</summary>
@@ -369,6 +377,10 @@ public class WindowsService : Host
     public override unsafe Boolean Stop(String serviceName)
     {
         XTrace.WriteLine("{0}.Stop {1}", GetType().Name, serviceName);
+
+#if !NETSTANDARD
+        if (!IsAdministrator()) return RunAsAdministrator("-stop");
+#endif
 
         using var manager = new SafeServiceHandle(OpenSCManager(null, null, ServiceControllerOptions.SC_MANAGER_ALL));
         if (manager.IsInvalid)
@@ -381,10 +393,7 @@ public class WindowsService : Host
         if (service.IsInvalid) throw new Win32Exception(Marshal.GetLastWin32Error());
 
         SERVICE_STATUS status = default;
-        if (!ControlService(service, ControlOptions.Stop, &status))
-            throw new Win32Exception(Marshal.GetLastWin32Error());
-
-        return true;
+        return !ControlService(service, ControlOptions.Stop, &status) ? throw new Win32Exception(Marshal.GetLastWin32Error()) : true;
     }
 
     /// <summary>重启服务</summary>
@@ -392,6 +401,10 @@ public class WindowsService : Host
     public override Boolean Restart(String serviceName)
     {
         XTrace.WriteLine("{0}.Restart {1}", GetType().Name, serviceName);
+
+#if !NETSTANDARD
+        if (!IsAdministrator()) return RunAsAdministrator("-restart");
+#endif
 
         //if (InService)
         {
@@ -430,5 +443,89 @@ public class WindowsService : Host
 
         return true;
     }
+
+#if !NETSTANDARD
+    static Boolean RunAsAdministrator(String argument)
+    {
+        var exe = ExecutablePath;
+        if (exe.IsNullOrEmpty()) return false;
+
+        if (exe.EndsWithIgnoreCase(".dll"))
+        {
+            var exe2 = Path.ChangeExtension(exe, ".exe");
+            if (File.Exists(exe2)) exe = exe2;
+        }
+
+        var startInfo = exe.EndsWithIgnoreCase(".dll") ?
+            new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"{Path.GetFileName(exe)} {argument}",
+                WorkingDirectory = Path.GetDirectoryName(exe),
+                Verb = "runas",
+                UseShellExecute = true,
+            } :
+            new ProcessStartInfo
+            {
+                FileName = exe,
+                Arguments = argument,
+                Verb = "runas",
+                UseShellExecute = true,
+            };
+
+        var p = Process.Start(startInfo);
+        return !p.WaitForExit(5_000) || p.ExitCode == 0;
+    }
+
+    static String _executablePath;
+    static String ExecutablePath
+    {
+        get
+        {
+            if (_executablePath == null)
+            {
+                var entryAssembly = Assembly.GetEntryAssembly();
+                if (entryAssembly != null)
+                {
+                    var codeBase = entryAssembly.CodeBase;
+                    var uri = new Uri(codeBase);
+                    _executablePath = uri.IsFile ? uri.LocalPath + Uri.UnescapeDataString(uri.Fragment) : uri.ToString();
+                }
+                else
+                {
+                    var moduleFileNameLongPath = GetModuleFileNameLongPath(new HandleRef(null, IntPtr.Zero));
+                    _executablePath = moduleFileNameLongPath.ToString().GetFullPath();
+                }
+            }
+
+            return _executablePath;
+        }
+    }
+
+    static StringBuilder GetModuleFileNameLongPath(HandleRef hModule)
+    {
+        var sb = new StringBuilder(260);
+        var num = 1;
+        var num2 = 0;
+        while ((num2 = GetModuleFileName(hModule, sb, sb.Capacity)) == sb.Capacity && Marshal.GetLastWin32Error() == 122 && sb.Capacity < 32767)
+        {
+            num += 2;
+            var capacity = (num * 260 < 32767) ? (num * 260) : 32767;
+            sb.EnsureCapacity(capacity);
+        }
+        sb.Length = num2;
+        return sb;
+    }
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    static extern Int32 GetModuleFileName(HandleRef hModule, StringBuilder buffer, Int32 length);
+
+    private Boolean IsAdministrator()
+    {
+        var current = WindowsIdentity.GetCurrent();
+        var windowsPrincipal = new WindowsPrincipal(current);
+        return windowsPrincipal.IsInRole(WindowsBuiltInRole.Administrator);
+    }
+#endif
     #endregion
 }
