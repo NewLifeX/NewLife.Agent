@@ -1,6 +1,8 @@
 ﻿using NewLife.Extensions.Hosting.AgentService;
 using TestWorker;
 
+Environment.CurrentDirectory = ".".GetFullPath();
+
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices(services =>
     {
