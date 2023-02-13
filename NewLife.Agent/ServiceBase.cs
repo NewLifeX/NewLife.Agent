@@ -404,7 +404,15 @@ public abstract class ServiceBase : DisposeBase
                 Host.Restart(name);
                 break;
             case "-install":
-                Install();
+                // 可能服务已存在，安装时报错，但不要影响服务启动
+                try
+                {
+                    Install();
+                }
+                catch (Exception ex)
+                {
+                    XTrace.WriteException(ex);
+                }
                 // 稍微等待
                 for (var i = 0; i < 50; i++)
                 {
