@@ -31,7 +31,7 @@
     <RepositoryUrl>https://github.com/NewLifeX/NewLife.Agent</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>新生命团队;X组件;NewLife;$(AssemblyName)</PackageTags>
-    <PackageReleaseNotes>支持Linux的rc.init</PackageReleaseNotes>
+    <PackageReleaseNotes>恢复支持.NET4.5</PackageReleaseNotes>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
@@ -59,10 +59,10 @@
       <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)'!='net40' and '$(TargetFramework)'!='net45'">
-    <PackageReference Include="NewLife.Core" Version="10.1.2023.203" />
+  <ItemGroup Condition="'$(TargetFramework)'!='net40'">
+    <PackageReference Include="NewLife.Core" Version="10.1.2023.214-beta1527" />
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)'=='net40' or '$(TargetFramework)'=='net45'">
+  <ItemGroup Condition="'$(TargetFramework)'=='net40'">
     <PackageReference Include="NewLife.Core" Version="8.11.2022.1225" />
   </ItemGroup>
 </Project>
