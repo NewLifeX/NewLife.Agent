@@ -283,7 +283,7 @@ public class WindowsService : Host
         XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", GetType().Name, serviceName, displayName, binPath, description);
 
 #if !NETSTANDARD
-        if (!IsAdministrator()) return RunAsAdministrator("-install");
+        if (!IsAdministrator()) return RunAsAdministrator("-i");
 #endif
 
         using var manager = new SafeServiceHandle(OpenSCManager(null, null, ServiceControllerOptions.SC_MANAGER_CREATE_SERVICE));

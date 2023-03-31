@@ -1,9 +1,6 @@
-﻿using System.ComponentModel;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
 using System.Text;
 using NewLife.Log;
-using static NewLife.Agent.Advapi32;
 
 namespace NewLife.Agent;
 
