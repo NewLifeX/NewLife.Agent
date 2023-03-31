@@ -152,7 +152,8 @@ public abstract class ServiceBase : DisposeBase
         Console.Write("状态：{0} ", Host.GetType().Name);
 
         String status;
-        if (!Host.IsInstalled(name))
+        var installed = Host.IsInstalled(name);
+        if (!installed)
             status = "未安装";
         else if (Host.IsRunning(name))
             status = "运行中";
@@ -164,6 +165,13 @@ public abstract class ServiceBase : DisposeBase
 #endif
 
         Console.WriteLine(status);
+
+        // 执行文件路径
+        if (installed)
+        {
+            var cfg = Host.QueryConfig(name);
+            if (cfg != null) Console.WriteLine("路径：{0}", cfg.FilePath);
+        }
 
         var asm = AssemblyX.Create(Assembly.GetExecutingAssembly());
         Console.WriteLine();

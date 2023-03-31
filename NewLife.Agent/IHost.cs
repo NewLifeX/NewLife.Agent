@@ -43,6 +43,10 @@ public interface IHost
     /// <summary>开始执行服务</summary>
     /// <param name="service"></param>
     void Run(ServiceBase service);
+
+    /// <summary>查询服务配置</summary>
+    /// <param name="serviceName">服务名</param>
+    ServiceConfig QueryConfig(String serviceName);
 }
 
 /// <summary>服务主机。用于管理控制服务</summary>
@@ -98,4 +102,8 @@ public abstract class Host : DisposeBase, IHost
     /// <summary>开始执行服务</summary>
     /// <param name="service"></param>
     public abstract void Run(ServiceBase service);
+
+    /// <summary>查询服务配置</summary>
+    /// <param name="serviceName">服务名</param>
+    public virtual ServiceConfig QueryConfig(String serviceName) => null;
 }
