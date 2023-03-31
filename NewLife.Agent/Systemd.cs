@@ -1,6 +1,9 @@
-﻿using System.Diagnostics;
+﻿using System.ComponentModel;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text;
 using NewLife.Log;
+using static NewLife.Agent.Advapi32;
 
 namespace NewLife.Agent;
 
@@ -244,5 +247,29 @@ public class Systemd : Host
         }
 
         return process.StandardOutput.ReadToEnd();
+    }
+
+    /// <summary>查询服务配置</summary>
+    /// <param name="serviceName">服务名</param>
+    public override ServiceConfig QueryConfig(String serviceName)
+    {
+        var file = _path.CombinePath($"{serviceName}.service");
+        if (!File.Exists(file)) return null;
+
+        var txt = File.ReadAllText(file);
+        if (txt != null)
+        {
+            var dic = txt.SplitAsDictionary("=", "\n", true);
+
+            var cfg = new ServiceConfig { Name = serviceName };
+            if (dic.TryGetValue("ExecStart", out var str)) cfg.FilePath = str.Trim();
+            if (dic.TryGetValue("WorkingDirectory", out str)) cfg.FilePath = str.Trim().CombinePath(cfg.FilePath);
+            if (dic.TryGetValue("Description", out str)) cfg.DisplayName = str.Trim();
+            if (dic.TryGetValue("Restart", out str)) cfg.AutoStart = !str.Trim().EqualIgnoreCase("no");
+
+            return cfg;
+        }
+
+        return null;
     }
 }
