@@ -537,11 +537,7 @@ public class WindowsService : Host
                 else
                 {
                     var moduleFileNameLongPath = GetModuleFileNameLongPath(new HandleRef(null, IntPtr.Zero));
-#if NET40
                     _executablePath = moduleFileNameLongPath.ToString().GetFullPath();
-#else
-                    _executablePath = moduleFileNameLongPath.ToString().GetExecutePath();
-#endif
                 }
             }
 
