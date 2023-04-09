@@ -130,6 +130,9 @@ public class RcInit : Host
         //File.WriteAllText(file, sb.ToString());
         File.WriteAllBytes(file, sb.ToString().GetBytes());
 
+        // 给予可执行权限
+        Process.Start("chmod", $"+x {file}");
+
         // 创建链接文件
         for (var i = 0; i < 7; i++)
         {
