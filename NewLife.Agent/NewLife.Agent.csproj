@@ -61,9 +61,9 @@
     </None>
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'!='net40'">
-    <PackageReference Include="NewLife.Core" Version="10.2.2023.401" />
+    <PackageReference Include="NewLife.Core" Version="10.2.2023.503" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'=='net40'">
-    <PackageReference Include="NewLife.Core" Version="10.2.2023.401-net40" />
+    <PackageReference Include="NewLife.Core" Version="10.2.2023.503-net40" />
   </ItemGroup>
 </Project>
