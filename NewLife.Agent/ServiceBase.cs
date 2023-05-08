@@ -518,12 +518,17 @@ public abstract class ServiceBase : DisposeBase
         }
 
         _event.Dispose();
+        _event = null;
     }
 
     /// <summary>开始循环</summary>
     protected internal void StartLoop()
     {
+#if NET45_OR_GREATER || NETCOREAPP
+        NewLife.Model.Host.RegisterExit(OnProcessExit);
+#else
         AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
+#endif
 
         //GetType().Assembly.WriteVersion();
 
@@ -538,7 +543,10 @@ public abstract class ServiceBase : DisposeBase
     {
         if (!_running) return;
 
+#if NET45_OR_GREATER || NETCOREAPP
+#else
         AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
+#endif
 
         StopWork("StopLoop");
 
@@ -559,7 +567,8 @@ public abstract class ServiceBase : DisposeBase
 
     private void OnProcessExit(Object sender, EventArgs e)
     {
-        StopWork("ProcessExit");
+        WriteLog("OnProcessExit");
+        if (_running) StopWork("ProcessExit");
         //Environment.ExitCode = 0;
 
         if (XTrace.Log is CompositeLog compositeLog)
