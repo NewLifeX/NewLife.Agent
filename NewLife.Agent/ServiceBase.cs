@@ -524,11 +524,7 @@ public abstract class ServiceBase : DisposeBase
     /// <summary>开始循环</summary>
     protected internal void StartLoop()
     {
-#if NET45_OR_GREATER || NETCOREAPP
         NewLife.Model.Host.RegisterExit(OnProcessExit);
-#else
-        AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
-#endif
 
         //GetType().Assembly.WriteVersion();
 
@@ -542,11 +538,6 @@ public abstract class ServiceBase : DisposeBase
     protected internal void StopLoop()
     {
         if (!_running) return;
-
-#if NET45_OR_GREATER || NETCOREAPP
-#else
-        AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
-#endif
 
         StopWork("StopLoop");
 
