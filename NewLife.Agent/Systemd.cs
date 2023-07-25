@@ -165,6 +165,8 @@ public class Systemd : Host
         sb.AppendLine("Restart=on-failure");
         //sb.AppendLine("RestartSec=1");
 
+        sb.AppendLine("KillSignal=SIGINT");
+
         sb.AppendLine();
         sb.AppendLine("[Install]");
         sb.AppendLine("WantedBy=multi-user.target");
