@@ -112,7 +112,9 @@ public abstract class ServiceBase : DisposeBase
                 Host = new WindowsService { Service = this };
             else if (Systemd.Available)
                 Host = new Systemd { Service = this };
-            else Host = RcInit.Available ? (IHost)new RcInit { Service = this } : throw new NotSupportedException($"不支持该操作系统！");
+            else Host = RcInit.Available ?
+                    (IHost)new RcInit { Service = this } :
+                    throw new NotSupportedException($"不支持该操作系统！");
         }
 
         Log = XTrace.Log;

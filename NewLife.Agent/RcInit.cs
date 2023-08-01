@@ -110,7 +110,7 @@ public class RcInit : Host
     /// <returns></returns>
     public static Boolean Install(String systemdPath, String serviceName, String binPath, String displayName, String description)
     {
-        XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", typeof(Systemd).Name, serviceName, displayName, binPath, description);
+        XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", typeof(RcInit).Name, serviceName, displayName, binPath, description);
 
         var file = systemdPath.CombinePath($"{serviceName}");
         XTrace.WriteLine(file);

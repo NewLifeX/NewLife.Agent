@@ -5,6 +5,9 @@ using NewLife.Log;
 namespace NewLife.Agent;
 
 /// <summary>systemd版进程守护</summary>
+/// <remarks>
+/// ServiceBase子类应用可重载Init后，借助Host修改Systemd配置。
+/// </remarks>
 public class Systemd : Host
 {
     #region 静态
@@ -40,6 +43,9 @@ public class Systemd : Host
 
     /// <summary>用于执行服务的用户组</summary>
     public String Group { get; set; }
+
+    /// <summary>是否依赖于网络。在网络就绪后才启动服务</summary>
+    public Boolean DependOnNetwork { get; set; }
     #endregion
 
     /// <summary>启动服务</summary>
@@ -123,7 +129,7 @@ public class Systemd : Host
             }
         }
 
-        return Install(_path, serviceName, displayName, binPath, description, User, Group);
+        return Install(_path, serviceName, displayName, binPath, description, User, Group, DependOnNetwork);
     }
 
     /// <summary>安装服务</summary>
@@ -134,8 +140,9 @@ public class Systemd : Host
     /// <param name="description">描述信息</param>
     /// <param name="user">用户</param>
     /// <param name="group">用户组</param>
+    /// <param name="network"></param>
     /// <returns></returns>
-    public static Boolean Install(String systemdPath, String serviceName, String displayName, String binPath, String description, String user, String group)
+    public static Boolean Install(String systemdPath, String serviceName, String displayName, String binPath, String description, String user, String group, Boolean network)
     {
         XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", typeof(Systemd).Name, serviceName, displayName, binPath, description);
 
@@ -148,7 +155,9 @@ public class Systemd : Host
         var sb = new StringBuilder();
         sb.AppendLine("[Unit]");
         sb.AppendLine($"Description={des}");
-        sb.AppendLine($"After=network.target");
+
+        if (network)
+            sb.AppendLine($"After=network.target");
         //sb.AppendLine("StartLimitIntervalSec=0");
 
         sb.AppendLine();
