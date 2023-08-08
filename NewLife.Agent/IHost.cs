@@ -40,6 +40,14 @@ public interface IHost
     /// <param name="serviceName">服务名</param>
     Boolean Restart(String serviceName);
 
+    ///// <summary>安装为自启动。登录进入桌面后启动</summary>
+    ///// <param name="serviceName">服务名</param>
+    ///// <param name="displayName">显示名</param>
+    ///// <param name="binPath">文件路径</param>
+    ///// <param name="description">描述信息</param>
+    ///// <returns></returns>
+    //Boolean InstallAutorun(String serviceName, String displayName, String binPath, String description);
+
     /// <summary>开始执行服务</summary>
     /// <param name="service"></param>
     void Run(ServiceBase service);
@@ -98,6 +106,14 @@ public abstract class Host : DisposeBase, IHost
     /// <summary>重启服务</summary>
     /// <param name="serviceName">服务名</param>
     public virtual Boolean Restart(String serviceName) => false;
+
+    ///// <summary>安装为自启动。登录进入桌面后启动</summary>
+    ///// <param name="serviceName">服务名</param>
+    ///// <param name="displayName">显示名</param>
+    ///// <param name="binPath">文件路径</param>
+    ///// <param name="description">描述信息</param>
+    ///// <returns></returns>
+    //public virtual Boolean InstallAutorun(String serviceName, String displayName, String binPath, String description) => false;
 
     /// <summary>开始执行服务</summary>
     /// <param name="service"></param>

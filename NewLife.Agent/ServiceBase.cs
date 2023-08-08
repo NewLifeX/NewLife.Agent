@@ -26,6 +26,9 @@ public abstract class ServiceBase : DisposeBase
 
     /// <summary>描述</summary>
     public String Description { get; set; }
+
+    /// <summary>是否使用自启动。自启动需要用户登录桌面，默认false使用系统服务</summary>
+    public Boolean UseAutorun { get; set; }
     #endregion
 
     #region 构造
@@ -109,12 +112,18 @@ public abstract class ServiceBase : DisposeBase
         if (Host == null)
         {
             if (Runtime.Windows)
-                Host = new WindowsService { Service = this };
+            {
+                if (UseAutorun)
+                    Host = new WindowsAutorun { Service = this };
+                else
+                    Host = new WindowsService { Service = this };
+            }
             else if (Systemd.Available)
                 Host = new Systemd { Service = this };
-            else Host = RcInit.Available ?
-                    (IHost)new RcInit { Service = this } :
-                    throw new NotSupportedException($"不支持该操作系统！");
+            else if (RcInit.Available)
+                Host = new RcInit { Service = this };
+            else
+                throw new NotSupportedException($"不支持该操作系统！");
         }
 
         Log = XTrace.Log;
@@ -259,6 +268,9 @@ public abstract class ServiceBase : DisposeBase
                         }
                         #endregion
                         break;
+                    //case '6':
+                    //    InstallAutorun();
+                    //    break;
                     case '7':
                         if (WatchDogs.Length > 0) CheckWatchDog();
                         break;
@@ -311,6 +323,11 @@ public abstract class ServiceBase : DisposeBase
         {
             Console.WriteLine("5 模拟运行 -run");
         }
+
+        //if (Runtime.Windows)
+        //{
+        //    Console.WriteLine("6 安装开机自启 -autorun");
+        //}
 
         var dogs = WatchDogs;
         if (dogs.Length > 0)
@@ -594,7 +611,7 @@ public abstract class ServiceBase : DisposeBase
                 exe = args[0].GetFullPath();
         }
 
-        var bin = $"{exe} -s";
+        var bin = UseAutorun ? $"{exe} -run" : $"{exe} -s";
 
         // 兼容更多参数做为服务启动，譬如：--urls
         if (args.Length > 2)

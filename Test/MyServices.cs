@@ -20,6 +20,8 @@ namespace Test
 
             DisplayName = "新生命服务代理";
             Description = "用于承载各种服务的服务代理！";
+
+            UseAutorun = true;
         }
         #endregion
 
