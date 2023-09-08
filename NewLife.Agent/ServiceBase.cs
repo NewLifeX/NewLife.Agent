@@ -118,12 +118,17 @@ public abstract class ServiceBase : DisposeBase
                 else
                     Host = new WindowsService { Service = this };
             }
+            else if (Runtime.OSX)
+                Host = new OSXLaunch { Service = this };
             else if (Systemd.Available)
                 Host = new Systemd { Service = this };
             else if (RcInit.Available)
                 Host = new RcInit { Service = this };
             else
-                throw new NotSupportedException($"不支持该操作系统！");
+            {
+                //throw new NotSupportedException($"不支持该操作系统！");
+                Host = new DefaultHost { Service = this };
+            }
         }
 
         Log = XTrace.Log;
@@ -761,7 +766,7 @@ public abstract class ServiceBase : DisposeBase
 
         Host.Restart(ServiceName);
 
-        if (Host is Host host && !host.InService) StopLoop();
+        if (Host is DefaultHost host && !host.InService) StopLoop();
 
         return true;
     }

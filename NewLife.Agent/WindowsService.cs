@@ -15,7 +15,7 @@ namespace NewLife.Agent;
 /// <remarks>
 /// 特别注意，主线程和服务内部线程，不要调用任何系统WinApi
 /// </remarks>
-public class WindowsService : Host
+public class WindowsService : DefaultHost
 {
     //private ServiceBase _service;
     private SERVICE_STATUS _status;

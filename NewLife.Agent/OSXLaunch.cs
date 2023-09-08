@@ -4,27 +4,20 @@ using NewLife.Log;
 
 namespace NewLife.Agent;
 
-/// <summary>systemd版进程守护</summary>
-/// <remarks>
-/// ServiceBase子类应用可重载Init后，借助Host修改Systemd配置。
-/// </remarks>
-public class Systemd : DefaultHost
+/// <summary>MacOSX系统主机</summary>
+public class OSXLaunch : DefaultHost
 {
     #region 静态
     private static String _path;
-    //private ServiceBase _service;
 
     /// <summary>是否可用</summary>
     public static Boolean Available => !_path.IsNullOrEmpty();
 
     /// <summary>实例化</summary>
-    static Systemd()
+    static OSXLaunch()
     {
         var ps = new[] {
-            "/etc/systemd/system",
-            "/lib/systemd/system",
-            "/run/systemd/system",
-            "/usr/lib/systemd/system",
+            "~/Library/LaunchAgents/",
         };
         foreach (var p in ps)
         {
@@ -74,22 +67,20 @@ public class Systemd : DefaultHost
         }
     }
 
+    String GetFileName(String serviceName) => GetFileName(serviceName, _path);
+    static String GetFileName(String serviceName, String basePath) => basePath.CombinePath($"com.{serviceName}.plist");
+
     /// <summary>服务是否已安装</summary>
     /// <param name="serviceName">服务名</param>
     /// <returns></returns>
-    public override Boolean IsInstalled(String serviceName)
-    {
-        var file = _path.CombinePath($"{serviceName}.service");
-
-        return File.Exists(file);
-    }
+    public override Boolean IsInstalled(String serviceName) => File.Exists(GetFileName(serviceName));
 
     /// <summary>服务是否已启动</summary>
     /// <param name="serviceName">服务名</param>
     /// <returns></returns>
     public override Boolean IsRunning(String serviceName)
     {
-        var file = _path.CombinePath($"{serviceName}.service");
+        var file = GetFileName(serviceName);
         if (!File.Exists(file)) return false;
 
         var str = Execute("systemctl", $"status {serviceName}", false);
@@ -132,8 +123,27 @@ public class Systemd : DefaultHost
         return Install(_path, serviceName, displayName, binPath, description, User, Group, DependOnNetwork);
     }
 
+    static String _template = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>Label</key>
+            <string>{$Name}</string>
+            <key>ProgramArguments</key>
+            <array>
+                <string>{FileName}</string>
+                <string>{Arguments}</string>
+            </array>
+            <key>RunAtLoad</key>
+            <true/>
+        </dict>
+        </plist>
+
+        """;
+
     /// <summary>安装服务</summary>
-    /// <param name="systemdPath">systemd目录有</param>
+    /// <param name="basePath">systemd目录有</param>
     /// <param name="serviceName">服务名</param>
     /// <param name="displayName">显示名</param>
     /// <param name="binPath">文件路径</param>
@@ -142,11 +152,11 @@ public class Systemd : DefaultHost
     /// <param name="group">用户组</param>
     /// <param name="network"></param>
     /// <returns></returns>
-    public static Boolean Install(String systemdPath, String serviceName, String displayName, String binPath, String description, String user, String group, Boolean network)
+    public static Boolean Install(String basePath, String serviceName, String displayName, String binPath, String description, String user, String group, Boolean network)
     {
-        XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", typeof(Systemd).Name, serviceName, displayName, binPath, description);
+        XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", typeof(OSXLaunch).Name, serviceName, displayName, binPath, description);
 
-        var file = systemdPath.CombinePath($"{serviceName}.service");
+        var file = GetFileName(serviceName, basePath);
         XTrace.WriteLine(file);
 
         //var asm = Assembly.GetEntryAssembly();
@@ -206,7 +216,7 @@ public class Systemd : DefaultHost
     {
         XTrace.WriteLine("{0}.Remove {1}", GetType().Name, serviceName);
 
-        var file = _path.CombinePath($"{serviceName}.service");
+        var file = GetFileName(serviceName);
         if (File.Exists(file)) File.Delete(file);
 
         return true;
@@ -267,7 +277,7 @@ public class Systemd : DefaultHost
     /// <param name="serviceName">服务名</param>
     public override ServiceConfig QueryConfig(String serviceName)
     {
-        var file = _path.CombinePath($"{serviceName}.service");
+        var file = GetFileName(serviceName);
         if (!File.Exists(file)) return null;
 
         var txt = File.ReadAllText(file);

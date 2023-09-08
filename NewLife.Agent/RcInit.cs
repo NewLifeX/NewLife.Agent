@@ -5,7 +5,7 @@ using NewLife.Log;
 namespace NewLife.Agent;
 
 /// <summary>Linux版进程守护</summary>
-public class RcInit : Host
+public class RcInit : DefaultHost
 {
     #region 静态
     private static readonly String _path;

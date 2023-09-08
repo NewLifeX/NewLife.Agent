@@ -13,7 +13,7 @@ namespace NewLife.Agent;
 /// <remarks>
 /// 桌面登录自启动
 /// </remarks>
-public class WindowsAutorun : Host
+public class WindowsAutorun : DefaultHost
 {
     /// <summary>开始执行服务</summary>
     /// <param name="service"></param>
