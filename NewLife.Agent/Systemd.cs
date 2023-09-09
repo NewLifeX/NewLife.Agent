@@ -101,10 +101,11 @@ public class Systemd : DefaultHost
     /// <summary>安装服务</summary>
     /// <param name="serviceName">服务名</param>
     /// <param name="displayName">显示名</param>
-    /// <param name="binPath">文件路径</param>
+    /// <param name="fileName">文件路径</param>
+    /// <param name="arguments">命令参数</param>
     /// <param name="description">描述信息</param>
     /// <returns></returns>
-    public override Boolean Install(String serviceName, String displayName, String binPath, String description)
+    public override Boolean Install(String serviceName, String displayName, String fileName, String arguments, String description)
     {
         if (User.IsNullOrEmpty())
         {
@@ -129,22 +130,23 @@ public class Systemd : DefaultHost
             }
         }
 
-        return Install(_path, serviceName, displayName, binPath, description, User, Group, DependOnNetwork);
+        return Install(_path, serviceName, displayName, fileName, arguments, description, User, Group, DependOnNetwork);
     }
 
     /// <summary>安装服务</summary>
     /// <param name="systemdPath">systemd目录有</param>
     /// <param name="serviceName">服务名</param>
     /// <param name="displayName">显示名</param>
-    /// <param name="binPath">文件路径</param>
+    /// <param name="fileName">文件路径</param>
+    /// <param name="arguments">命令参数</param>
     /// <param name="description">描述信息</param>
     /// <param name="user">用户</param>
     /// <param name="group">用户组</param>
     /// <param name="network"></param>
     /// <returns></returns>
-    public static Boolean Install(String systemdPath, String serviceName, String displayName, String binPath, String description, String user, String group, Boolean network)
+    public static Boolean Install(String systemdPath, String serviceName, String displayName, String fileName, String arguments, String description, String user, String group, Boolean network)
     {
-        XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", typeof(Systemd).Name, serviceName, displayName, binPath, description);
+        XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", typeof(Systemd).Name, serviceName, displayName, fileName, arguments, description);
 
         var file = systemdPath.CombinePath($"{serviceName}.service");
         XTrace.WriteLine(file);
@@ -164,7 +166,7 @@ public class Systemd : DefaultHost
         sb.AppendLine("[Service]");
         sb.AppendLine("Type=simple");
         //sb.AppendLine($"ExecStart=/usr/bin/dotnet {asm.Location}");
-        sb.AppendLine($"ExecStart={binPath}");
+        sb.AppendLine($"ExecStart={fileName} {arguments}");
         sb.AppendLine($"WorkingDirectory={".".GetFullPath()}");
         if (!user.IsNullOrEmpty()) sb.AppendLine($"User={user}");
         if (!group.IsNullOrEmpty()) sb.AppendLine($"Group={group}");

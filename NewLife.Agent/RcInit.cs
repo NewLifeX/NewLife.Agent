@@ -96,21 +96,23 @@ public class RcInit : DefaultHost
     /// <summary>安装服务</summary>
     /// <param name="serviceName">服务名</param>
     /// <param name="displayName">显示名</param>
-    /// <param name="binPath">文件路径</param>
+    /// <param name="fileName">文件路径</param>
+    /// <param name="arguments">命令参数</param>
     /// <param name="description">描述信息</param>
     /// <returns></returns>
-    public override Boolean Install(String serviceName, String displayName, String binPath, String description) => Install(_path, serviceName, binPath, displayName, description);
+    public override Boolean Install(String serviceName, String displayName, String fileName, String arguments, String description) => Install(_path, serviceName, fileName, arguments, displayName, description);
 
     /// <summary>安装服务</summary>
     /// <param name="systemdPath">systemd目录有</param>
     /// <param name="serviceName">服务名</param>
     /// <param name="displayName">显示名</param>
-    /// <param name="binPath">文件路径</param>
+    /// <param name="fileName">文件路径</param>
+    /// <param name="arguments">命令参数</param>
     /// <param name="description">描述信息</param>
     /// <returns></returns>
-    public static Boolean Install(String systemdPath, String serviceName, String binPath, String displayName, String description)
+    public static Boolean Install(String systemdPath, String serviceName, String fileName, String arguments, String displayName, String description)
     {
-        XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", typeof(RcInit).Name, serviceName, displayName, binPath, description);
+        XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", typeof(RcInit).Name, serviceName, displayName, fileName, arguments, description);
 
         var file = systemdPath.CombinePath($"{serviceName}");
         XTrace.WriteLine(file);
@@ -124,7 +126,7 @@ public class RcInit : DefaultHost
 
         sb.AppendLine();
         sb.AppendLine($"cd {".".GetFullPath()}");
-        sb.AppendLine($"nohup {binPath} >/dev/null 2>&1 &");
+        sb.AppendLine($"nohup {fileName} {arguments} >/dev/null 2>&1 &");
         sb.AppendLine($"exit 0");
 
         //File.WriteAllText(file, sb.ToString());

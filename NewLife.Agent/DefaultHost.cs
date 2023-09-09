@@ -28,10 +28,11 @@ public class DefaultHost : DisposeBase, IHost
     /// <summary>安装服务</summary>
     /// <param name="serviceName">服务名</param>
     /// <param name="displayName">显示名</param>
-    /// <param name="binPath">文件路径</param>
+    /// <param name="fileName">文件路径</param>
+    /// <param name="arguments">命令参数</param>
     /// <param name="description">描述信息</param>
     /// <returns></returns>
-    public virtual Boolean Install(String serviceName, String displayName, String binPath, String description) => false;
+    public virtual Boolean Install(String serviceName, String displayName, String fileName, String arguments, String description) => false;
 
     /// <summary>卸载服务</summary>
     /// <param name="serviceName">服务名</param>

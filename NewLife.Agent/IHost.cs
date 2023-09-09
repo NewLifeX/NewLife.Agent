@@ -16,10 +16,11 @@ public interface IHost
     /// <summary>安装服务</summary>
     /// <param name="serviceName">服务名</param>
     /// <param name="displayName">显示名</param>
-    /// <param name="binPath">文件路径</param>
+    /// <param name="fileName">文件路径</param>
+    /// <param name="arguments">命令参数</param>
     /// <param name="description">描述信息</param>
     /// <returns></returns>
-    Boolean Install(String serviceName, String displayName, String binPath, String description);
+    Boolean Install(String serviceName, String displayName, String fileName, String arguments, String description);
 
     /// <summary>卸载服务</summary>
     /// <param name="serviceName">服务名</param>
@@ -39,14 +40,6 @@ public interface IHost
     /// <summary>重启服务</summary>
     /// <param name="serviceName">服务名</param>
     Boolean Restart(String serviceName);
-
-    ///// <summary>安装为自启动。登录进入桌面后启动</summary>
-    ///// <param name="serviceName">服务名</param>
-    ///// <param name="displayName">显示名</param>
-    ///// <param name="binPath">文件路径</param>
-    ///// <param name="description">描述信息</param>
-    ///// <returns></returns>
-    //Boolean InstallAutorun(String serviceName, String displayName, String binPath, String description);
 
     /// <summary>开始执行服务</summary>
     /// <param name="service"></param>

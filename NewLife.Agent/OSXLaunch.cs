@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Text;
 using NewLife.Log;
 
 namespace NewLife.Agent;
@@ -68,7 +67,7 @@ public class OSXLaunch : DefaultHost
     }
 
     String GetFileName(String serviceName) => GetFileName(serviceName, _path);
-    static String GetFileName(String serviceName, String basePath) => basePath.CombinePath($"com.{serviceName}.plist");
+    static String GetFileName(String serviceName, String basePath) => basePath.CombinePath($"{serviceName}.plist");
 
     /// <summary>服务是否已安装</summary>
     /// <param name="serviceName">服务名</param>
@@ -92,10 +91,11 @@ public class OSXLaunch : DefaultHost
     /// <summary>安装服务</summary>
     /// <param name="serviceName">服务名</param>
     /// <param name="displayName">显示名</param>
-    /// <param name="binPath">文件路径</param>
+    /// <param name="fileName">文件路径</param>
+    /// <param name="arguments">命令参数</param>
     /// <param name="description">描述信息</param>
     /// <returns></returns>
-    public override Boolean Install(String serviceName, String displayName, String binPath, String description)
+    public override Boolean Install(String serviceName, String displayName, String fileName, String arguments, String description)
     {
         if (User.IsNullOrEmpty())
         {
@@ -120,7 +120,7 @@ public class OSXLaunch : DefaultHost
             }
         }
 
-        return Install(_path, serviceName, displayName, binPath, description, User, Group, DependOnNetwork);
+        return Install(_path, serviceName, displayName, fileName, arguments, description, User, Group, DependOnNetwork);
     }
 
     static String _template = """
@@ -132,8 +132,8 @@ public class OSXLaunch : DefaultHost
             <string>{$Name}</string>
             <key>ProgramArguments</key>
             <array>
-                <string>{FileName}</string>
-                <string>{Arguments}</string>
+                <string>{$FileName}</string>
+                <string>{$Arguments}</string>
             </array>
             <key>RunAtLoad</key>
             <true/>
@@ -146,65 +146,29 @@ public class OSXLaunch : DefaultHost
     /// <param name="basePath">systemd目录有</param>
     /// <param name="serviceName">服务名</param>
     /// <param name="displayName">显示名</param>
-    /// <param name="binPath">文件路径</param>
+    /// <param name="fileName">文件路径</param>
+    /// <param name="arguments">命令参数</param>
     /// <param name="description">描述信息</param>
     /// <param name="user">用户</param>
     /// <param name="group">用户组</param>
     /// <param name="network"></param>
     /// <returns></returns>
-    public static Boolean Install(String basePath, String serviceName, String displayName, String binPath, String description, String user, String group, Boolean network)
+    public static Boolean Install(String basePath, String serviceName, String displayName, String fileName, String arguments, String description, String user, String group, Boolean network)
     {
-        XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", typeof(OSXLaunch).Name, serviceName, displayName, binPath, description);
+        XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", typeof(OSXLaunch).Name, serviceName, displayName, fileName, arguments, description);
 
         var file = GetFileName(serviceName, basePath);
         XTrace.WriteLine(file);
 
-        //var asm = Assembly.GetEntryAssembly();
-        var des = !displayName.IsNullOrEmpty() ? displayName : description;
+        //var des = !displayName.IsNullOrEmpty() ? displayName : description;
 
-        var sb = new StringBuilder();
-        sb.AppendLine("[Unit]");
-        sb.AppendLine($"Description={des}");
+        var str = _template.Replace("{$Name}", serviceName)
+            .Replace("{$FileName}", fileName)
+            .Replace("{$Arguments}", arguments);
 
-        if (network)
-            sb.AppendLine($"After=network.target");
-        //sb.AppendLine("StartLimitIntervalSec=0");
+        File.WriteAllText(file, str);
 
-        sb.AppendLine();
-        sb.AppendLine("[Service]");
-        sb.AppendLine("Type=simple");
-        //sb.AppendLine($"ExecStart=/usr/bin/dotnet {asm.Location}");
-        sb.AppendLine($"ExecStart={binPath}");
-        sb.AppendLine($"WorkingDirectory={".".GetFullPath()}");
-        if (!user.IsNullOrEmpty()) sb.AppendLine($"User={user}");
-        if (!group.IsNullOrEmpty()) sb.AppendLine($"Group={group}");
-
-        // no 表示服务退出时，服务不会自动重启，默认值。
-        // on-failure 表示当进程以非零退出代码退出，由信号终止；当操作(如服务重新加载)超时；以及何时触发配置的监视程序超时时，服务会自动重启。
-        // always 表示只要服务退出，则服务将自动重启。
-        sb.AppendLine("Restart=always");
-
-        // RestartSec 重启间隔，比如某次异常后，等待3(s)再进行启动，默认值0.1(s)
-        sb.AppendLine("RestartSec=3");
-
-        // StartLimitInterval: 无限次重启，默认是10秒内如果重启超过5次则不再重启，设置为0表示不限次数重启
-        sb.AppendLine("StartLimitInterval=0");
-
-        sb.AppendLine("KillSignal=SIGINT");
-
-        sb.AppendLine();
-        sb.AppendLine("[Install]");
-        sb.AppendLine("WantedBy=multi-user.target");
-
-        File.WriteAllText(file, sb.ToString());
-
-        // sudo systemctl daemon-reload
-        // sudo systemctl enable StarAgent
-        // sudo systemctl start StarAgent
-
-        Process.Start("systemctl", "daemon-reload");
-        Process.Start("systemctl", $"enable {serviceName}");
-        //Execute("systemctl", $"start {serviceName}");
+        Process.Start("launchctl", $"load {file}");
 
         return true;
     }
@@ -217,9 +181,16 @@ public class OSXLaunch : DefaultHost
         XTrace.WriteLine("{0}.Remove {1}", GetType().Name, serviceName);
 
         var file = GetFileName(serviceName);
-        if (File.Exists(file)) File.Delete(file);
+        if (File.Exists(file))
+        {
+            Process.Start("launchctl", $"unload {file}");
 
-        return true;
+            File.Delete(file);
+
+            return true;
+        }
+
+        return false;
     }
 
     /// <summary>启动服务</summary>
@@ -229,7 +200,7 @@ public class OSXLaunch : DefaultHost
     {
         XTrace.WriteLine("{0}.Start {1}", GetType().Name, serviceName);
 
-        return Process.Start("systemctl", $"start {serviceName}") != null;
+        return Process.Start("launchctl", $"start {serviceName}") != null;
     }
 
     /// <summary>停止服务</summary>
@@ -239,7 +210,7 @@ public class OSXLaunch : DefaultHost
     {
         XTrace.WriteLine("{0}.Stop {1}", GetType().Name, serviceName);
 
-        return Process.Start("systemctl", $"stop {serviceName}") != null;
+        return Process.Start("launchctl", $"stop {serviceName}") != null;
     }
 
     /// <summary>重启服务</summary>
@@ -248,10 +219,10 @@ public class OSXLaunch : DefaultHost
     {
         XTrace.WriteLine("{0}.Restart {1}", GetType().Name, serviceName);
 
-        //if (InService)
-        return Process.Start("systemctl", $"restart {serviceName}") != null;
-        //else
-        //    return Process.Start(Service.GetExeName(), "-run -delay") != null;
+        Process.Start("launchctl", $"stop {serviceName}");
+        Process.Start("launchctl", $"start {serviceName}");
+
+        return true;
     }
 
     private static String Execute(String cmd, String arguments, Boolean writeLog = true)
@@ -283,13 +254,13 @@ public class OSXLaunch : DefaultHost
         var txt = File.ReadAllText(file);
         if (txt != null)
         {
-            var dic = txt.SplitAsDictionary("=", "\n", true);
+            //var dic = txt.SplitAsDictionary("=", "\n", true);
 
             var cfg = new ServiceConfig { Name = serviceName };
-            if (dic.TryGetValue("ExecStart", out var str)) cfg.FilePath = str.Trim();
-            if (dic.TryGetValue("WorkingDirectory", out str)) cfg.FilePath = str.Trim().CombinePath(cfg.FilePath);
-            if (dic.TryGetValue("Description", out str)) cfg.DisplayName = str.Trim();
-            if (dic.TryGetValue("Restart", out str)) cfg.AutoStart = !str.Trim().EqualIgnoreCase("no");
+            //if (dic.TryGetValue("ExecStart", out var str)) cfg.FilePath = str.Trim();
+            //if (dic.TryGetValue("WorkingDirectory", out str)) cfg.FilePath = str.Trim().CombinePath(cfg.FilePath);
+            //if (dic.TryGetValue("Description", out str)) cfg.DisplayName = str.Trim();
+            //if (dic.TryGetValue("Restart", out str)) cfg.AutoStart = !str.Trim().EqualIgnoreCase("no");
 
             return cfg;
         }

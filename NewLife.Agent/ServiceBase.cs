@@ -1,6 +1,8 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Security;
 using System.Security.Principal;
 using NewLife.Log;
@@ -176,9 +178,7 @@ public abstract class ServiceBase : DisposeBase
         else
             status = "未启动";
 
-#if !NETSTANDARD
-        if (Runtime.Windows) status += $"（{(IsAdministrator() ? "管理员" : "普通用户")}）";
-#endif
+        if (Runtime.Windows) status += $"（{(WindowsService.IsAdministrator() ? "管理员" : "普通用户")}）";
 
         Console.WriteLine(status);
 
@@ -199,15 +199,6 @@ public abstract class ServiceBase : DisposeBase
 
         Console.ForegroundColor = color;
     }
-
-#if !NETSTANDARD
-    private Boolean IsAdministrator()
-    {
-        var current = WindowsIdentity.GetCurrent();
-        var windowsPrincipal = new WindowsPrincipal(current);
-        return windowsPrincipal.IsInRole(WindowsBuiltInRole.Administrator);
-    }
-#endif
 
     /// <summary>处理菜单</summary>
     protected virtual void ProcessMenu()
@@ -616,7 +607,7 @@ public abstract class ServiceBase : DisposeBase
                 exe = args[0].GetFullPath();
         }
 
-        var bin = UseAutorun ? $"{exe} -run" : $"{exe} -s";
+        var arg = UseAutorun ? "-run" : "-s";
 
         // 兼容更多参数做为服务启动，譬如：--urls
         if (args.Length > 2)
@@ -630,10 +621,10 @@ public abstract class ServiceBase : DisposeBase
                 else
                     list.Add(args[i]);
             }
-            if (list.Count > 0) bin += " " + list.Join(" ");
+            if (list.Count > 0) arg += " " + list.Join(" ");
         }
 
-        Host.Install(ServiceName, DisplayName, bin, Description);
+        Host.Install(ServiceName, DisplayName, exe, arg, Description);
     }
 
     /// <summary>Exe程序名</summary>

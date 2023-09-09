@@ -2,8 +2,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Security;
-using System.Security.Permissions;
+using System.Runtime.Versioning;
 using System.Security.Principal;
 using System.Text;
 using NewLife.Log;
@@ -275,16 +274,15 @@ public class WindowsService : DefaultHost
     /// <summary>安装服务</summary>
     /// <param name="serviceName">服务名</param>
     /// <param name="displayName"></param>
-    /// <param name="binPath"></param>
+    /// <param name="fileName">文件路径</param>
+    /// <param name="arguments">命令参数</param>
     /// <param name="description"></param>
     /// <returns></returns>
-    public override Boolean Install(String serviceName, String displayName, String binPath, String description)
+    public override Boolean Install(String serviceName, String displayName, String fileName, String arguments, String description)
     {
-        XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", GetType().Name, serviceName, displayName, binPath, description);
+        XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", GetType().Name, serviceName, displayName, fileName, arguments, description);
 
-#if !NETSTANDARD
         if (!IsAdministrator()) return RunAsAdministrator("-i");
-#endif
 
         using var manager = new SafeServiceHandle(OpenSCManager(null, null, ServiceControllerOptions.SC_MANAGER_CREATE_SERVICE));
         if (manager.IsInvalid)
@@ -292,6 +290,9 @@ public class WindowsService : DefaultHost
             XTrace.WriteLine("安装Windows服务要求以管理员运行");
             throw new Win32Exception(Marshal.GetLastWin32Error());
         }
+
+        var binPath = fileName;
+        if (!arguments.IsNullOrEmpty()) binPath += " " + arguments;
 
         using var service = new SafeServiceHandle(CreateService(manager, serviceName, displayName, ServiceOptions.SERVICE_ALL_ACCESS, 0x10, 2, 1, binPath, null, 0, null, null, null));
         if (service.IsInvalid) throw new Win32Exception(Marshal.GetLastWin32Error());
@@ -327,9 +328,7 @@ public class WindowsService : DefaultHost
     {
         XTrace.WriteLine("{0}.Remove {1}", GetType().Name, serviceName);
 
-#if !NETSTANDARD
         if (!IsAdministrator()) return RunAsAdministrator("-uninstall");
-#endif
 
         using var manager = new SafeServiceHandle(OpenSCManager(null, null, ServiceControllerOptions.SC_MANAGER_ALL));
         if (manager.IsInvalid)
@@ -354,9 +353,7 @@ public class WindowsService : DefaultHost
     {
         XTrace.WriteLine("{0}.Start {1}", GetType().Name, serviceName);
 
-#if !NETSTANDARD
         if (!IsAdministrator()) return RunAsAdministrator("-start");
-#endif
 
         using var manager = new SafeServiceHandle(OpenSCManager(null, null, ServiceControllerOptions.SC_MANAGER_CONNECT));
         if (manager.IsInvalid)
@@ -378,9 +375,7 @@ public class WindowsService : DefaultHost
     {
         XTrace.WriteLine("{0}.Stop {1}", GetType().Name, serviceName);
 
-#if !NETSTANDARD
         if (!IsAdministrator()) return RunAsAdministrator("-stop");
-#endif
 
         using var manager = new SafeServiceHandle(OpenSCManager(null, null, ServiceControllerOptions.SC_MANAGER_ALL));
         if (manager.IsInvalid)
@@ -402,9 +397,7 @@ public class WindowsService : DefaultHost
     {
         XTrace.WriteLine("{0}.Restart {1}", GetType().Name, serviceName);
 
-#if !NETSTANDARD
         if (!IsAdministrator()) return RunAsAdministrator("-restart");
-#endif
 
         //if (InService)
         {
@@ -487,8 +480,10 @@ public class WindowsService : DefaultHost
         }
     }
 
-#if !NETSTANDARD
-    static Boolean RunAsAdministrator(String argument)
+    /// <summary>以管理员身份运行进程</summary>
+    /// <param name="argument"></param>
+    /// <returns></returns>
+    public static Boolean RunAsAdministrator(String argument)
     {
         var exe = ExecutablePath;
         if (exe.IsNullOrEmpty()) return false;
@@ -530,7 +525,11 @@ public class WindowsService : DefaultHost
                 var entryAssembly = Assembly.GetEntryAssembly();
                 if (entryAssembly != null)
                 {
+#if NETFRAMEWORK
                     var codeBase = entryAssembly.CodeBase;
+#else
+                    var codeBase = entryAssembly.Location;
+#endif
                     var uri = new Uri(codeBase);
                     _executablePath = uri.IsFile ? uri.LocalPath + Uri.UnescapeDataString(uri.Fragment) : uri.ToString();
                 }
@@ -563,12 +562,26 @@ public class WindowsService : DefaultHost
     [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
     static extern Int32 GetModuleFileName(HandleRef hModule, StringBuilder buffer, Int32 length);
 
-    private Boolean IsAdministrator()
+    /// <summary>当前进程是否管理员角色</summary>
+    /// <returns></returns>
+    public static Boolean IsAdministrator()
     {
-        var current = WindowsIdentity.GetCurrent();
-        var windowsPrincipal = new WindowsPrincipal(current);
-        return windowsPrincipal.IsInRole(WindowsBuiltInRole.Administrator);
-    }
+#if NETFRAMEWORK
+        if (Runtime.Windows)
+        {
+            var current = WindowsIdentity.GetCurrent();
+            var windowsPrincipal = new WindowsPrincipal(current);
+            return windowsPrincipal.IsInRole(WindowsBuiltInRole.Administrator);
+        }
+#elif NETCOREAPP
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            var current = WindowsIdentity.GetCurrent();
+            var windowsPrincipal = new WindowsPrincipal(current);
+            return windowsPrincipal.IsInRole(WindowsBuiltInRole.Administrator);
+        }
 #endif
+        return true;
+    }
     #endregion
 }
