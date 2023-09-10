@@ -51,6 +51,7 @@ public abstract class ServiceBase : DisposeBase
         if (!isService)
             XTrace.UseConsole();
 
+        // 提前设置好当前目录，避免后续各种问题
         Environment.CurrentDirectory = ".".GetBasePath();
 
         typeof(ServiceBase).Assembly.WriteVersion();

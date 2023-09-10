@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Threading;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
@@ -47,6 +48,9 @@ public class MyServices : ServiceBase
     protected override void StartWork(String reason)
     {
         WriteLog("业务开始……");
+
+        // 提前设置好当前目录，避免后续各种问题
+        //Environment.CurrentDirectory = ".".GetFullPath();
 
         _source = new CancellationTokenSource();
         CreateHostBuilder(Args).Build().RunAsync(_source.Token);
