@@ -82,7 +82,7 @@ public class OSXLaunch : DefaultHost
         var file = GetFileName(serviceName);
         if (!File.Exists(file)) return false;
 
-        var str = Execute("systemctl", $"status {serviceName}", false);
+        var str = Execute("launchctl", $"status {serviceName}", false);
         if (!str.IsNullOrEmpty() && str.Contains("running")) return true;
 
         return false;
