@@ -150,6 +150,14 @@ public class RcInit : DefaultHost
                     Process.Start("ln", $"-s {systemdPath}/{serviceName} {dir}S10{serviceName}");
             }
         }
+        // OpenWrt
+        {
+            var dir = "/etc/rc.d/";
+            if (Directory.Exists(dir))
+            {
+                Process.Start("ln", $"-s {systemdPath}/{serviceName} {dir}S50{serviceName}");
+            }
+        }
 
         return true;
     }
