@@ -189,6 +189,15 @@ public class RcInit : DefaultHost
                 if (File.Exists(file)) File.Delete(file);
             }
         }
+        // OpenWrt
+        {
+            var dir = "/etc/rc.d/";
+            if (Directory.Exists(dir))
+            {
+                file = dir.CombinePath($"S50{serviceName}");
+                if (File.Exists(file)) File.Delete(file);
+            }
+        }
 
         return true;
     }
