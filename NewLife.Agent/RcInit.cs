@@ -135,8 +135,7 @@ public class RcInit : DefaultHost
         // 给予可执行权限
         Process.Start("chmod", $"+x {file}");
 
-        // 创建同级链接文件 [解决某些linux启动必须以Sxx开头的启动文件]
-        Process.Start("ln", $"-s {systemdPath}/{serviceName} {systemdPath}/S50{serviceName}");
+        var flag = false;
 
         // 创建链接文件
         for (var i = 0; i < 7; i++)
@@ -148,6 +147,8 @@ public class RcInit : DefaultHost
                     Process.Start("ln", $"-s {systemdPath}/{serviceName} {dir}K90{serviceName}");
                 else
                     Process.Start("ln", $"-s {systemdPath}/{serviceName} {dir}S10{serviceName}");
+
+                flag = true;
             }
         }
         // OpenWrt
@@ -156,7 +157,16 @@ public class RcInit : DefaultHost
             if (Directory.Exists(dir))
             {
                 Process.Start("ln", $"-s {systemdPath}/{serviceName} {dir}S50{serviceName}");
+
+                flag = true;
             }
+        }
+
+        // init.d 目录存在其它Sxx文件时，才创建同级链接文件
+        if (!flag && systemdPath.AsDirectory().GetFiles().Any(e => e.Name.StartsWith("S")))
+        {
+            // 创建同级链接文件 [解决某些linux启动必须以Sxx开头的启动文件]
+            Process.Start("ln", $"-s {systemdPath}/{serviceName} {systemdPath}/S50{serviceName}");
         }
 
         return true;
