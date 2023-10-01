@@ -8,7 +8,7 @@
     <Description>应用程序注册为系统服务，支持Windows/Linux</Description>
     <Company>新生命开发团队</Company>
     <Copyright>©2002-2023 NewLife</Copyright>
-    <VersionPrefix>10.5</VersionPrefix>
+    <VersionPrefix>10.6</VersionPrefix>
     <VersionSuffix>$([System.DateTime]::Now.ToString(`yyyy.MMdd`))</VersionSuffix>
     <Version>$(VersionPrefix).$(VersionSuffix)</Version>
     <FileVersion>$(Version)</FileVersion>
@@ -32,7 +32,7 @@
     <RepositoryUrl>https://github.com/NewLifeX/NewLife.Agent</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>新生命团队;X组件;NewLife;$(AssemblyName)</PackageTags>
-    <PackageReleaseNotes>Systemd新增依赖网络；支持优雅退出服务</PackageReleaseNotes>
+    <PackageReleaseNotes>初步支持macOS系统</PackageReleaseNotes>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
@@ -61,9 +61,9 @@
     </None>
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'!='net40'">
-    <PackageReference Include="NewLife.Core" Version="10.5.2023.801" />
+    <PackageReference Include="NewLife.Core" Version="10.6.2023.1001" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'=='net40'">
-    <PackageReference Include="NewLife.Core" Version="10.5.2023.801-net40" />
+    <PackageReference Include="NewLife.Core" Version="10.6.2023.1001-net40" />
   </ItemGroup>
 </Project>
