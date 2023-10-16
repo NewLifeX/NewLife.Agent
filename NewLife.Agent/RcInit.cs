@@ -72,7 +72,8 @@ public class RcInit : DefaultHost
     /// <returns></returns>
     public override Boolean IsInstalled(String serviceName)
     {
-        var file = _path.CombinePath($"{serviceName}");
+        //var file = _path.CombinePath($"{serviceName}");
+        var file = $"{serviceName}.sh".GetFullPath();
 
         return File.Exists(file);
     }
@@ -114,7 +115,8 @@ public class RcInit : DefaultHost
     {
         XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", typeof(RcInit).Name, serviceName, displayName, fileName, arguments, description);
 
-        var file = systemdPath.CombinePath($"{serviceName}");
+        //var file = systemdPath.CombinePath($"{serviceName}");
+        var file = $"{serviceName}.sh".GetFullPath();
         XTrace.WriteLine(file);
 
         var des = !displayName.IsNullOrEmpty() ? displayName : description;
@@ -125,11 +127,29 @@ public class RcInit : DefaultHost
         sb.AppendLine($"# description: {des}");
 
         sb.AppendLine();
-        sb.AppendLine($"cd {".".GetFullPath()}");
-        sb.AppendLine($"nohup {fileName} {arguments} >/dev/null 2>&1 &");
-        sb.AppendLine($"exit 0");
+        //sb.AppendLine($"cd {".".GetFullPath()}");
+        sb.AppendLine("case \"$1\" in");
+        sb.AppendLine("  start)");
+        sb.AppendLine($"        nohup {fileName} {arguments} >/dev/null 2>&1 &");
+        sb.AppendLine("        ;;");
+        sb.AppendLine("  stop)");
+        sb.AppendLine($"        {fileName} {arguments.TrimEnd("-s")} -stop");
+        sb.AppendLine("        ;;");
+        sb.AppendLine("  restart)");
+        sb.AppendLine($"        $0 stop");
+        sb.AppendLine($"        $0 start");
+        sb.AppendLine("        ;;");
+        sb.AppendLine("  *)");
+        sb.AppendLine("        echo \"Usage: $0 {start|stop|restart}\"");
+        sb.AppendLine("        exit 1");
+        sb.AppendLine("esac");
+        sb.AppendLine();
+        sb.AppendLine($"exit $?");
 
         //File.WriteAllText(file, sb.ToString());
+        //File.WriteAllBytes(file, sb.ToString().GetBytes());
+
+        //!! init.d目录中的rcS会扫描当前目录所有S开头的文件并执行，刚好StarAgent命中，S50StarAgent也命中，造成重复执行
         File.WriteAllBytes(file, sb.ToString().GetBytes());
 
         // 给予可执行权限
@@ -144,9 +164,9 @@ public class RcInit : DefaultHost
             if (Directory.Exists(dir))
             {
                 if (i is 0 or 1 or 6)
-                    Process.Start("ln", $"-s {systemdPath}/{serviceName} {dir}K90{serviceName}");
+                    CreateLink(file, $" {dir}K50{serviceName}");
                 else
-                    Process.Start("ln", $"-s {systemdPath}/{serviceName} {dir}S10{serviceName}");
+                    CreateLink(file, $" {dir}S50{serviceName}");
 
                 flag = true;
             }
@@ -156,20 +176,33 @@ public class RcInit : DefaultHost
             var dir = "/etc/rc.d/";
             if (Directory.Exists(dir))
             {
-                Process.Start("ln", $"-s {systemdPath}/{serviceName} {dir}S50{serviceName}");
+                CreateLink(file, $"{dir}S50{serviceName}");
 
                 flag = true;
             }
         }
 
         // init.d 目录存在其它Sxx文件时，才创建同级链接文件
-        if (!flag && systemdPath.AsDirectory().GetFiles().Any(e => e.Name.StartsWith("S")))
+        if (!flag)
         {
             // 创建同级链接文件 [解决某些linux启动必须以Sxx开头的启动文件]
-            Process.Start("ln", $"-s {systemdPath}/{serviceName} {systemdPath}/S50{serviceName}");
+            var fis = systemdPath.AsDirectory().GetFiles();
+            if (fis.Any(e => e.Name[0] == 'S'))
+            {
+                CreateLink(file, $"{systemdPath}/S50{serviceName}");
+                //if (fis.Any(e => e.Name[0] == 'K'))
+                CreateLink(file, $"{systemdPath}/K50{serviceName}");
+            }
         }
 
         return true;
+    }
+
+    static void CreateLink(String source, String target)
+    {
+        if (File.Exists(target)) File.Delete(target);
+
+        Process.Start("ln", $"-s {source} {target}");
     }
 
     /// <summary>卸载服务</summary>
@@ -179,11 +212,14 @@ public class RcInit : DefaultHost
     {
         XTrace.WriteLine("{0}.Remove {1}", GetType().Name, serviceName);
 
-        var file = _path.CombinePath($"{serviceName}");
+        //var file = _path.CombinePath($"{serviceName}");
+        var file = $"{serviceName}.sh".GetFullPath();
         if (File.Exists(file)) File.Delete(file);
 
         // 删除同级链接文件
         file = _path.CombinePath($"S50{serviceName}");
+        if (File.Exists(file)) File.Delete(file);
+        file = _path.CombinePath($"K50{serviceName}");
         if (File.Exists(file)) File.Delete(file);
 
         // 删除链接文件
@@ -192,10 +228,10 @@ public class RcInit : DefaultHost
             var dir = $"/etc/rc{i}.d/";
             if (Directory.Exists(dir))
             {
-                file = $"{dir}S10{serviceName}";
+                file = $"{dir}S50{serviceName}";
                 if (File.Exists(file)) File.Delete(file);
 
-                file = $"{dir}K90{serviceName}";
+                file = $"{dir}K50{serviceName}";
                 if (File.Exists(file)) File.Delete(file);
             }
         }
@@ -219,8 +255,22 @@ public class RcInit : DefaultHost
     {
         XTrace.WriteLine("{0}.Start {1}", GetType().Name, serviceName);
 
-        var file = _path.CombinePath($"{serviceName}");
-        Process.Start("bash", file);
+        // 判断服务是否已启动
+        var id = 0;
+        var pid = $"{serviceName}.pid".GetFullPath();
+        if (File.Exists(pid)) id = File.ReadAllText(pid).Trim().ToInt();
+        if (id > 0)
+        {
+            var p = Process.GetProcessById(id);
+            if (p != null && !p.HasExited) return false;
+        }
+
+        //var file = _path.CombinePath($"{serviceName}");
+        var file = $"{serviceName}.sh".GetFullPath();
+        if (!File.Exists(file)) return false;
+
+        //Process.Start("bash", file);
+        file.ShellExecute("start");
 
         //// 用pid文件记录进程id，方便后面杀进程
         //var pid = $"{serviceName}.pid".GetFullPath();
@@ -247,7 +297,13 @@ public class RcInit : DefaultHost
 
         try
         {
-            p.Kill();
+            // 发命令让服务自己退出
+            "kill".ShellExecute($"{id}");
+
+            var n = 30;
+            while (!p.HasExited && n-- > 0) Thread.Sleep(100);
+
+            if (!p.HasExited) p.Kill();
 
             File.Delete(pid);
 
