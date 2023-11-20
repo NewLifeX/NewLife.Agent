@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>net6.0</TargetFrameworks>
+    <TargetFrameworks>net8.0</TargetFrameworks>
     <AssemblyTitle>系统守护服务</AssemblyTitle>
     <Description>数据处理，定时任务，MQ生产消费，系统监控</Description>
     <Company>新生命开发团队</Company>

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFrameworks>net5.0;net6.0;net7.0</TargetFrameworks>
+    <TargetFrameworks>net5.0;net6.0;net7.0;net8.0</TargetFrameworks>
     <AssemblyTitle>主机服务扩展</AssemblyTitle>
     <Description>应用程序注册为系统服务，支持Windows/Linux</Description>
     <Company>新生命开发团队</Company>
@@ -58,6 +58,10 @@
   <ItemGroup Condition="'$(TargetFramework)'=='net7.0'">
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="7.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="7.0.1" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)'=='net8.0'">
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.0" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'=='netcoreapp3.1'">
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="7.0.0" />
