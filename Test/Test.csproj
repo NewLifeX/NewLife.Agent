@@ -11,6 +11,10 @@
     <OutputPath>..\Bin\Test\</OutputPath>
     <LangVersion>latest</LangVersion>
     <NoWarn>1701;1702;NU5104;NETSDK1138;CS7035</NoWarn>
+    <!--aot发布-->
+    <!--<PublishAot>true</PublishAot>
+    <InvariantGlobalization>true</InvariantGlobalization>-->
+    <!--aot发布-->
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\NewLife.Agent\NewLife.Agent.csproj" />
