@@ -270,7 +270,8 @@ public class RcInit : DefaultHost
         if (!File.Exists(file)) return false;
 
         //Process.Start("bash", file);
-        file.ShellExecute("start");
+        //file.ShellExecute("start");
+        Process.Start(new ProcessStartInfo("sh", $"{file} start") { UseShellExecute = true });
 
         //// 用pid文件记录进程id，方便后面杀进程
         //var pid = $"{serviceName}.pid".GetFullPath();
