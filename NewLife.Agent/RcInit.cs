@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Text;
 using NewLife.Log;
 
@@ -89,9 +90,9 @@ public class RcInit : DefaultHost
         var pid = File.ReadAllText(file).Trim().ToInt();
         if (pid <= 0) return false;
 
-        var p = Process.GetProcessById(pid);
+        var p = GetProcessById(pid);
 
-        return p != null && !p.HasExited;
+        return p != null && !GetHasExited(p);
     }
 
     /// <summary>安装服务</summary>
@@ -261,8 +262,8 @@ public class RcInit : DefaultHost
         if (File.Exists(pid)) id = File.ReadAllText(pid).Trim().ToInt();
         if (id > 0)
         {
-            var p = Process.GetProcessById(id);
-            if (p != null && !p.HasExited) return false;
+            var p = GetProcessById(id);
+            if (p != null && !GetHasExited(p)) return false;
         }
 
         //var file = _path.CombinePath($"{serviceName}");
@@ -293,8 +294,8 @@ public class RcInit : DefaultHost
         if (id <= 0) return false;
 
         // 杀进程
-        var p = Process.GetProcessById(id);
-        if (p == null || p.HasExited) return false;
+        var p = GetProcessById(id);
+        if (p == null || GetHasExited(p)) return false;
 
         try
         {
@@ -325,5 +326,32 @@ public class RcInit : DefaultHost
         Start(serviceName);
 
         return true;
+    }
+
+    static Process GetProcessById(Int32 processId)
+    {
+        try
+        {
+            return Process.GetProcessById(processId);
+        }
+        catch { }
+
+        return null;
+    }
+
+    static Boolean GetHasExited(Process process)
+    {
+        try
+        {
+            return process.HasExited;
+        }
+        catch (Win32Exception)
+        {
+            return true;
+        }
+        //catch
+        //{
+        //    return false;
+        //}
     }
 }
