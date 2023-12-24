@@ -48,6 +48,11 @@ public class Systemd : DefaultHost
     public Boolean DependOnNetwork { get; set; }
     #endregion
 
+    #region 构造
+    /// <summary>实例化</summary>
+    public Systemd() => Name = "systemd";
+    #endregion
+
     /// <summary>启动服务</summary>
     /// <param name="service"></param>
     public override void Run(ServiceBase service)
@@ -206,7 +211,7 @@ public class Systemd : DefaultHost
     /// <returns></returns>
     public override Boolean Remove(String serviceName)
     {
-        XTrace.WriteLine("{0}.Remove {1}", GetType().Name, serviceName);
+        XTrace.WriteLine("{0}.Remove {1}", Name, serviceName);
 
         var file = _path.CombinePath($"{serviceName}.service");
         if (File.Exists(file)) File.Delete(file);
@@ -219,7 +224,7 @@ public class Systemd : DefaultHost
     /// <returns></returns>
     public override Boolean Start(String serviceName)
     {
-        XTrace.WriteLine("{0}.Start {1}", GetType().Name, serviceName);
+        XTrace.WriteLine("{0}.Start {1}", Name, serviceName);
 
         return Process.Start("systemctl", $"start {serviceName}") != null;
     }
@@ -229,7 +234,7 @@ public class Systemd : DefaultHost
     /// <returns></returns>
     public override Boolean Stop(String serviceName)
     {
-        XTrace.WriteLine("{0}.Stop {1}", GetType().Name, serviceName);
+        XTrace.WriteLine("{0}.Stop {1}", Name, serviceName);
 
         return Process.Start("systemctl", $"stop {serviceName}") != null;
     }
@@ -238,7 +243,7 @@ public class Systemd : DefaultHost
     /// <param name="serviceName">服务名</param>
     public override Boolean Restart(String serviceName)
     {
-        XTrace.WriteLine("{0}.Restart {1}", GetType().Name, serviceName);
+        XTrace.WriteLine("{0}.Restart {1}", Name, serviceName);
 
         //if (InService)
         return Process.Start("systemctl", $"restart {serviceName}") != null;

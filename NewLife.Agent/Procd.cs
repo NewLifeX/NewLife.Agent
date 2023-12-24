@@ -5,8 +5,8 @@ using NewLife.Log;
 
 namespace NewLife.Agent;
 
-/// <summary>Linux版进程守护</summary>
-public class RcInit : DefaultHost
+/// <summary>OpenWRT版procd进程守护</summary>
+public class Procd : DefaultHost
 {
     #region 静态
     private static readonly String _path;
@@ -15,8 +15,12 @@ public class RcInit : DefaultHost
     public static Boolean Available => !_path.IsNullOrEmpty();
 
     /// <summary>实例化</summary>
-    static RcInit()
+    static Procd()
     {
+        // 获取1号进程的名字，如果是procd，则表示当前系统是OpenWRT
+        var process = Process.GetProcessById(1);
+        if (process.ProcessName != "procd") return;
+
         var ps = new[] {
             "/etc/init.d",
             "/etc/rc.d/init.d",
@@ -33,6 +37,11 @@ public class RcInit : DefaultHost
     #endregion
 
     #region 属性
+    #endregion
+
+    #region 构造
+    /// <summary>实例化</summary>
+    public Procd() => Name = "procd";
     #endregion
 
     /// <summary>启动服务</summary>
@@ -114,41 +123,47 @@ public class RcInit : DefaultHost
     /// <returns></returns>
     public static Boolean Install(String systemPath, String serviceName, String fileName, String arguments, String displayName, String description)
     {
-        XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", typeof(RcInit).Name, serviceName, displayName, fileName, arguments, description);
+        XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", typeof(Procd).Name, serviceName, displayName, fileName, arguments, description);
 
-        //var file = systemdPath.CombinePath($"{serviceName}");
         var file = $"{serviceName}.sh".GetFullPath();
         XTrace.WriteLine(file);
 
         var des = !displayName.IsNullOrEmpty() ? displayName : description;
 
         var sb = new StringBuilder();
-        sb.AppendLine("#!/bin/bash");
-        sb.AppendLine("# chkconfig: 2345 10 90");
-        sb.AppendLine($"# description: {des}");
+        if (File.Exists("/etc/rc.common"))
+            sb.AppendLine("#!/bin/sh /etc/rc.common");
+        else
+            sb.AppendLine("#!/bin/sh");
 
         sb.AppendLine();
-        //sb.AppendLine($"cd {".".GetFullPath()}");
-        sb.AppendLine("case \"$1\" in");
-        sb.AppendLine("  start)");
-        sb.AppendLine($"        nohup {fileName} {arguments} >/dev/null 2>&1 &");
-        sb.AppendLine("        ;;");
-        sb.AppendLine("  stop)");
-        sb.AppendLine($"        {fileName} {arguments.TrimEnd("-s")} -stop");
-        sb.AppendLine("        ;;");
-        sb.AppendLine("  restart)");
-        sb.AppendLine($"        $0 stop");
-        sb.AppendLine($"        $0 start");
-        sb.AppendLine("        ;;");
-        sb.AppendLine("  *)");
-        sb.AppendLine("        echo \"Usage: $0 {start|stop|restart}\"");
-        sb.AppendLine("        exit 1");
-        sb.AppendLine("esac");
-        sb.AppendLine();
-        sb.AppendLine($"exit $?");
+        sb.AppendLine("START=50");
+        sb.AppendLine("STOP=50");
+        sb.AppendLine("USE_PROCD=1");
 
-        //File.WriteAllText(file, sb.ToString());
-        //File.WriteAllBytes(file, sb.ToString().GetBytes());
+        sb.AppendLine();
+        sb.AppendLine("start_service() {");
+        sb.AppendLine($"  nohup {fileName} {arguments} >/dev/null 2>&1 &");
+        sb.AppendLine("  return 0");
+        sb.AppendLine("}");
+
+        sb.AppendLine();
+        sb.AppendLine("stop_service() {");
+        sb.AppendLine($"  {fileName} {arguments.TrimEnd("-s")} -stop");
+        sb.AppendLine("  return 0");
+        sb.AppendLine("}");
+
+        sb.AppendLine();
+        sb.AppendLine("reload_service() {");
+        sb.AppendLine($"  {fileName} {arguments.TrimEnd("-s")} -restart");
+        sb.AppendLine("  return 0");
+        sb.AppendLine("}");
+
+        sb.AppendLine();
+        sb.AppendLine("help() {");
+        sb.AppendLine("  echo \"Usage: $0 {start|stop|restart}\"");
+        sb.AppendLine("  return 0");
+        sb.AppendLine("}");
 
         //!! init.d目录中的rcS会扫描当前目录所有S开头的文件并执行，刚好StarAgent命中，S50StarAgent也命中，造成重复执行
         // 因此把启动引导脚本放在当前目录，如StarAgent.sh，然后在rc.d目录中创建链接文件
@@ -157,44 +172,11 @@ public class RcInit : DefaultHost
         // 给予可执行权限
         Process.Start("chmod", $"+x {file}");
 
-        var flag = false;
-
-        // 创建链接文件
-        for (var i = 0; i < 7; i++)
+        // 创建链接文件，OpenWrt
+        var dir = "/etc/rc.d/";
+        if (Directory.Exists(dir))
         {
-            var dir = $"/etc/rc{i}.d/";
-            if (Directory.Exists(dir))
-            {
-                if (i is 0 or 1 or 6)
-                    CreateLink(file, $" {dir}K50{serviceName}");
-                else
-                    CreateLink(file, $" {dir}S50{serviceName}");
-
-                flag = true;
-            }
-        }
-        // OpenWrt
-        {
-            var dir = "/etc/rc.d/";
-            if (Directory.Exists(dir))
-            {
-                CreateLink(file, $"{dir}S50{serviceName}");
-
-                flag = true;
-            }
-        }
-
-        // init.d 目录存在其它Sxx文件时，才创建同级链接文件
-        if (!flag)
-        {
-            // 创建同级链接文件 [解决某些linux启动必须以Sxx开头的启动文件]
-            var fis = systemPath.AsDirectory().GetFiles();
-            if (fis.Any(e => e.Name[0] == 'S'))
-            {
-                CreateLink(file, $"{systemPath}/S50{serviceName}");
-                //if (fis.Any(e => e.Name[0] == 'K'))
-                CreateLink(file, $"{systemPath}/K50{serviceName}");
-            }
+            CreateLink(file, $"{dir}S50{serviceName}");
         }
 
         return true;
@@ -214,7 +196,6 @@ public class RcInit : DefaultHost
     {
         XTrace.WriteLine("{0}.Remove {1}", Name, serviceName);
 
-        //var file = _path.CombinePath($"{serviceName}");
         var file = $"{serviceName}.sh".GetFullPath();
         if (File.Exists(file)) File.Delete(file);
 
@@ -222,33 +203,12 @@ public class RcInit : DefaultHost
         file = _path.CombinePath($"{serviceName}");
         if (File.Exists(file)) File.Delete(file);
 
-        // 删除同级链接文件
-        file = _path.CombinePath($"S50{serviceName}");
-        if (File.Exists(file)) File.Delete(file);
-        file = _path.CombinePath($"K50{serviceName}");
-        if (File.Exists(file)) File.Delete(file);
-
-        // 删除链接文件
-        for (var i = 0; i < 7; i++)
+        // 删除链接文件，OpenWrt
+        var dir = "/etc/rc.d/";
+        if (Directory.Exists(dir))
         {
-            var dir = $"/etc/rc{i}.d/";
-            if (Directory.Exists(dir))
-            {
-                file = $"{dir}S50{serviceName}";
-                if (File.Exists(file)) File.Delete(file);
-
-                file = $"{dir}K50{serviceName}";
-                if (File.Exists(file)) File.Delete(file);
-            }
-        }
-        // OpenWrt
-        {
-            var dir = "/etc/rc.d/";
-            if (Directory.Exists(dir))
-            {
-                file = dir.CombinePath($"S50{serviceName}");
-                if (File.Exists(file)) File.Delete(file);
-            }
+            file = dir.CombinePath($"S50{serviceName}");
+            if (File.Exists(file)) File.Delete(file);
         }
 
         return true;
@@ -271,17 +231,12 @@ public class RcInit : DefaultHost
             if (p != null && !GetHasExited(p)) return false;
         }
 
-        //var file = _path.CombinePath($"{serviceName}");
         var file = $"{serviceName}.sh".GetFullPath();
         if (!File.Exists(file)) return false;
 
-        //Process.Start("bash", file);
-        //file.ShellExecute("start");
-        Process.Start(new ProcessStartInfo("sh", $"{file} start") { UseShellExecute = true });
-
-        //// 用pid文件记录进程id，方便后面杀进程
-        //var pid = $"{serviceName}.pid".GetFullPath();
-        //File.WriteAllText(pid, p.ToString());
+        //Process.Start(new ProcessStartInfo("sh", $"{file} start") { UseShellExecute = true });
+        //"sh".ShellExecute($"{file} start");
+        file.ShellExecute("start");
 
         return true;
     }

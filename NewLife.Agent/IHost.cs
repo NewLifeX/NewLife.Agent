@@ -3,6 +3,9 @@
 /// <summary>服务主机</summary>
 public interface IHost
 {
+    /// <summary>名称</summary>
+    String Name { get; }
+
     /// <summary>服务是否已安装</summary>
     /// <param name="serviceName">服务名</param>
     /// <returns></returns>

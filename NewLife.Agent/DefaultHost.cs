@@ -5,6 +5,9 @@ namespace NewLife.Agent;
 /// <summary>服务主机。用于管理控制服务</summary>
 public class DefaultHost : DisposeBase, IHost
 {
+    /// <summary>名称</summary>
+    public String Name { get; set; }
+
     /// <summary>
     /// 主服务
     /// </summary>
@@ -14,6 +17,9 @@ public class DefaultHost : DisposeBase, IHost
     /// 是否以服务形式运行
     /// </summary>
     public Boolean InService { get; set; }
+
+    /// <summary>实例化</summary>
+    public DefaultHost() => Name = GetType().Name;
 
     /// <summary>服务是否已安装</summary>
     /// <param name="serviceName">服务名</param>

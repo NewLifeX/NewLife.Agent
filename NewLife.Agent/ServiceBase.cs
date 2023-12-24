@@ -122,6 +122,8 @@ public abstract class ServiceBase : DisposeBase
                 Host = new OSXLaunch { Service = this };
             else if (Systemd.Available)
                 Host = new Systemd { Service = this };
+            else if (Procd.Available)
+                Host = new Procd { Service = this };
             else if (RcInit.Available)
                 Host = new RcInit { Service = this };
             else
@@ -129,6 +131,8 @@ public abstract class ServiceBase : DisposeBase
                 //throw new NotSupportedException($"不支持该操作系统！");
                 Host = new DefaultHost { Service = this };
             }
+
+            WriteLog("Host: {0}", Host.Name);
         }
 
         Log = XTrace.Log;
@@ -165,7 +169,7 @@ public abstract class ServiceBase : DisposeBase
         else
             Console.WriteLine("服务：{0}", name);
         Console.WriteLine("描述：{0}", Description);
-        Console.Write("状态：{0} ", Host.GetType().Name);
+        Console.Write("状态：{0} ", Host.Name);
 
         String status;
         var installed = Host.IsInstalled(name);
