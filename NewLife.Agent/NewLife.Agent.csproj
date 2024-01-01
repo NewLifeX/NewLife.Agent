@@ -7,7 +7,7 @@
     <AssemblyTitle>服务管理</AssemblyTitle>
     <Description>应用程序注册为系统服务，支持Windows/Linux</Description>
     <Company>新生命开发团队</Company>
-    <Copyright>©2002-2023 NewLife</Copyright>
+    <Copyright>©2002-2024 NewLife</Copyright>
     <VersionPrefix>10.6</VersionPrefix>
     <VersionSuffix>$([System.DateTime]::Now.ToString(`yyyy.MMdd`))</VersionSuffix>
     <Version>$(VersionPrefix).$(VersionSuffix)</Version>
@@ -32,7 +32,7 @@
     <RepositoryUrl>https://github.com/NewLifeX/NewLife.Agent</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>新生命团队;X组件;NewLife;$(AssemblyName)</PackageTags>
-    <PackageReleaseNotes>初步支持macOS系统</PackageReleaseNotes>
+    <PackageReleaseNotes>新增适用于OpenWRT的procd</PackageReleaseNotes>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
@@ -61,9 +61,9 @@
     </None>
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'!='net40'">
-    <PackageReference Include="NewLife.Core" Version="10.6.2023.1201" />
+    <PackageReference Include="NewLife.Core" Version="10.6.2024.0101" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'=='net40'">
-    <PackageReference Include="NewLife.Core" Version="10.6.2023.1201-net40" />
+    <PackageReference Include="NewLife.Core" Version="10.6.2024.0101-net40" />
   </ItemGroup>
 </Project>
