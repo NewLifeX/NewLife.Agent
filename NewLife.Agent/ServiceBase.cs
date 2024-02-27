@@ -255,10 +255,15 @@ public abstract class ServiceBase : DisposeBase
                             Console.WriteLine("正在模拟运行……");
                             StartWork("模拟运行开始");
 
+                            // 开始辅助循环，检查状态
+                            ThreadPool.QueueUserWorkItem(s => DoLoop());
+
                             Console.WriteLine("任意键结束模拟运行！");
                             Console.ReadKey(true);
 
+                            _running = false;
                             StopWork("模拟运行停止");
+                            ReleaseMemory();
                         }
                         catch (Exception ex)
                         {
@@ -564,8 +569,11 @@ public abstract class ServiceBase : DisposeBase
         try
         {
             _process?.Kill();
+            _process = null;
         }
         catch { }
+
+        ReleaseMemory();
     }
 
     /// <summary>开始工作</summary>
@@ -678,6 +686,7 @@ public abstract class ServiceBase : DisposeBase
         CheckWatchDog();
     }
 
+    private DateTime _nextCollect;
     /// <summary>检查内存是否超标</summary>
     /// <returns>是否超标重启</returns>
     protected virtual Boolean CheckMemory()
@@ -685,27 +694,48 @@ public abstract class ServiceBase : DisposeBase
         var max = Setting.Current.MaxMemory;
         if (max <= 0) return false;
 
+        if (_nextCollect < DateTime.Now)
+        {
+            _nextCollect = DateTime.Now.AddSeconds(600);
+
+            ReleaseMemory();
+        }
+
         var cur = GC.GetTotalMemory(false);
         cur = cur / 1024 / 1024;
         if (cur < max) return false;
 
-        // 执行一次GC回收
-#if NETFRAMEWORK
-        GC.Collect(2, GCCollectionMode.Forced);
-#else
-        GC.Collect(2, GCCollectionMode.Forced, false);
-#endif
+        //        // 执行一次GC回收
+        //#if NETFRAMEWORK
+        //        GC.Collect(2, GCCollectionMode.Forced);
+        //#else
+        //        GC.Collect(2, GCCollectionMode.Forced, false);
+        //#endif
 
-        // 再次判断内存
-        cur = GC.GetTotalMemory(true);
-        cur = cur / 1024 / 1024;
-        if (cur < max) return false;
+        //        // 再次判断内存
+        //        cur = GC.GetTotalMemory(true);
+        //        cur = cur / 1024 / 1024;
+        //        if (cur < max) return false;
 
         WriteLog("当前进程占用内存 {0:n0}M，超过阀值 {1:n0}M，准备重新启动！", cur, max);
 
         Host.Restart(ServiceName);
 
         return true;
+    }
+
+    /// <summary>释放内存。GC回收后再释放虚拟内存</summary>
+    protected void ReleaseMemory()
+    {
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        if (Runtime.Windows)
+        {
+            var p = Process.GetCurrentProcess();
+            NativeMethods.EmptyWorkingSet(p.Handle);
+        }
     }
 
     /// <summary>检查服务进程的总线程数是否超标</summary>

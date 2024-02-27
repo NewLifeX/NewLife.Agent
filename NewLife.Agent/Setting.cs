@@ -23,9 +23,9 @@ namespace NewLife.Agent
         [Description("服务描述")]
         public String Description { get; set; } = "";
 
-        /// <summary>最大占用内存。超过最大占用时，整个服务进程将会重启，以释放资源。默认8096M</summary>
-        [Description("最大占用内存。超过最大占用时，整个服务进程将会重启，以释放资源。默认8096M")]
-        public Int32 MaxMemory { get; set; } = 8096;
+        /// <summary>最大占用内存。超过最大占用时，整个服务进程将会重启，以释放资源。默认0M</summary>
+        [Description("最大占用内存。超过最大占用时，整个服务进程将会重启，以释放资源。默认0M")]
+        public Int32 MaxMemory { get; set; }
 
         /// <summary>最大线程数。超过最大占用时，整个服务进程将会重启，以释放资源。默认1000个</summary>
         [Description("最大线程数。超过最大占用时，整个服务进程将会重启，以释放资源。默认1000个")]
