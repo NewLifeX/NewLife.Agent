@@ -584,7 +584,7 @@ public abstract class ServiceBase : DisposeBase
 
     private void OnProcessExit(Object sender, EventArgs e)
     {
-        WriteLog("OnProcessExit");
+        WriteLog("{0}.OnProcessExit", sender?.GetType().Name);
         if (_running) StopWork("ProcessExit");
         //Environment.ExitCode = 0;
 

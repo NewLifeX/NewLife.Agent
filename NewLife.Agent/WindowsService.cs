@@ -2,9 +2,9 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
 using System.Security.Principal;
 using System.Text;
+using NewLife.Agent.Windows;
 using NewLife.Log;
 using static NewLife.Agent.Advapi32;
 
@@ -47,10 +47,10 @@ public class WindowsService : DefaultHost
             _status.waitHint = 0;
 
             // 正常运行后可接受的命令
-#if NETSTANDARD2_0
+            //#if NETSTANDARD2_0
             _acceptedCommands = ControlsAccepted.CanStop
                 | ControlsAccepted.CanShutdown
-                //| ControlsAccepted.CanPauseAndContinue
+                | ControlsAccepted.CanPauseAndContinue
                 | ControlsAccepted.ParamChange
                 | ControlsAccepted.NetBindChange
                 | ControlsAccepted.HardwareProfileChange
@@ -61,11 +61,11 @@ public class WindowsService : DefaultHost
                 | ControlsAccepted.TriggerEvent
                 //| ControlsAccepted.UserModeReboot
                 ;
-#else
-            _acceptedCommands = ControlsAccepted.CanStop
-                | ControlsAccepted.CanShutdown
-                ;
-#endif
+            //#else
+            //_acceptedCommands = ControlsAccepted.CanStop
+            //    | ControlsAccepted.CanShutdown
+            //    ;
+            //#endif
 
             //!!! 函数委托必须引着，避免GC回收导致PInvoke内部报错
             _table = new SERVICE_TABLE_ENTRY
@@ -188,12 +188,13 @@ public class WindowsService : DefaultHost
                 });
                 break;
             case ControlOptions.PowerEvent:
-                XTrace.WriteLine("PowerEvent {0}", (PowerBroadcastStatus)eventType);
+                var power = new PowerStatus();
+                XTrace.WriteLine("PowerEvent: {0}, LineStatus={1}, LifePercent={2:p0}, ChargeStatus={3}", (PowerBroadcastStatus)eventType, power.PowerLineStatus, power.BatteryLifePercent, power.BatteryChargeStatus);
                 break;
             case ControlOptions.SessionChange:
                 var sessionNotification = new WTSSESSION_NOTIFICATION();
                 Marshal.PtrToStructure(eventData, sessionNotification);
-                XTrace.WriteLine("SessionChange {0}, {1}", (SessionChangeReason)eventType, sessionNotification.sessionId);
+                XTrace.WriteLine("SessionChange {0}, sessionId={1}", (SessionChangeReason)eventType, sessionNotification.sessionId);
                 break;
             case ControlOptions.TimeChange:
                 var time = new SERVICE_TIMECHANGE_INFO();
@@ -223,7 +224,7 @@ public class WindowsService : DefaultHost
         {
             // 开始挂起时，不接受任何命令；其它状态下允许停止
             if (state == ServiceControllerStatus.StartPending)
-                _status.controlsAccepted = 0;
+                _status.controlsAccepted = ControlsAccepted.CanStop;
             else
                 //_status.controlsAccepted = ControlsAccepted.CanStop;
                 _status.controlsAccepted = _acceptedCommands;
