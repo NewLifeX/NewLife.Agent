@@ -280,7 +280,6 @@ public class RcInit : DefaultHost
         Process.Start(new ProcessStartInfo("sh", $"{file} start") { UseShellExecute = true });
 
         //// 用pid文件记录进程id，方便后面杀进程
-        //var pid = $"{serviceName}.pid".GetFullPath();
         //File.WriteAllText(pid, p.ToString());
 
         return true;
@@ -331,32 +330,5 @@ public class RcInit : DefaultHost
         Start(serviceName);
 
         return true;
-    }
-
-    static Process GetProcessById(Int32 processId)
-    {
-        try
-        {
-            return Process.GetProcessById(processId);
-        }
-        catch { }
-
-        return null;
-    }
-
-    static Boolean GetHasExited(Process process)
-    {
-        try
-        {
-            return process.HasExited;
-        }
-        catch (Win32Exception)
-        {
-            return true;
-        }
-        //catch
-        //{
-        //    return false;
-        //}
     }
 }

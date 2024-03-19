@@ -33,12 +33,17 @@ public abstract class ServiceBase : DisposeBase
 
     #region 构造
     /// <summary>初始化</summary>
-    public ServiceBase() =>
+    public ServiceBase()
+    {
         //#if NETSTANDARD2_0
         //MachineInfo.RegisterAsync();
         //#endif
 
         InitService();
+
+        var set = Setting.Current;
+        UseAutorun = set.UseAutorun;
+    }
 
     /// <summary>初始化服务。Agent组件内部使用</summary>
     public static void InitService()
@@ -618,7 +623,8 @@ public abstract class ServiceBase : DisposeBase
                 exe = args[0].GetFullPath();
         }
 
-        var arg = UseAutorun ? "-run" : "-s";
+        //var arg = UseAutorun ? "-run" : "-s";
+        var arg = "-s";
 
         // 兼容更多参数做为服务启动，譬如：--urls
         if (args.Length > 2)
@@ -730,7 +736,8 @@ public abstract class ServiceBase : DisposeBase
     {
         var max = GC.MaxGeneration;
         var mode = GCCollectionMode.Forced;
-#if NET7_0_OR_GREATER
+        //#if NET7_0_OR_GREATER
+#if NET8_0_OR_GREATER
         mode = GCCollectionMode.Aggressive;
 #endif
 #if NET451_OR_GREATER || NETSTANDARD || NETCOREAPP

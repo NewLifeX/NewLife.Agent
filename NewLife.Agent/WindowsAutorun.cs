@@ -1,4 +1,5 @@
-﻿using System.Runtime.Versioning;
+﻿using System.Diagnostics;
+using System.Runtime.Versioning;
 using Microsoft.Win32;
 using NewLife.Log;
 
@@ -12,7 +13,36 @@ public class WindowsAutorun : DefaultHost
 {
     /// <summary>开始执行服务</summary>
     /// <param name="service"></param>
-    public override void Run(ServiceBase service) => throw new NotSupportedException();
+    public override void Run(ServiceBase service)
+    {
+        if (service == null) throw new ArgumentNullException(nameof(service));
+
+        // 以服务运行
+        InService = true;
+
+        try
+        {
+            // 用pid文件记录进程id，方便后面杀进程
+            var p = Process.GetCurrentProcess();
+            var pid = $"{service.ServiceName}.pid".GetFullPath();
+            File.WriteAllText(pid, p.Id.ToString());
+
+            // 启动初始化
+            service.StartLoop();
+
+            // 阻塞
+            service.DoLoop();
+
+            // 停止
+            service.StopLoop();
+
+            File.Delete(pid);
+        }
+        catch (Exception ex)
+        {
+            XTrace.WriteException(ex);
+        }
+    }
 
     /// <summary>服务是否已安装</summary>
     /// <param name="serviceName">服务名</param>
@@ -36,7 +66,18 @@ public class WindowsAutorun : DefaultHost
     /// <summary>服务是否已启动</summary>
     /// <param name="serviceName">服务名</param>
     /// <returns></returns>
-    public override unsafe Boolean IsRunning(String serviceName) => false;
+    public override unsafe Boolean IsRunning(String serviceName)
+    {
+        var file = $"{serviceName}.pid".GetFullPath();
+        if (!File.Exists(file)) return false;
+
+        var pid = File.ReadAllText(file).Trim().ToInt();
+        if (pid <= 0) return false;
+
+        var p = GetProcessById(pid);
+
+        return p != null && !GetHasExited(p);
+    }
 
     /// <summary>安装服务</summary>
     /// <param name="serviceName">服务名</param>
@@ -113,5 +154,105 @@ public class WindowsAutorun : DefaultHost
 #else
         return null;
 #endif
+    }
+
+    /// <summary>启动服务</summary>
+    /// <param name="serviceName">服务名</param>
+    /// <returns></returns>
+#if NET5_0_OR_GREATER
+    [SupportedOSPlatform("windows")]
+#endif
+    public override Boolean Start(String serviceName)
+    {
+        XTrace.WriteLine("{0}.Start {1}", GetType().Name, serviceName);
+
+        // 判断服务是否已启动
+        var id = 0;
+        var pid = $"{serviceName}.pid".GetFullPath();
+        if (File.Exists(pid)) id = File.ReadAllText(pid).Trim().ToInt();
+        if (id > 0)
+        {
+            var p = GetProcessById(id);
+            if (p != null && !GetHasExited(p)) return false;
+        }
+
+        if (!WindowsService.IsAdministrator()) return WindowsService.RunAsAdministrator("-start");
+
+#if NET40_OR_GREATER || NET5_0_OR_GREATER
+        // 在注册表中写入启动配置
+        using var key = Registry.LocalMachine.OpenSubKey("""SOFTWARE\Microsoft\Windows\CurrentVersion\Run""", true);
+
+        // 读取应用程序到自启动项
+        var fileName = key.GetValue(serviceName)?.ToString();
+        if (fileName.IsNullOrEmpty())
+        {
+            XTrace.WriteLine("未找到服务 {0}", serviceName);
+            return false;
+        }
+
+        var args = "";
+        var idx = fileName.IndexOf(' ');
+        if (idx > 0)
+        {
+            args = fileName.Substring(idx + 1);
+            fileName = fileName.Substring(0, idx);
+        }
+
+        //var process = Process.Start(fileName, args);
+        Process.Start(new ProcessStartInfo(fileName, args) { UseShellExecute = true });
+#endif
+
+        return true;
+    }
+
+    /// <summary>停止服务</summary>
+    /// <param name="serviceName">服务名</param>
+    /// <returns></returns>
+#if NET5_0_OR_GREATER
+    [SupportedOSPlatform("windows")]
+#endif
+    public override unsafe Boolean Stop(String serviceName)
+    {
+        XTrace.WriteLine("{0}.Stop {1}", GetType().Name, serviceName);
+
+        var id = 0;
+        var pid = $"{serviceName}.pid".GetFullPath();
+        if (File.Exists(pid)) id = File.ReadAllText(pid).Trim().ToInt();
+        if (id <= 0) return false;
+
+        // 杀进程
+        var p = GetProcessById(id);
+        if (p == null || GetHasExited(p)) return false;
+
+        try
+        {
+            // 发命令让服务自己退出
+            try
+            {
+                var handle = p.MainWindowHandle;
+                if (handle != IntPtr.Zero)
+                {
+                    // 发送关闭消息
+                    //NativeMethods.SendMessage(handle, WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
+                    NativeMethods.CloseWindow(handle);
+
+                    var n = 30;
+                    while (!p.HasExited && n-- > 0) Thread.Sleep(100);
+                }
+            }
+            catch (Exception ex)
+            {
+                XTrace.WriteLine(ex.Message);
+            }
+
+            if (!p.HasExited) p.Kill();
+
+            File.Delete(pid);
+
+            return true;
+        }
+        catch { }
+
+        return false;
     }
 }

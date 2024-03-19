@@ -1,4 +1,6 @@
-﻿using NewLife.Log;
+﻿using System.ComponentModel;
+using System.Diagnostics;
+using NewLife.Log;
 
 namespace NewLife.Agent;
 
@@ -57,7 +59,12 @@ public class DefaultHost : DisposeBase, IHost
 
     /// <summary>重启服务</summary>
     /// <param name="serviceName">服务名</param>
-    public virtual Boolean Restart(String serviceName) => false;
+    public virtual Boolean Restart(String serviceName)
+    {
+        if (!Stop(serviceName)) return false;
+
+        return Start(serviceName);
+    }
 
     /// <summary>开始执行服务</summary>
     /// <param name="service"></param>
@@ -88,4 +95,37 @@ public class DefaultHost : DisposeBase, IHost
     /// <summary>查询服务配置</summary>
     /// <param name="serviceName">服务名</param>
     public virtual ServiceConfig QueryConfig(String serviceName) => null;
+
+    /// <summary>获取进程（捕获异常）</summary>
+    /// <param name="processId"></param>
+    /// <returns></returns>
+    protected static Process GetProcessById(Int32 processId)
+    {
+        try
+        {
+            return Process.GetProcessById(processId);
+        }
+        catch { }
+
+        return null;
+    }
+
+    /// <summary>进程是否已退出（捕获异常）</summary>
+    /// <param name="process"></param>
+    /// <returns></returns>
+    protected static Boolean GetHasExited(Process process)
+    {
+        try
+        {
+            return process.HasExited;
+        }
+        catch (Win32Exception)
+        {
+            return true;
+        }
+        //catch
+        //{
+        //    return false;
+        //}
+    }
 }
