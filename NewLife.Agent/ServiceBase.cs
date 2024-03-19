@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
+using System.Runtime;
 using System.Runtime.CompilerServices;
 using System.Security;
 using NewLife.Log;
@@ -727,9 +728,17 @@ public abstract class ServiceBase : DisposeBase
     /// <summary>释放内存。GC回收后再释放虚拟内存</summary>
     protected void ReleaseMemory()
     {
-        GC.Collect();
+        var max = GC.MaxGeneration;
+        var mode = GCCollectionMode.Forced;
+#if NET7_0_OR_GREATER
+        mode = GCCollectionMode.Aggressive;
+#endif
+#if NET451_OR_GREATER || NETSTANDARD || NETCOREAPP
+        GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+#endif
+        GC.Collect(max, mode);
         GC.WaitForPendingFinalizers();
-        GC.Collect();
+        GC.Collect(max, mode);
 
         if (Runtime.Windows)
         {
