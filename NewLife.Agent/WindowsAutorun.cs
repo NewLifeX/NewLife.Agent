@@ -52,15 +52,8 @@ public class WindowsAutorun : DefaultHost
 #endif
     public override Boolean IsInstalled(String serviceName)
     {
-#if NET40_OR_GREATER || NET5_0_OR_GREATER
-        // 在注册表中写入启动配置
-        using var key = Registry.LocalMachine.OpenSubKey("""SOFTWARE\Microsoft\Windows\CurrentVersion\Run""", false);
-
-        var v = key.GetValue(serviceName)?.ToString();
-        return !v.IsNullOrEmpty();
-#else
-        return false;
-#endif
+        var config = QueryConfig(serviceName);
+        return config != null && !config.FilePath.IsNullOrEmpty();
     }
 
     /// <summary>服务是否已启动</summary>
@@ -68,13 +61,7 @@ public class WindowsAutorun : DefaultHost
     /// <returns></returns>
     public override unsafe Boolean IsRunning(String serviceName)
     {
-        var file = $"{serviceName}.pid".GetFullPath();
-        if (!File.Exists(file)) return false;
-
-        var pid = File.ReadAllText(file).Trim().ToInt();
-        if (pid <= 0) return false;
-
-        var p = GetProcessById(pid);
+        var p = GetProcess(serviceName, out _);
 
         return p != null && !GetHasExited(p);
     }
@@ -146,14 +133,46 @@ public class WindowsAutorun : DefaultHost
         var v = key.GetValue(serviceName)?.ToString();
         if (v.IsNullOrEmpty()) return null;
 
+        var fileName = v;
+        var args = "";
+        var idx = fileName.IndexOf(' ');
+        if (idx > 0)
+        {
+            args = fileName.Substring(idx + 1);
+            fileName = fileName.Substring(0, idx);
+        }
+
         return new ServiceConfig
         {
             Name = serviceName,
-            FilePath = v.TrimEnd(" -run")
+            FilePath = fileName,
+            Arguments = args,
+            Command = v,
+            AutoStart = true,
         };
 #else
         return null;
 #endif
+    }
+
+    private Process GetProcess(String serviceName, out String pid)
+    {
+        var config = QueryConfig(serviceName);
+        var basePath = config?.FilePath;
+
+        var id = 0;
+        pid = $"{serviceName}.pid";
+
+        // 在服务目录下查找pid文件，如果没有则在当前目录下查找
+        if (!basePath.IsNullOrEmpty()) pid = Path.GetDirectoryName(basePath).CombinePath(pid);
+        pid = pid.GetFullPath();
+        if (File.Exists(pid)) id = File.ReadAllText(pid).Trim().ToInt();
+        if (id <= 0) return null;
+
+        var p = GetProcessById(id);
+        //if (p == null || GetHasExited(p)) return null;
+
+        return p;
     }
 
     /// <summary>启动服务</summary>
@@ -167,40 +186,20 @@ public class WindowsAutorun : DefaultHost
         XTrace.WriteLine("{0}.Start {1}", GetType().Name, serviceName);
 
         // 判断服务是否已启动
-        var id = 0;
-        var pid = $"{serviceName}.pid".GetFullPath();
-        if (File.Exists(pid)) id = File.ReadAllText(pid).Trim().ToInt();
-        if (id > 0)
-        {
-            var p = GetProcessById(id);
-            if (p != null && !GetHasExited(p)) return false;
-        }
+        var p = GetProcess(serviceName, out _);
+        if (p != null && !GetHasExited(p)) return false;
 
         if (!WindowsService.IsAdministrator()) return WindowsService.RunAsAdministrator("-start");
 
-#if NET40_OR_GREATER || NET5_0_OR_GREATER
-        // 在注册表中写入启动配置
-        using var key = Registry.LocalMachine.OpenSubKey("""SOFTWARE\Microsoft\Windows\CurrentVersion\Run""", true);
-
-        // 读取应用程序到自启动项
-        var fileName = key.GetValue(serviceName)?.ToString();
-        if (fileName.IsNullOrEmpty())
+        var config = QueryConfig(serviceName);
+        if (config == null || config.FilePath.IsNullOrEmpty() || !File.Exists(config.FilePath))
         {
             XTrace.WriteLine("未找到服务 {0}", serviceName);
             return false;
         }
 
-        var args = "";
-        var idx = fileName.IndexOf(' ');
-        if (idx > 0)
-        {
-            args = fileName.Substring(idx + 1);
-            fileName = fileName.Substring(0, idx);
-        }
-
         //var process = Process.Start(fileName, args);
-        Process.Start(new ProcessStartInfo(fileName, args) { UseShellExecute = true });
-#endif
+        Process.Start(new ProcessStartInfo(config.FilePath, config.Arguments) { UseShellExecute = true });
 
         return true;
     }
@@ -215,14 +214,8 @@ public class WindowsAutorun : DefaultHost
     {
         XTrace.WriteLine("{0}.Stop {1}", GetType().Name, serviceName);
 
-        var id = 0;
-        var pid = $"{serviceName}.pid".GetFullPath();
-        if (File.Exists(pid)) id = File.ReadAllText(pid).Trim().ToInt();
-        if (id <= 0) return false;
-
-        // 杀进程
-        var p = GetProcessById(id);
-        if (p == null || GetHasExited(p)) return false;
+        var p = GetProcess(serviceName, out var pid);
+        if (p == null) return false;
 
         try
         {

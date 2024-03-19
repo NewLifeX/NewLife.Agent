@@ -12,8 +12,14 @@ public class ServiceConfig
     /// <summary>文件路径</summary>
     public String FilePath { get; set; }
 
+    /// <summary>参数</summary>
+    public String Arguments { get; set; }
+
     /// <summary>自动启动</summary>
     public Boolean AutoStart { get; set; }
+
+    /// <summary>原始命令</summary>
+    public String Command { get; set; }
 
     ///// <summary>描述</summary>
     //public String Description { get; set; }

@@ -35,10 +35,6 @@ public abstract class ServiceBase : DisposeBase
     /// <summary>初始化</summary>
     public ServiceBase()
     {
-        //#if NETSTANDARD2_0
-        //MachineInfo.RegisterAsync();
-        //#endif
-
         InitService();
 
         var set = Setting.Current;
@@ -78,6 +74,8 @@ public abstract class ServiceBase : DisposeBase
     {
         args ??= Environment.GetCommandLineArgs();
 
+        if ("-Autorun".EqualIgnoreCase(args)) UseAutorun = true;
+
         Init();
 
         var cmd = args?.FirstOrDefault(e => !e.IsNullOrEmpty() && e.Length > 1 && e[0] == '-');
@@ -115,6 +113,8 @@ public abstract class ServiceBase : DisposeBase
     /// <exception cref="NotSupportedException"></exception>
     protected virtual void Init()
     {
+        Log = XTrace.Log;
+
         if (Host == null)
         {
             if (Runtime.Windows)
@@ -141,10 +141,9 @@ public abstract class ServiceBase : DisposeBase
             WriteLog("Host: {0}", Host.Name);
         }
 
-        Log = XTrace.Log;
-
         // 初始化配置
         var set = Setting.Current;
+        set.UseAutorun = UseAutorun;
         if (set.ServiceName.IsNullOrEmpty()) set.ServiceName = ServiceName;
         if (set.DisplayName.IsNullOrEmpty()) set.DisplayName = DisplayName;
         if (set.Description.IsNullOrEmpty()) set.Description = Description;
@@ -370,7 +369,7 @@ public abstract class ServiceBase : DisposeBase
         }
     }
 
-    private readonly List<Menu> _Menus = new();
+    private readonly List<Menu> _Menus = [];
     /// <summary>添加菜单</summary>
     /// <param name="key"></param>
     /// <param name="name"></param>
