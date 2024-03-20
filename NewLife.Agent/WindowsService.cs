@@ -47,7 +47,7 @@ public class WindowsService : DefaultHost
             _status.waitHint = 0;
 
             // 正常运行后可接受的命令
-            //#if NETSTANDARD2_0
+#if NETSTANDARD2_0 || NETCOREAPP
             _acceptedCommands = ControlsAccepted.CanStop
                 | ControlsAccepted.CanShutdown
                 | ControlsAccepted.CanPauseAndContinue
@@ -61,11 +61,21 @@ public class WindowsService : DefaultHost
                 | ControlsAccepted.TriggerEvent
                 //| ControlsAccepted.UserModeReboot
                 ;
-            //#else
-            //_acceptedCommands = ControlsAccepted.CanStop
-            //    | ControlsAccepted.CanShutdown
-            //    ;
-            //#endif
+#else
+            _acceptedCommands = ControlsAccepted.CanStop
+                | ControlsAccepted.CanShutdown
+                | ControlsAccepted.CanPauseAndContinue
+                | ControlsAccepted.ParamChange
+                | ControlsAccepted.NetBindChange
+                | ControlsAccepted.HardwareProfileChange
+                | ControlsAccepted.CanHandlePowerEvent
+                | ControlsAccepted.CanHandleSessionChangeEvent
+                | ControlsAccepted.PreShutdown
+                | ControlsAccepted.TimeChange
+                | ControlsAccepted.TriggerEvent
+                //| ControlsAccepted.UserModeReboot
+                ;
+#endif
 
             //!!! 函数委托必须引着，避免GC回收导致PInvoke内部报错
             _table = new SERVICE_TABLE_ENTRY
@@ -224,7 +234,7 @@ public class WindowsService : DefaultHost
         {
             // 开始挂起时，不接受任何命令；其它状态下允许停止
             if (state == ServiceControllerStatus.StartPending)
-                _status.controlsAccepted = ControlsAccepted.CanStop;
+                _status.controlsAccepted = 0;
             else
                 //_status.controlsAccepted = ControlsAccepted.CanStop;
                 _status.controlsAccepted = _acceptedCommands;
