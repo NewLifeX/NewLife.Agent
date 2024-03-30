@@ -6,13 +6,16 @@ using System.Security.Principal;
 using System.Text;
 using NewLife.Agent.Windows;
 using NewLife.Log;
+using NewLife.Threading;
 using static NewLife.Agent.Advapi32;
 
 namespace NewLife.Agent;
 
 /// <summary>Windows服务</summary>
 /// <remarks>
-/// 特别注意，主线程和服务内部线程，不要调用任何系统WinApi
+/// 支持派生类重写OnPowerEvent、OnSessionChange、OnTimeChange等方法，以处理系统事件。
+/// 
+/// 特别注意，主线程和服务内部线程，不要调用任何系统WinApi。
 /// </remarks>
 public class WindowsService : DefaultHost
 {
@@ -198,18 +201,20 @@ public class WindowsService : DefaultHost
                 });
                 break;
             case ControlOptions.PowerEvent:
+                var powerStatus = (PowerBroadcastStatus)eventType;
                 var power = new PowerStatus();
-                XTrace.WriteLine("PowerEvent: {0}, LineStatus={1}, LifePercent={2:p0}, ChargeStatus={3}", (PowerBroadcastStatus)eventType, power.PowerLineStatus, power.BatteryLifePercent, power.BatteryChargeStatus);
+                ThreadPoolX.QueueUserWorkItem(() => OnPowerEvent(powerStatus, power));
                 break;
             case ControlOptions.SessionChange:
                 var sessionNotification = new WTSSESSION_NOTIFICATION();
                 Marshal.PtrToStructure(eventData, sessionNotification);
-                XTrace.WriteLine("SessionChange {0}, sessionId={1}", (SessionChangeReason)eventType, sessionNotification.sessionId);
+                var reason = (SessionChangeReason)eventType;
+                ThreadPoolX.QueueUserWorkItem(() => OnSessionChange(sessionNotification.sessionId, reason));
                 break;
             case ControlOptions.TimeChange:
                 var time = new SERVICE_TIMECHANGE_INFO();
                 Marshal.PtrToStructure(eventData, time);
-                XTrace.WriteLine("TimeChange {0}=>{1}", DateTime.FromFileTime(time.OldTime), DateTime.FromFileTime(time.NewTime));
+                ThreadPoolX.QueueUserWorkItem(() => OnTimeChange(DateTime.FromFileTime(time.OldTime), DateTime.FromFileTime(time.NewTime)));
                 break;
             default:
                 ReportStatus(_status.currentState);
@@ -250,6 +255,30 @@ public class WindowsService : DefaultHost
 
             return SetServiceStatus(_statusHandle, status);
         }
+    }
+
+    /// <summary>当在派生类中实现时，该方法于计算机电源状态更改时执行。 这适用于膝上型计算机进入挂起模式时的情况，该模式不同于系统关闭。</summary>
+    /// <param name="powerStatus">指示来自系统的有关电源状态的通知</param>
+    /// <param name="status">电源状态</param>
+    protected virtual void OnPowerEvent(PowerBroadcastStatus powerStatus, PowerStatus status)
+    {
+        XTrace.WriteLine("PowerEvent: {0}, LineStatus={1}, LifePercent={2:p0}, ChargeStatus={3}", powerStatus, status.PowerLineStatus, status.BatteryLifePercent, status.BatteryChargeStatus);
+    }
+
+    /// <summary>从终端服务器会话接收到更改事件时执行</summary>
+    /// <param name="sessionId"></param>
+    /// <param name="reason"></param>
+    protected virtual void OnSessionChange(Int32 sessionId, SessionChangeReason reason)
+    {
+        XTrace.WriteLine("SessionChange {0}, sessionId={1}", reason, sessionId);
+    }
+
+    /// <summary>系统时间改变时执行</summary>
+    /// <param name="oldTime"></param>
+    /// <param name="newTime"></param>
+    protected virtual void OnTimeChange(DateTime oldTime, DateTime newTime)
+    {
+        XTrace.WriteLine("TimeChange {0}=>{1}", oldTime, newTime);
     }
 
     #region 服务状态和控制

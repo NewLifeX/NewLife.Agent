@@ -23,6 +23,52 @@ internal class SafeServiceHandle : SafeHandle
     protected override Boolean ReleaseHandle() => Advapi32.CloseServiceHandle(handle);
 }
 
+/// <summary>指示系统的电源状态</summary>
+public enum PowerBroadcastStatus
+{
+    /// <summary>电池电量不足</summary>
+    BatteryLow = 9,
+    /// <summary>发出 APM OEM 事件信号的高级电源管理 (APM) BIOS</summary>
+    OemEvent = 11,
+    /// <summary>检测到计算机电源状态的更改，如从电池电源切换到交流电源。系统还会在剩余电池电量降至用户指定的阈值以下时或电池电量变化了指定的百分比时广播该事件。</summary>
+    PowerStatusChange = 10,
+    /// <summary>系统已请求挂起计算机的权限。授予权限的应用程序应在返回之前执行挂起准备。</summary>
+    QuerySuspend = 0,
+    /// <summary>拒绝授予系统挂起计算机的权限。当任何应用程序或驱动程序拒绝了上一个 QuerySuspend 状态时将广播该状态。</summary>
+    QuerySuspendFailed = 2,
+    /// <summary>计算机已自动唤醒来处理事件。如果系统在广播 ResumeAutomatic 后检测到任何用户活动，则会广播 ResumeSuspend 事件，使应用程序知道他们可以恢复与用户的完全交互。</summary>
+    ResumeAutomatic = 18,
+    /// <summary>系统在电池故障引起的严重挂起之后已恢复操作。由于在没有事先通知的情况下发生了严重暂停，因此当应用程序收到此事件时，以前可用的资源和数据可能不存在。应用程序应尝试尽其所能地恢复其状态。</summary>
+    ResumeCritical = 6,
+    /// <summary>系统在挂起之后已恢复操作。</summary>
+    ResumeSuspend = 7,
+    /// <summary>计算机将要进入挂起状态。 该事件通常在所有应用程序和可安装驱动程序已对上一个 true 状态返回 QuerySuspend 后广播。</summary>
+    Suspend = 4
+}
+
+/// <summary>指定终端服务会话更改通知的原因。</summary>
+public enum SessionChangeReason
+{
+    /// <summary>控制台会话已连接</summary>
+    ConsoleConnect = 1,
+    /// <summary>控制台会话已断开连接</summary>
+    ConsoleDisconnect,
+    /// <summary>远程会话已连接</summary>
+    RemoteConnect,
+    /// <summary>远程会话已断开连接</summary>
+    RemoteDisconnect,
+    /// <summary>用户已登录到会话</summary>
+    SessionLogon,
+    /// <summary>用户已从会话注销</summary>
+    SessionLogoff,
+    /// <summary>会话已被锁定</summary>
+    SessionLock,
+    /// <summary>会话已被解除锁定</summary>
+    SessionUnlock,
+    /// <summary>会话的远程控制状态已更改</summary>
+    SessionRemoteControl
+}
+
 internal class Advapi32
 {
     [Flags]
@@ -195,32 +241,6 @@ internal class Advapi32
         public IntPtr ServiceStartName;
 
         public IntPtr DisplayName;
-    }
-
-    public enum PowerBroadcastStatus
-    {
-        BatteryLow = 9,
-        OemEvent = 11,
-        PowerStatusChange = 10,
-        QuerySuspend = 0,
-        QuerySuspendFailed = 2,
-        ResumeAutomatic = 18,
-        ResumeCritical = 6,
-        ResumeSuspend = 7,
-        Suspend = 4
-    }
-
-    public enum SessionChangeReason
-    {
-        ConsoleConnect = 1,
-        ConsoleDisconnect,
-        RemoteConnect,
-        RemoteDisconnect,
-        SessionLogon,
-        SessionLogoff,
-        SessionLock,
-        SessionUnlock,
-        SessionRemoteControl
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
