@@ -334,7 +334,7 @@ public class WindowsService : DefaultHost
         var binPath = fileName;
         if (!arguments.IsNullOrEmpty()) binPath += " " + arguments;
 
-        using var service = new SafeServiceHandle(CreateService(manager, serviceName, displayName, ServiceOptions.SERVICE_ALL_ACCESS, 0x10, 2, 1, binPath, null, 0, null, null, null));
+        using var service = new SafeServiceHandle(CreateService(manager, serviceName, displayName, ServiceOptions.SERVICE_ALL_ACCESS, (Int32)ServiceType.Win32OwnProcess, (Int32)StartType.AutoStart, 1, binPath, null, 0, null, null, null));
         if (service.IsInvalid) throw new Win32Exception(Marshal.GetLastWin32Error());
 
         // 设置描述信息

@@ -52,6 +52,7 @@ public abstract class ServiceBase : DisposeBase
 
         // 提前设置好当前目录，避免后续各种问题
         Environment.CurrentDirectory = ".".GetBasePath();
+        XTrace.WriteLine("CurrentDirectory: {0}", Environment.CurrentDirectory);
 
         typeof(ServiceBase).Assembly.WriteVersion();
     }
