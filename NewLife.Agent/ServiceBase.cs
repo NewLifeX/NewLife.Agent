@@ -617,10 +617,11 @@ public abstract class ServiceBase : DisposeBase
         if (args.Length >= 1)
         {
             var fileName = Path.GetFileName(exe);
+            exe = $"\"{exe}\"";
             if (fileName.EqualIgnoreCase("dotnet", "dotnet.exe"))
-                exe += " " + args[0].GetFullPath();
+                exe += " " + $"\"{args[0].GetFullPath()}\"";
             else if (fileName.EqualIgnoreCase("mono", "mono.exe", "mono-sgen"))
-                exe = args[0].GetFullPath();
+                exe = $"\"{args[0].GetFullPath()}\"";
         }
 
         //var arg = UseAutorun ? "-run" : "-s";
@@ -636,7 +637,7 @@ public abstract class ServiceBase : DisposeBase
                 if (args[i].EqualIgnoreCase("-server", "-user", "-group"))
                     i++;
                 else
-                    list.Add(args[i]);
+                    list.Add($"\"{args[i]}\"");
             }
             if (list.Count > 0) arg += " " + list.Join(" ");
         }
