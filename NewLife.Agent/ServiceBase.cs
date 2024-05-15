@@ -193,8 +193,15 @@ public abstract class ServiceBase : DisposeBase
         // 执行文件路径
         if (installed)
         {
-            var cfg = Host.QueryConfig(name);
-            if (cfg != null) Console.WriteLine("路径：{0}", cfg.FilePath);
+            try
+            {
+                var cfg = Host.QueryConfig(name);
+                if (cfg != null) Console.WriteLine("路径：{0}", cfg.FilePath);
+            }
+            catch (Exception ex)
+            {
+                if (Log != null && Log.Level <= LogLevel.Debug) Log.Debug("", ex);
+            }
         }
 
         var asm = AssemblyX.Create(Assembly.GetExecutingAssembly());
