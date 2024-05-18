@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
-using System.Text;
 using NewLife.Log;
+using NewLife.Serialization;
 
 namespace NewLife.Agent;
 
@@ -38,14 +38,8 @@ public class Systemd : DefaultHost
     #endregion
 
     #region 属性
-    /// <summary>用于执行服务的用户</summary>
-    public String User { get; set; }
-
-    /// <summary>用于执行服务的用户组</summary>
-    public String Group { get; set; }
-
-    /// <summary>是否依赖于网络。在网络就绪后才启动服务</summary>
-    public Boolean DependOnNetwork { get; set; }
+    /// <summary>服务设置。应用于服务安装</summary>
+    public SystemdSetting Setting { get; set; } = new();
     #endregion
 
     #region 构造
@@ -112,7 +106,14 @@ public class Systemd : DefaultHost
     /// <returns></returns>
     public override Boolean Install(String serviceName, String displayName, String fileName, String arguments, String description)
     {
-        if (User.IsNullOrEmpty())
+        var set = Setting;
+        set.ServiceName = serviceName;
+        set.DisplayName = displayName;
+        set.Description = description;
+        set.FileName = fileName;
+        set.Arguments = arguments;
+
+        if (set.User.IsNullOrEmpty())
         {
             // 从命令行参数加载用户设置 -user
             var args = Environment.GetCommandLineArgs();
@@ -122,78 +123,35 @@ public class Systemd : DefaultHost
                 {
                     if (args[i].EqualIgnoreCase("-user") && i + 1 < args.Length)
                     {
-                        User = args[i + 1];
+                        set.User = args[i + 1];
                         break;
                     }
                     if (args[i].EqualIgnoreCase("-group") && i + 1 < args.Length)
                     {
-                        Group = args[i + 1];
+                        set.Group = args[i + 1];
                         break;
                     }
                 }
-                if (!User.IsNullOrEmpty() && Group.IsNullOrEmpty()) Group = User;
+                if (!set.User.IsNullOrEmpty() && set.Group.IsNullOrEmpty()) set.Group = set.User;
             }
         }
 
-        return Install(_path, serviceName, displayName, fileName, arguments, description, User, Group, DependOnNetwork);
+        return Install(_path, set);
     }
 
     /// <summary>安装服务</summary>
     /// <param name="systemdPath">systemd目录有</param>
-    /// <param name="serviceName">服务名</param>
-    /// <param name="displayName">显示名</param>
-    /// <param name="fileName">文件路径</param>
-    /// <param name="arguments">命令参数</param>
-    /// <param name="description">描述信息</param>
-    /// <param name="user">用户</param>
-    /// <param name="group">用户组</param>
-    /// <param name="network"></param>
+    /// <param name="set">服务名</param>
     /// <returns></returns>
-    public static Boolean Install(String systemdPath, String serviceName, String displayName, String fileName, String arguments, String description, String user, String group, Boolean network)
+    public static Boolean Install(String systemdPath, SystemdSetting set)
     {
-        XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", typeof(Systemd).Name, serviceName, displayName, fileName, arguments, description);
+        XTrace.WriteLine("{0}.Install {1}", typeof(Systemd).Name, set.ToJson());
 
+        var serviceName = set.ServiceName;
         var file = systemdPath.CombinePath($"{serviceName}.service");
         XTrace.WriteLine(file);
 
-        //var asm = Assembly.GetEntryAssembly();
-        var des = !displayName.IsNullOrEmpty() ? displayName : description;
-
-        var sb = new StringBuilder();
-        sb.AppendLine("[Unit]");
-        sb.AppendLine($"Description={des}");
-
-        if (network)
-            sb.AppendLine($"After=network.target");
-        //sb.AppendLine("StartLimitIntervalSec=0");
-
-        sb.AppendLine();
-        sb.AppendLine("[Service]");
-        sb.AppendLine("Type=simple");
-        //sb.AppendLine($"ExecStart=/usr/bin/dotnet {asm.Location}");
-        sb.AppendLine($"ExecStart={fileName} {arguments}");
-        sb.AppendLine($"WorkingDirectory={Path.GetDirectoryName(fileName).GetFullPath()}");
-        if (!user.IsNullOrEmpty()) sb.AppendLine($"User={user}");
-        if (!group.IsNullOrEmpty()) sb.AppendLine($"Group={group}");
-
-        // no 表示服务退出时，服务不会自动重启，默认值。
-        // on-failure 表示当进程以非零退出代码退出，由信号终止；当操作(如服务重新加载)超时；以及何时触发配置的监视程序超时时，服务会自动重启。
-        // always 表示只要服务退出，则服务将自动重启。
-        sb.AppendLine("Restart=always");
-
-        // RestartSec 重启间隔，比如某次异常后，等待3(s)再进行启动，默认值0.1(s)
-        sb.AppendLine("RestartSec=3");
-
-        // StartLimitInterval: 无限次重启，默认是10秒内如果重启超过5次则不再重启，设置为0表示不限次数重启
-        sb.AppendLine("StartLimitInterval=0");
-
-        sb.AppendLine("KillSignal=SIGINT");
-
-        sb.AppendLine();
-        sb.AppendLine("[Install]");
-        sb.AppendLine("WantedBy=multi-user.target");
-
-        File.WriteAllText(file, sb.ToString());
+        File.WriteAllText(file, set.Build());
 
         // sudo systemctl daemon-reload
         // sudo systemctl enable StarAgent

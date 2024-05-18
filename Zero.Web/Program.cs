@@ -37,7 +37,7 @@ public class MyServices : ServiceBase
 
         // 依赖网络
         if (Host is Systemd sys)
-            sys.DependOnNetwork = true;
+            sys.Setting.Network = true;
     }
     #endregion
 
