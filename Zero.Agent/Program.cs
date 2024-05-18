@@ -39,7 +39,7 @@ namespace Zero.Agent
         private TimerX _timer2;
         /// <summary>开始工作</summary>
         /// <param name="reason"></param>
-        protected override void StartWork(String reason)
+        public override void StartWork(String reason)
         {
             WriteLog("业务开始……");
 
@@ -84,7 +84,7 @@ namespace Zero.Agent
 
         /// <summary>停止服务</summary>
         /// <param name="reason"></param>
-        protected override void StopWork(String reason)
+        public override void StopWork(String reason)
         {
             WriteLog("业务结束！{0}", reason);
 

@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Runtime;
 using System.Runtime.CompilerServices;
 using System.Security;
+using NewLife.Agent.Command;
 using NewLife.Log;
 using NewLife.Reflection;
 
@@ -31,6 +32,11 @@ public abstract class ServiceBase : DisposeBase
     public Boolean UseAutorun { get; set; }
     #endregion
 
+    /// <summary>
+    /// 
+    /// </summary>
+    protected readonly CommandFactory Command;
+
     #region 构造
     /// <summary>初始化</summary>
     public ServiceBase()
@@ -39,6 +45,8 @@ public abstract class ServiceBase : DisposeBase
 
         var set = Setting.Current;
         UseAutorun = set.UseAutorun;
+
+        Command = new CommandFactory(this);
     }
 
     /// <summary>初始化服务。Agent组件内部使用</summary>
@@ -84,7 +92,10 @@ public abstract class ServiceBase : DisposeBase
         {
             try
             {
-                ProcessCommand(cmd, args);
+                WriteLog("ProcessCommand cmd={0} args={1}", cmd, args.Join(" "));
+                cmd = cmd.ToLower();
+                Command.Handle(cmd, args);
+                WriteLog("ProcessFinished cmd={0}", cmd);
             }
             catch (Exception ex)
             {
@@ -95,8 +106,8 @@ public abstract class ServiceBase : DisposeBase
         {
             if (!DisplayName.IsNullOrEmpty()) Console.Title = DisplayName;
 
+            Command.Handle(CommandConst.ShowStatus, args);
             // 输出状态，菜单循环
-            ShowStatus();
             ProcessMenu();
         }
 
@@ -164,67 +175,16 @@ public abstract class ServiceBase : DisposeBase
     }
 
     /// <summary>显示状态</summary>
-    protected virtual void ShowStatus()
-    {
-        var color = Console.ForegroundColor;
-        Console.ForegroundColor = ConsoleColor.Red;
-
-        var name = ServiceName;
-        if (name != DisplayName)
-            Console.WriteLine("服务：{0}({1})", DisplayName, name);
-        else
-            Console.WriteLine("服务：{0}", name);
-        Console.WriteLine("描述：{0}", Description);
-        Console.Write("状态：{0} ", Host.Name);
-
-        String status;
-        var installed = Host.IsInstalled(name);
-        if (!installed)
-            status = "未安装";
-        else if (Host.IsRunning(name))
-            status = "运行中";
-        else
-            status = "未启动";
-
-        if (Runtime.Windows) status += $"（{(WindowsService.IsAdministrator() ? "管理员" : "普通用户")}）";
-
-        Console.WriteLine(status);
-
-        // 执行文件路径
-        if (installed)
-        {
-            try
-            {
-                var cfg = Host.QueryConfig(name);
-                if (cfg != null) Console.WriteLine("路径：{0}", cfg.FilePath);
-            }
-            catch (Exception ex)
-            {
-                if (Log != null && Log.Level <= LogLevel.Debug) Log.Debug("", ex);
-            }
-        }
-
-        var asm = AssemblyX.Create(Assembly.GetExecutingAssembly());
-        Console.WriteLine();
-        Console.WriteLine("{0}\t版本：{1}\t发布：{2:yyyy-MM-dd HH:mm:ss}", asm.Name, asm.FileVersion, asm.Compile);
-
-        var asm2 = AssemblyX.Create(Assembly.GetEntryAssembly());
-        if (asm2 != asm)
-            Console.WriteLine("{0}\t版本：{1}\t发布：{2:yyyy-MM-dd HH:mm:ss}", asm2.Name, asm2.FileVersion, asm2.Compile);
-
-        Console.ForegroundColor = color;
-    }
-
-    /// <summary>处理菜单</summary>
     protected virtual void ProcessMenu()
     {
         var service = this;
         var name = ServiceName;
+        var args = Environment.GetCommandLineArgs();
         while (true)
         {
             //输出菜单
             ShowMenu();
-            Console.Write("请选择操作（-x是命令行参数）：");
+            Console.Write("请输入命令序号：");
 
             //读取命令
             var key = Console.ReadKey();
@@ -234,73 +194,13 @@ public abstract class ServiceBase : DisposeBase
 
             try
             {
-                switch (key.KeyChar)
-                {
-                    case '1':
-                        //输出状态
-                        ShowStatus();
-
-                        break;
-                    case '2':
-                        if (Host.IsInstalled(name))
-                            Host.Remove(name);
-                        else
-                            Install();
-                        break;
-                    case '3':
-                        if (Host.IsRunning(name))
-                            Host.Stop(name);
-                        else
-                            Host.Start(name);
-                        // 稍微等一下状态刷新
-                        Thread.Sleep(500);
-                        break;
-                    case '4':
-                        if (Host.IsRunning(name))
-                            Host.Restart(name);
-                        // 稍微等一下状态刷新
-                        Thread.Sleep(500);
-                        break;
-                    case '5':
-                        #region 模拟运行
-                        try
-                        {
-                            Console.WriteLine("正在模拟运行……");
-                            StartWork("模拟运行开始");
-
-                            // 开始辅助循环，检查状态
-                            ThreadPool.QueueUserWorkItem(s => DoLoop());
-
-                            Console.WriteLine("任意键结束模拟运行！");
-                            Console.ReadKey(true);
-
-                            _running = false;
-                            StopWork("模拟运行停止");
-                            ReleaseMemory();
+                Command.Handle(key.KeyChar, args);
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine(ex.ToString());
-                        }
-                        #endregion
-                        break;
-                    //case '6':
-                    //    InstallAutorun();
-                    //    break;
-                    case '7':
-                        if (WatchDogs.Length > 0) CheckWatchDog();
-                        break;
-                    default:
-                        // 自定义菜单
-                        var menu = _Menus.FirstOrDefault(e => e.Key == key.KeyChar);
-                        menu?.Callback();
-                        break;
-                }
-            }
-            catch (Exception ex)
-            {
                 XTrace.WriteException(ex);
             }
+            Console.WriteLine();
         }
     }
 
@@ -313,193 +213,27 @@ public abstract class ServiceBase : DisposeBase
         Console.ForegroundColor = ConsoleColor.Yellow;
 
         Console.WriteLine();
-        Console.WriteLine("1 显示状态");
-
-        var run = false;
-        if (Host.IsInstalled(name))
+        Console.WriteLine($"序号 功能名称\t命令行参数");
+        var menus = Command.GetShortcutMenu();
+        foreach (var menu in menus)
         {
-            if (Host.IsRunning(name))
-            {
-                run = true;
-                Console.WriteLine("3 停止服务 -stop");
-                Console.WriteLine("4 重启服务 -restart");
+            Console.WriteLine($" {menu.Key}、 {menu.Name}\t{menu.Cmd}");
             }
-            else
-            {
-                Console.WriteLine("2 卸载服务 -u");
-                Console.WriteLine("3 启动服务 -start");
-            }
-        }
-        else
-        {
-            Console.WriteLine("2 安装服务 -i");
-        }
 
-        if (!run)
-        {
-            Console.WriteLine("5 模拟运行 -run");
-        }
-
-        //if (Runtime.Windows)
-        //{
-        //    Console.WriteLine("6 安装开机自启 -autorun");
-        //}
-
-        var dogs = WatchDogs;
-        if (dogs.Length > 0)
-        {
-            Console.WriteLine("7 看门狗保护服务 {0}", dogs.Join());
-        }
-
-        if (_Menus.Count > 0)
-        {
-            //foreach (var item in _Menus)
-            //{
-            //    Console.WriteLine("{0} {1}", item.Key, item.Value.Name);
-            //}
-            OnShowMenu(_Menus);
-        }
-
-        Console.WriteLine("0 退出");
-
+        Console.WriteLine($" 0、 退出\t");
+        Console.WriteLine();
         Console.ForegroundColor = color;
     }
 
+    #endregion
     /// <summary>
+    #region 服务控制
     /// 显示自定义菜单
     /// </summary>
     /// <param name="menus"></param>
-    protected virtual void OnShowMenu(IList<Menu> menus)
-    {
-        foreach (var item in menus)
-        {
-            Console.WriteLine("{0} {1}", item.Key, item.Name);
-        }
-    }
 
-    private readonly List<Menu> _Menus = [];
+    public Boolean Running { get; set; }
     /// <summary>添加菜单</summary>
-    /// <param name="key"></param>
-    /// <param name="name"></param>
-    /// <param name="callbak"></param>
-    public void AddMenu(Char key, String name, Action callbak)
-    {
-        //if (!_Menus.ContainsKey(key))
-        //{
-        _Menus.RemoveAll(e => e.Key == key);
-        _Menus.Add(new Menu(key, name, callbak));
-        //}
-    }
-
-    /// <summary>菜单项</summary>
-    public class Menu
-    {
-        /// <summary>按键</summary>
-        public Char Key { get; set; }
-
-        /// <summary>名称</summary>
-        public String Name { get; set; }
-
-        /// <summary>回调方法</summary>
-        public Action Callback { get; set; }
-
-        /// <summary>
-        /// 实例化
-        /// </summary>
-        /// <param name="key"></param>
-        /// <param name="name"></param>
-        /// <param name="callback"></param>
-        public Menu(Char key, String name, Action callback)
-        {
-            Key = key;
-            Name = name;
-            Callback = callback;
-        }
-    }
-
-    /// <summary>处理命令</summary>
-    /// <param name="cmd"></param>
-    /// <param name="args"></param>
-    protected virtual void ProcessCommand(String cmd, String[] args)
-    {
-        var name = ServiceName;
-        WriteLog("ProcessCommand cmd={0} args={1}", cmd, args.Join(" "));
-
-        cmd = cmd.ToLower();
-        switch (cmd)
-        {
-            case "-s":
-                Host.Run(this);
-                break;
-            case "-i":
-                Install();
-                break;
-            case "-u":
-                Host.Remove(name);
-                break;
-            case "-start":
-                Host.Start(name);
-                break;
-            case "-stop":
-                Host.Stop(name);
-                break;
-            case "-restart":
-                Host.Restart(name);
-                break;
-            case "-install":
-                // 可能服务已存在，安装时报错，但不要影响服务启动
-                try
-                {
-                    Install();
-                }
-                catch (Exception ex)
-                {
-                    XTrace.WriteException(ex);
-                }
-                // 稍微等待
-                for (var i = 0; i < 50; i++)
-                {
-                    if (Host.IsInstalled(name)) break;
-                    Thread.Sleep(100);
-                }
-                Host.Start(name);
-                break;
-            case "-uninstall":
-                try
-                {
-                    Host.Stop(name);
-                }
-                catch (Exception ex)
-                {
-                    XTrace.WriteException(ex);
-                }
-                Host.Remove(name);
-                break;
-            case "-reinstall":
-                Reinstall(name);
-                break;
-            case "-run":
-                if ("-delay".EqualIgnoreCase(args)) Thread.Sleep(5_000);
-                StartLoop();
-                DoLoop();
-                StopLoop();
-                break;
-            default:
-                // 快速调用自定义菜单
-                if (cmd.Length == 2 && cmd[0] == '-')
-                {
-                    var menu = _Menus.FirstOrDefault(e => e.Key == cmd[1]);
-                    menu?.Callback();
-                }
-                break;
-        }
-
-        WriteLog("ProcessFinished cmd={0}", cmd);
-    }
-    #endregion
-
-    #region 服务控制
-    private Boolean _running;
     private AutoResetEvent _event;
     private Process _process;
     /// <summary>主循环</summary>
@@ -535,8 +269,8 @@ public abstract class ServiceBase : DisposeBase
         }
 
         _event = new AutoResetEvent(false);
-        _running = true;
-        while (_running)
+        Running = true;
+        while (Running)
         {
             try
             {
@@ -572,11 +306,11 @@ public abstract class ServiceBase : DisposeBase
     /// <summary>停止循环</summary>
     protected internal void StopLoop()
     {
-        if (!_running) return;
+        if (!Running) return;
 
         StopWork("StopLoop");
 
-        _running = false;
+        Running = false;
         _event?.Set();
 
         try
@@ -592,12 +326,12 @@ public abstract class ServiceBase : DisposeBase
     /// <summary>开始工作</summary>
     /// <remarks>基类实现用于输出日志</remarks>
     /// <param name="reason"></param>
-    protected virtual void StartWork(String reason) => WriteLog("服务启动 {0}", reason);
+    public virtual void StartWork(String reason) => WriteLog("服务启动 {0}", reason);
 
     private void OnProcessExit(Object sender, EventArgs e)
     {
         WriteLog("{0}.OnProcessExit", sender?.GetType().Name);
-        if (_running) StopWork("ProcessExit");
+        if (Running) StopWork("ProcessExit");
         //Environment.ExitCode = 0;
 
         if (XTrace.Log is CompositeLog compositeLog)
@@ -606,90 +340,15 @@ public abstract class ServiceBase : DisposeBase
             log.TryDispose();
         }
 
-        _running = false;
+        Running = false;
         _event?.Set();
     }
 
     /// <summary>停止服务</summary>
     /// <remarks>基类实现用于输出日志</remarks>
     /// <param name="reason"></param>
-    protected virtual void StopWork(String reason) => WriteLog("服务停止 {0}", reason);
+    public virtual void StopWork(String reason) => WriteLog("服务停止 {0}", reason);
 
-    private void Install()
-    {
-        var exe = GetExeName();
-
-        // 兼容dotnet
-        var args = Environment.GetCommandLineArgs();
-        if (args.Length >= 1)
-        {
-            var fileName = Path.GetFileName(exe);
-            if (exe.Contains(' ')) exe = $"\"{exe}\"";
-
-            var dll = args[0].GetFullPath();
-            if (dll.Contains(' ')) dll = $"\"{dll}\"";
-
-            if (fileName.EqualIgnoreCase("dotnet", "dotnet.exe", "java"))
-                exe += " " + dll;
-            else if (fileName.EqualIgnoreCase("mono", "mono.exe", "mono-sgen"))
-                exe = dll;
-        }
-
-        //var arg = UseAutorun ? "-run" : "-s";
-        var arg = "-s";
-
-        // 兼容更多参数做为服务启动，譬如：--urls
-        if (args.Length > 2)
-        {
-            // 跳过系统内置参数
-            var list = new List<String>();
-            for (var i = 2; i < args.Length; i++)
-            {
-                if (args[i].EqualIgnoreCase("-server", "-user", "-group"))
-                    i++;
-                else if (args[i].Contains(' '))
-                    list.Add($"\"{args[i]}\"");
-                else
-                    list.Add(args[i]);
-            }
-            if (list.Count > 0) arg += " " + list.Join(" ");
-        }
-
-        Host.Install(ServiceName, DisplayName, exe, arg, Description);
-    }
-
-    /// <summary>Exe程序名</summary>
-    public virtual String GetExeName()
-    {
-        var p = Process.GetCurrentProcess();
-        var filename = p.MainModule.FileName;
-        //filename = Path.GetFileName(filename);
-        filename = filename.Replace(".vshost.", ".");
-
-        return filename;
-    }
-
-    private void Reinstall(String name)
-    {
-        try
-        {
-            Host.Stop(name);
-            Host.Remove(name);
-        }
-        catch (Exception ex)
-        {
-            XTrace.WriteException(ex);
-        }
-
-        Install();
-        // 稍微等待
-        for (var i = 0; i < 50; i++)
-        {
-            if (Host.IsInstalled(name)) break;
-            Thread.Sleep(100);
-        }
-        Host.Start(name);
-    }
     #endregion
 
     #region 服务维护
@@ -704,7 +363,7 @@ public abstract class ServiceBase : DisposeBase
         if (CheckAutoRestart()) return;
 
         // 检查看门狗
-        CheckWatchDog();
+        Command.Handle(CommandConst.WatchDog);
     }
 
     private DateTime _nextCollect;
@@ -746,7 +405,7 @@ public abstract class ServiceBase : DisposeBase
     }
 
     /// <summary>释放内存。GC回收后再释放虚拟内存</summary>
-    protected void ReleaseMemory()
+    public void ReleaseMemory()
     {
         var max = GC.MaxGeneration;
         var mode = GCCollectionMode.Forced;
@@ -832,35 +491,6 @@ public abstract class ServiceBase : DisposeBase
         if (Host is DefaultHost host && !host.InService) StopLoop();
 
         return true;
-    }
-    #endregion
-
-    #region 看门狗
-    /// <summary>看门狗要保护的服务</summary>
-    public static String[] WatchDogs => Setting.Current.WatchDog.Split(",", ";");
-
-    /// <summary>检查看门狗。</summary>
-    /// <remarks>
-    /// XAgent看门狗功能由管理线程完成，每分钟一次。
-    /// 检查指定的任务是否已经停止，如果已经停止，则启动它。
-    /// </remarks>
-    public void CheckWatchDog()
-    {
-        var ss = WatchDogs;
-        if (ss == null || ss.Length < 1) return;
-
-        foreach (var item in ss)
-        {
-            // 已安装未运行
-            if (!Host.IsInstalled(item))
-                XTrace.WriteLine("未发现服务{0}，是否已安装？", item);
-            else if (!Host.IsRunning(item))
-            {
-                XTrace.WriteLine("发现服务{0}被关闭，准备启动！", item);
-
-                Host.Start(item);
-            }
-        }
     }
     #endregion
 

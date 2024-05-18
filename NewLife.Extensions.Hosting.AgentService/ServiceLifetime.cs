@@ -131,7 +131,7 @@ public class ServiceLifetime : ServiceBase, IHostLifetime
 
     /// <summary>开始工作</summary>
     /// <param name="reason"></param>
-    protected override void StartWork(String reason)
+    public override void StartWork(String reason)
     {
         // 设置结果，说明IHost启动已完成
         _delayStart.TrySetResult(null);
@@ -141,7 +141,7 @@ public class ServiceLifetime : ServiceBase, IHostLifetime
 
     /// <summary>停止工作</summary>
     /// <param name="reason"></param>
-    protected override void StopWork(String reason)
+    public override void StopWork(String reason)
     {
         base.StopWork(reason);
 
