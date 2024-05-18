@@ -172,7 +172,7 @@ public class Systemd : DefaultHost
         sb.AppendLine("Type=simple");
         //sb.AppendLine($"ExecStart=/usr/bin/dotnet {asm.Location}");
         sb.AppendLine($"ExecStart={fileName} {arguments}");
-        sb.AppendLine($"WorkingDirectory={".".GetFullPath()}");
+        sb.AppendLine($"WorkingDirectory={Path.GetDirectoryName(fileName).GetFullPath()}");
         if (!user.IsNullOrEmpty()) sb.AppendLine($"User={user}");
         if (!group.IsNullOrEmpty()) sb.AppendLine($"Group={group}");
 
