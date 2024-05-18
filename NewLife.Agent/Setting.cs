@@ -42,6 +42,10 @@ public class Setting : Config<Setting>
     [Description("自动重启时间。到达自动重启时间时，整个服务进程将会重启，以释放资源。默认0分，表示无限")]
     public Int32 AutoRestart { get; set; }
 
+    /// <summary>自动重启时间的范围。限制服务进程只能在这个时间范围内重启，格式为：00:00-06:00。默认为空，表示不限</summary>
+    [Description("自动重启时间的范围。限制服务进程只能在这个时间范围内重启，格式为：00:00-06:00。默认为空，表示不限")]
+    public String RestartTimeRange { get; set; }
+
     /// <summary>看门狗，保护其它服务，每分钟检查一次。多个服务名逗号分隔</summary>
     [Description("看门狗，保护其它服务，每分钟检查一次。多个服务名逗号分隔")]
     public String WatchDog { get; set; } = "";
