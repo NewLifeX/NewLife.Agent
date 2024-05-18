@@ -113,6 +113,17 @@ public class Systemd : DefaultHost
         set.FileName = fileName;
         set.Arguments = arguments;
 
+        // 从文件名中分析工作目录
+        var ss = fileName.Split(" ");
+        if (ss.Length >= 2 && ss[0].EndsWithIgnoreCase("dotnet", "java"))
+        {
+            var file = ss[1];
+            if (File.Exists(file))
+                set.WorkingDirectory = Path.GetDirectoryName(file).GetFullPath();
+            else
+                set.WorkingDirectory = ".".GetFullPath();
+        }
+
         if (set.User.IsNullOrEmpty())
         {
             // 从命令行参数加载用户设置 -user
