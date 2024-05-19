@@ -11,11 +11,11 @@ namespace NewLife.Agent;
 public class Systemd : DefaultHost
 {
     #region 静态
-    private static String _path;
-    //private ServiceBase _service;
+    /// <summary>路径</summary>
+    public static String ServicePath { get; set; }
 
     /// <summary>是否可用</summary>
-    public static Boolean Available => !_path.IsNullOrEmpty();
+    public static Boolean Available => !ServicePath.IsNullOrEmpty();
 
     /// <summary>实例化</summary>
     static Systemd()
@@ -30,7 +30,7 @@ public class Systemd : DefaultHost
         {
             if (Directory.Exists(p))
             {
-                _path = p;
+                ServicePath = p;
                 break;
             }
         }
@@ -78,7 +78,7 @@ public class Systemd : DefaultHost
     /// <returns></returns>
     public override Boolean IsInstalled(String serviceName)
     {
-        var file = _path.CombinePath($"{serviceName}.service");
+        var file = ServicePath.CombinePath($"{serviceName}.service");
 
         return File.Exists(file);
     }
@@ -88,7 +88,7 @@ public class Systemd : DefaultHost
     /// <returns></returns>
     public override Boolean IsRunning(String serviceName)
     {
-        var file = _path.CombinePath($"{serviceName}.service");
+        var file = ServicePath.CombinePath($"{serviceName}.service");
         if (!File.Exists(file)) return false;
 
         var str = Execute("systemctl", $"status {serviceName}", false);
@@ -147,7 +147,7 @@ public class Systemd : DefaultHost
             }
         }
 
-        return Install(_path, set);
+        return Install(ServicePath, set);
     }
 
     /// <summary>安装服务</summary>
@@ -182,7 +182,7 @@ public class Systemd : DefaultHost
     {
         XTrace.WriteLine("{0}.Remove {1}", Name, serviceName);
 
-        var file = _path.CombinePath($"{serviceName}.service");
+        var file = ServicePath.CombinePath($"{serviceName}.service");
         if (File.Exists(file)) File.Delete(file);
 
         return true;
@@ -243,7 +243,7 @@ public class Systemd : DefaultHost
     /// <param name="serviceName">服务名</param>
     public override ServiceConfig QueryConfig(String serviceName)
     {
-        var file = _path.CombinePath($"{serviceName}.service");
+        var file = ServicePath.CombinePath($"{serviceName}.service");
         if (!File.Exists(file)) return null;
 
         var txt = File.ReadAllText(file);
