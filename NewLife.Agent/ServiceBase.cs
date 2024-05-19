@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Reflection;
 using System.Runtime;
 using System.Runtime.CompilerServices;
 using System.Security;
@@ -30,6 +29,9 @@ public abstract class ServiceBase : DisposeBase
 
     /// <summary>是否使用自启动。自启动需要用户登录桌面，默认false使用系统服务</summary>
     public Boolean UseAutorun { get; set; }
+
+    /// <summary>运行中</summary>
+    public Boolean Running { get; set; }
     #endregion
 
     /// <summary>
@@ -195,9 +197,9 @@ public abstract class ServiceBase : DisposeBase
             try
             {
                 Command.Handle(key.KeyChar, args);
-                        }
-                        catch (Exception ex)
-                        {
+            }
+            catch (Exception ex)
+            {
                 XTrace.WriteException(ex);
             }
             Console.WriteLine();
@@ -218,24 +220,18 @@ public abstract class ServiceBase : DisposeBase
         foreach (var menu in menus)
         {
             Console.WriteLine($" {menu.Key}、 {menu.Name}\t{menu.Cmd}");
-            }
+        }
 
         Console.WriteLine($" 0、 退出\t");
         Console.WriteLine();
         Console.ForegroundColor = color;
     }
-
     #endregion
-    /// <summary>
-    #region 服务控制
-    /// 显示自定义菜单
-    /// </summary>
-    /// <param name="menus"></param>
 
-    public Boolean Running { get; set; }
-    /// <summary>添加菜单</summary>
+    #region 服务控制
     private AutoResetEvent _event;
     private Process _process;
+
     /// <summary>主循环</summary>
     internal void DoLoop()
     {
@@ -475,8 +471,8 @@ public abstract class ServiceBase : DisposeBase
         if (ts.TotalMinutes < auto) return false;
 
         var timeRange = Setting.Current.RestartTimeRange?.Split('-');
-        if (timeRange?.Length == 2 
-            && TimeSpan.TryParse(timeRange[0], out var startTime) && startTime <= DateTime.Now.TimeOfDay 
+        if (timeRange?.Length == 2
+            && TimeSpan.TryParse(timeRange[0], out var startTime) && startTime <= DateTime.Now.TimeOfDay
             && TimeSpan.TryParse(timeRange[1], out var endTime) && endTime >= DateTime.Now.TimeOfDay)
         {
             WriteLog("服务已运行 {0:n0}分钟，达到预设重启时间（{1:n0}分钟），并且当前时间在预设时间范围之内（{2}），准备重启！", ts.TotalMinutes, auto, Setting.Current.RestartTimeRange);

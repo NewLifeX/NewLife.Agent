@@ -12,7 +12,7 @@ public class Menu : IComparable<Menu>
     public String Name { get; set; }
 
     /// <summary>命令</summary>
-    public string Cmd { get; set; }
+    public String Cmd { get; set; }
 
     /// <summary>
     /// 实例化
@@ -20,19 +20,24 @@ public class Menu : IComparable<Menu>
     /// <param name="key"></param>
     /// <param name="name"></param>
     /// <param name="cmd"></param>
-    public Menu(Char key, String name, string cmd)
+    public Menu(Char key, String name, String cmd)
     {
         Key = key;
         Name = name;
         Cmd = cmd;
     }
 
+    /// <summary>比较</summary>
+    /// <param name="other"></param>
+    /// <returns></returns>
     public Int32 CompareTo(Menu other)
     {
         if (ReferenceEquals(this, other)) return 0;
-        if (ReferenceEquals(null, other)) return 1;
+        if (other is null) return 1;
+
         var keyComparison = Key.CompareTo(other.Key);
         if (keyComparison != 0) return keyComparison;
-        return String.Compare(Cmd, other.Cmd, StringComparison.Ordinal);  
+
+        return String.Compare(Cmd, other.Cmd, StringComparison.Ordinal);
     }
 }

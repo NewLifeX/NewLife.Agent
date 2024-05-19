@@ -35,10 +35,6 @@ public class ShowStatusCommandHandler : BaseCommandHandler
     /// <inheritdoc/>
     public override void Process(String[] args)
     {
-        ShowStatus();
-    }
-    public virtual void ShowStatus()
-    {
         Console.WriteLine();
         var color = Console.ForegroundColor;
         Console.ForegroundColor = ConsoleColor.Red;

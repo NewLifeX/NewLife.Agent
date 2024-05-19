@@ -287,31 +287,4 @@ public class Procd : DefaultHost
 
         return true;
     }
-
-    static Process GetProcessById(Int32 processId)
-    {
-        try
-        {
-            return Process.GetProcessById(processId);
-        }
-        catch { }
-
-        return null;
-    }
-
-    static Boolean GetHasExited(Process process)
-    {
-        try
-        {
-            return process.HasExited;
-        }
-        catch (Win32Exception)
-        {
-            return true;
-        }
-        //catch
-        //{
-        //    return false;
-        //}
-    }
 }
