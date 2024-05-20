@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace NewLife.Agent;
+namespace NewLife.Agent.Windows;
 
 internal class SafeServiceHandle : SafeHandle
 {
@@ -10,9 +10,7 @@ internal class SafeServiceHandle : SafeHandle
         get
         {
             if (!(DangerousGetHandle() == IntPtr.Zero))
-            {
                 return DangerousGetHandle() == new IntPtr(-1);
-            }
             return true;
         }
     }

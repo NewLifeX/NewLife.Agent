@@ -16,16 +16,10 @@ public class ShowStatus : BaseCommandHandler
     /// <param name="service"></param>
     public ShowStatus(ServiceBase service) : base(service)
     {
+        Cmd = CommandConst.ShowStatus;
+        Description = "显示状态";
+        ShortcutKey = '1';
     }
-
-    /// <inheritdoc/>
-    public override String Cmd { get; set; } = CommandConst.ShowStatus;
-
-    /// <inheritdoc />
-    public override String Description { get; set; } = "显示状态";
-
-    /// <inheritdoc />
-    public override Char? ShortcutKey { get; set; } = '1';
 
     /// <inheritdoc/>
     public override void Process(String[] args)
@@ -57,6 +51,7 @@ public class ShowStatus : BaseCommandHandler
 
         // 执行文件路径
         if (installed)
+        {
             try
             {
                 var cfg = Service.Host.QueryConfig(name);
@@ -66,6 +61,7 @@ public class ShowStatus : BaseCommandHandler
             {
                 if (XTrace.Log.Level <= LogLevel.Debug) XTrace.Log.Debug("", ex);
             }
+        }
 
         var asm = AssemblyX.Create(Assembly.GetExecutingAssembly());
         Console.WriteLine();

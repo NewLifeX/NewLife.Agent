@@ -13,27 +13,19 @@ public class Stop : BaseCommandHandler
     /// <param name="service"></param>
     public Stop(ServiceBase service) : base(service)
     {
+        Cmd = CommandConst.Stop;
+        Description = "停止服务";
+        ShortcutKey = '3';
     }
 
-    /// <inheritdoc/>
-    public override String Cmd { get; set; } = CommandConst.Stop;
-
     /// <inheritdoc />
-    public override String Description { get; set; } = "停止服务";
-
-    /// <inheritdoc />
-    public override Char? ShortcutKey { get; set; } = '3';
-
-    /// <inheritdoc />
-    public override Boolean IsShowMenu()
-    {
-        return Service.Host.IsRunning(Service.ServiceName);
-    }
+    public override Boolean IsShowMenu() => Service.Host.IsRunning(Service.ServiceName);
 
     /// <inheritdoc/>
     public override void Process(String[] args)
     {
         Service.Host.Stop(Service.ServiceName);
+
         // 稍微等一下，以便后续状态刷新
         Thread.Sleep(500);
     }

@@ -7,7 +7,7 @@ using System.Text;
 using NewLife.Agent.Windows;
 using NewLife.Log;
 using NewLife.Threading;
-using static NewLife.Agent.Advapi32;
+using static NewLife.Agent.Windows.Advapi32;
 
 namespace NewLife.Agent;
 

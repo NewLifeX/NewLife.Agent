@@ -1,7 +1,5 @@
-﻿using System.Xml.Linq;
-using NewLife.Agent.Command;
+﻿using NewLife.Agent.Command;
 using NewLife.Log;
-using NewLife.Model;
 
 namespace NewLife.Agent.CommandHandler;
 
@@ -16,16 +14,9 @@ public class Reinstall : BaseCommandHandler
     /// <param name="service"></param>
     public Reinstall(ServiceBase service) : base(service)
     {
+        Cmd = CommandConst.Reinstall;
+        Description = "重新安装服务";
     }
-
-    /// <inheritdoc/>
-    public override String Cmd { get; set; } = CommandConst.Reinstall;
-
-    /// <inheritdoc />
-    public override String Description { get; set; } = "重新安装服务";
-
-    /// <inheritdoc />
-    public override Char? ShortcutKey { get; set; }
 
     /// <inheritdoc/>
     public override void Process(String[] args)

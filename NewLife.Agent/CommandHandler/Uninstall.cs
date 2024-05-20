@@ -14,16 +14,9 @@ public class Uninstall : BaseCommandHandler
     /// <param name="service"></param>
     public Uninstall(ServiceBase service) : base(service)
     {
+        Cmd = CommandConst.Uninstall;
+        Description = "停止并卸载服务";
     }
-
-    /// <inheritdoc/>
-    public override String Cmd { get; set; } = CommandConst.Uninstall;
-
-    /// <inheritdoc />
-    public override String Description { get; set; } = "停止并卸载服务";
-
-    /// <inheritdoc />
-    public override Char? ShortcutKey { get; set; }
 
     /// <inheritdoc/>
     public override void Process(String[] args)
@@ -37,6 +30,7 @@ public class Uninstall : BaseCommandHandler
             XTrace.WriteException(ex);
         }
         Service.Host.Remove(Service.ServiceName);
+
         // 稍微等一下，以便后续状态刷新
         Thread.Sleep(500);
     }

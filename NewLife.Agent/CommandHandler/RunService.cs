@@ -13,16 +13,9 @@ public class RunService : BaseCommandHandler
     /// <param name="service"></param>
     public RunService(ServiceBase service) : base(service)
     {
+        Cmd = CommandConst.RunService;
+        Description = "执行服务";
     }
-
-    /// <inheritdoc/>
-    public override String Cmd { get; set; } = CommandConst.RunService;
-
-    /// <inheritdoc />
-    public override String Description { get; set; } = "执行服务";
-
-    /// <inheritdoc />
-    public override Char? ShortcutKey { get; set; }
 
     /// <inheritdoc/>
     public override void Process(String[] args)

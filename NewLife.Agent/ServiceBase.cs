@@ -3,6 +3,7 @@ using System.Runtime;
 using System.Runtime.CompilerServices;
 using System.Security;
 using NewLife.Agent.Command;
+using NewLife.Agent.Windows;
 using NewLife.Log;
 using NewLife.Reflection;
 
@@ -32,12 +33,10 @@ public abstract class ServiceBase : DisposeBase
 
     /// <summary>运行中</summary>
     public Boolean Running { get; set; }
-    #endregion
 
-    /// <summary>
-    /// 
-    /// </summary>
+    /// <summary>命令工厂</summary>
     public CommandFactory Command { get; }
+    #endregion
 
     #region 构造
     /// <summary>初始化</summary>
@@ -264,7 +263,7 @@ public abstract class ServiceBase : DisposeBase
         //if (!_Menus.ContainsKey(key))
         //{
         _Menus.RemoveAll(e => e.Key == key);
-        _Menus.Add(new Menu(key, name, callbak));
+        _Menus.Add(new Menu(key, name, null, callbak));
         //}
     }
 

@@ -14,16 +14,9 @@ public class InstallAndStart : BaseCommandHandler
     /// <param name="service"></param>
     public InstallAndStart(ServiceBase service) : base(service)
     {
+        Cmd = CommandConst.InstallAndStart;
+        Description = "安装并启动服务";
     }
-
-    /// <inheritdoc/>
-    public override String Cmd { get; set; } = CommandConst.InstallAndStart;
-
-    /// <inheritdoc />
-    public override String Description { get; set; } = "安装并启动服务";
-
-    /// <inheritdoc />
-    public override Char? ShortcutKey { get; set; }
 
     /// <inheritdoc/>
     public override void Process(String[] args)
@@ -44,6 +37,7 @@ public class InstallAndStart : BaseCommandHandler
             Thread.Sleep(100);
         }
         Service.Host.Start(Service.ServiceName);
+
         // 稍微等一下，以便后续状态刷新
         Thread.Sleep(500);
     }

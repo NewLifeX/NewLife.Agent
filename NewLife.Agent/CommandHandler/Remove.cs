@@ -13,27 +13,19 @@ public class Remove : BaseCommandHandler
     /// <param name="service"></param>
     public Remove(ServiceBase service) : base(service)
     {
+        Cmd = CommandConst.Remove;
+        Description = "卸载服务";
+        ShortcutKey = '2';
     }
 
-    /// <inheritdoc/>
-    public override String Cmd { get; set; } = CommandConst.Remove;
-
     /// <inheritdoc />
-    public override String Description { get; set; } = "卸载服务";
-
-    /// <inheritdoc />
-    public override Char? ShortcutKey { get; set; } = '2';
-
-    /// <inheritdoc />
-    public override Boolean IsShowMenu()
-    {
-        return Service.Host.IsInstalled(Service.ServiceName);
-    }
+    public override Boolean IsShowMenu() => Service.Host.IsInstalled(Service.ServiceName);
 
     /// <inheritdoc/>
     public override void Process(String[] args)
     {
         Service.Host.Remove(Service.ServiceName);
+
         // 稍微等一下，以便后续状态刷新
         Thread.Sleep(500);
     }

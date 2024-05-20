@@ -8,7 +8,7 @@ namespace NewLife.Agent.Command;
 public class CommandFactory
 {
     private readonly List<BaseCommandHandler> _commandHandlerList;
-    private Dictionary<String, BaseCommandHandler> _commandHandlerDict = new Dictionary<String, BaseCommandHandler>(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<String, BaseCommandHandler> _commandHandlerDict = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// 
@@ -34,8 +34,8 @@ public class CommandFactory
         }
 
         // 使用反射获取所有实现了ICommandHandler接口的类型
-        var commandHandlerTypes = assemblies.Values.SelectMany(n=>n.GetTypes().Where(t => typeof(BaseCommandHandler).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract)).ToList();
-         var commandHandlers = new List<BaseCommandHandler>();
+        var commandHandlerTypes = assemblies.Values.SelectMany(n => n.GetTypes().Where(t => typeof(BaseCommandHandler).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract)).ToList();
+        var commandHandlers = new List<BaseCommandHandler>();
         foreach (var type in commandHandlerTypes)
         {
             var handler = (BaseCommandHandler)Activator.CreateInstance(type, service);
@@ -103,11 +103,11 @@ public class CommandFactory
     public SortedSet<Menu> GetShortcutMenu()
     {
         var menus = new SortedSet<Menu>();
-        foreach (var commandHandler in _commandHandlerList)
+        foreach (var handler in _commandHandlerList)
         {
-            if (commandHandler.ShortcutKey != null && commandHandler.IsShowMenu())
+            if (handler.ShortcutKey != null && handler.IsShowMenu())
             {
-                menus.Add(new Menu(commandHandler.ShortcutKey.Value, commandHandler.Description, commandHandler.Cmd));
+                menus.Add(new Menu(handler.ShortcutKey.Value, handler.Description, handler.Cmd, null));
             }
         }
         return menus;

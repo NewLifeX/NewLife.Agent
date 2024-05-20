@@ -61,10 +61,8 @@ public class CommandConst
     /// </summary>
     public const String Restart = "-restart";
 
-
     /// <summary>
     /// 看门狗命令
     /// </summary>
     public const String WatchDog = "-watch";
-
 }

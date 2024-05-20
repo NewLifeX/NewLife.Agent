@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace NewLife.Agent;
+namespace NewLife.Agent.Windows;
 
 internal static class NativeMethods
 {

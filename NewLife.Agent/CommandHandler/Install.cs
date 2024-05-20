@@ -1,5 +1,4 @@
 ﻿using NewLife.Agent.Command;
-using NewLife.Model;
 
 namespace NewLife.Agent.CommandHandler;
 
@@ -14,22 +13,13 @@ public class Install : BaseCommandHandler
     /// <param name="service"></param>
     public Install(ServiceBase service) : base(service)
     {
+        Cmd = CommandConst.Install;
+        Description = "安装服务";
+        ShortcutKey = '2';
     }
 
-    /// <inheritdoc/>
-    public override String Cmd { get; set; } = CommandConst.Install;
-
     /// <inheritdoc />
-    public override String Description { get; set; } = "安装服务";
-
-    /// <inheritdoc />
-    public override Char? ShortcutKey { get; set; } = '2';
-
-    /// <inheritdoc />
-    public override Boolean IsShowMenu()
-    {
-        return !Service.Host.IsInstalled(Service.ServiceName);
-    }
+    public override Boolean IsShowMenu() => !Service.Host.IsInstalled(Service.ServiceName);
 
     /// <inheritdoc/>
     public override void Process(String[] args)
@@ -85,5 +75,4 @@ public class Install : BaseCommandHandler
 
         return filename;
     }
-
 }

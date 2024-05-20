@@ -3,47 +3,26 @@
 /// <summary>
 /// 菜单信息
 /// </summary>
-public class Menu : IComparable<Menu>
+/// <remarks>
+/// 实例化
+/// </remarks>
+/// <param name="key"></param>
+/// <param name="name"></param>
+/// <param name="cmd"></param>
+/// <param name="callback"></param>
+public class Menu(Char key, String name, String cmd, Action callback) : IComparable<Menu>
 {
     /// <summary>按键</summary>
-    public Char Key { get; set; }
+    public Char Key { get; set; } = key;
 
     /// <summary>名称</summary>
-    public String Name { get; set; }
+    public String Name { get; set; } = name;
 
     /// <summary>命令</summary>
-    public String Cmd { get; set; }
+    public String Cmd { get; set; } = cmd;
 
-    /// <summary>回调方法</summary>
-    [Obsolete("建议定义命令处理类，并继承 BaseCommandHandler")]
-    public Action Callback { get; set; }
-
-    /// <summary>
-    /// 实例化
-    /// </summary>
-    /// <param name="key"></param>
-    /// <param name="name"></param>
-    /// <param name="cmd"></param>
-    public Menu(Char key, String name, String cmd)
-    {
-        Key = key;
-        Name = name;
-        Cmd = cmd;
-    }
-
-    /// <summary>
-    /// 实例化
-    /// </summary>
-    /// <param name="key"></param>
-    /// <param name="name"></param>
-    /// <param name="callback"></param>
-    [Obsolete("建议定义命令处理类，并继承 BaseCommandHandler")]
-    public Menu(Char key, String name, Action callback)
-    {
-        Key = key;
-        Name = name;
-        Callback = callback;
-    }
+    /// <summary>处理函数</summary>
+    public Action Callback { get; set; } = callback;
 
     /// <summary>比较</summary>
     /// <param name="other"></param>

@@ -13,27 +13,19 @@ public class Restart : BaseCommandHandler
     /// <param name="service"></param>
     public Restart(ServiceBase service) : base(service)
     {
+        Cmd = CommandConst.Restart;
+        Description = "重启服务";
+        ShortcutKey = '4';
     }
 
-    /// <inheritdoc/>
-    public override String Cmd { get; set; } = CommandConst.Restart;
-
     /// <inheritdoc />
-    public override String Description { get; set; } = "重启服务";
-
-    /// <inheritdoc />
-    public override Char? ShortcutKey { get; set; } = '4';
-
-    /// <inheritdoc />
-    public override Boolean IsShowMenu()
-    {
-        return Service.Host.IsRunning(Service.ServiceName);
-    }
+    public override Boolean IsShowMenu() => Service.Host.IsRunning(Service.ServiceName);
 
     /// <inheritdoc/>
     public override void Process(String[] args)
     {
         Service.Host.Restart(Service.ServiceName);
+
         // 稍微等一下，以便后续状态刷新
         Thread.Sleep(500);
     }

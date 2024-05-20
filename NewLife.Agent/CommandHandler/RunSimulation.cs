@@ -1,5 +1,4 @@
-﻿using System.Xml.Linq;
-using NewLife.Agent.Command;
+﻿using NewLife.Agent.Command;
 
 namespace NewLife.Agent.CommandHandler;
 
@@ -14,22 +13,13 @@ public class RunSimulation : BaseCommandHandler
     /// <param name="service"></param>
     public RunSimulation(ServiceBase service) : base(service)
     {
+        Cmd = CommandConst.RunSimulation;
+        Description = "模拟运行";
+        ShortcutKey = '5';
     }
 
-    /// <inheritdoc/>
-    public override String Cmd { get; set; } = CommandConst.RunSimulation;
-
     /// <inheritdoc />
-    public override String Description { get; set; } = "模拟运行";
-
-    /// <inheritdoc />
-    public override Char? ShortcutKey { get; set; } = '5';
-
-    /// <inheritdoc />
-    public override Boolean IsShowMenu()
-    {
-        return !Service.Host.IsRunning(Service.ServiceName);
-    }
+    public override Boolean IsShowMenu() => !Service.Host.IsRunning(Service.ServiceName);
 
     /// <inheritdoc/>
     public override void Process(String[] args)
