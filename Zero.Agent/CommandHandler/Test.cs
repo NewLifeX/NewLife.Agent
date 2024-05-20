@@ -4,15 +4,15 @@ using System.Threading;
 using NewLife.Agent;
 using NewLife.Agent.Command;
 
-namespace Zero.Agent
+namespace Zero.Agent.CommandHandler
 {
-    public class TestCommandHandler : BaseCommandHandler
+    public class Test : BaseCommandHandler
     {
         public override String Cmd { get; set; } = "-test";
         public override String Description { get; set; } = "测试自定义菜单";
         public override Char? ShortcutKey { get; set; } = 't';
 
-        public TestCommandHandler(ServiceBase service) : base(service)
+        public Test(ServiceBase service) : base(service)
         {
             //本功能主要是用于演示如何定义自己的命令处理器，所有命令处理器必需指定Cmd和Description，
             //ShortcutKey用于定义快捷键，如果不需要快捷键，可以不指定，将不会显示在菜单中
@@ -35,17 +35,13 @@ namespace Zero.Agent
             for (var i = 1; i <= 9; i++)
             {
                 for (var j = 1; j <= i; j++)
-                {
                     Console.Write($"{j}x{i}={i * j}\t");
-                }
                 Console.WriteLine();
                 Thread.Sleep(200);
             }
 
             if (args.Contains("-showme"))
-            {
                 Console.WriteLine("这是[测试自定义菜单]处理程序，显示了自定义参数 -showme");
-            }
         }
     }
 }
