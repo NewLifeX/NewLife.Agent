@@ -1,17 +1,18 @@
-﻿using NewLife.Log;
+﻿using NewLife.Agent.Command;
+using NewLife.Log;
 
-namespace NewLife.Agent.Command;
+namespace NewLife.Agent.CommandHandler;
 
 /// <summary>
 /// 停止并卸载服务命令处理类
 /// </summary>
-public class UninstallCommandHandler : BaseCommandHandler
+public class Uninstall : BaseCommandHandler
 {
     /// <summary>
     /// 停止并卸载服务构造函数
     /// </summary>
     /// <param name="service"></param>
-    public UninstallCommandHandler(ServiceBase service) : base(service)
+    public Uninstall(ServiceBase service) : base(service)
     {
     }
 

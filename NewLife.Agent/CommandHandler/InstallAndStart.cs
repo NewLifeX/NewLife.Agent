@@ -1,17 +1,18 @@
-﻿using NewLife.Log;
+﻿using NewLife.Agent.Command;
+using NewLife.Log;
 
-namespace NewLife.Agent.Command;
+namespace NewLife.Agent.CommandHandler;
 
 /// <summary>
 /// 安装并启动服务命令处理类
 /// </summary>
-public class InstallAndStartCommandHandler : BaseCommandHandler
+public class InstallAndStart : BaseCommandHandler
 {
     /// <summary>
     /// 安装并启动服务构造函数
     /// </summary>
     /// <param name="service"></param>
-    public InstallAndStartCommandHandler(ServiceBase service) : base(service)
+    public InstallAndStart(ServiceBase service) : base(service)
     {
     }
 

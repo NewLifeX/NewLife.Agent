@@ -1,15 +1,17 @@
-﻿namespace NewLife.Agent.Command;
+﻿using NewLife.Agent.Command;
+
+namespace NewLife.Agent.CommandHandler;
 
 /// <summary>
 /// 卸载服务命令处理类
 /// </summary>
-public class RemoveCommandHandler : BaseCommandHandler
+public class Remove : BaseCommandHandler
 {
     /// <summary>
     /// 卸载服务构造函数
     /// </summary>
     /// <param name="service"></param>
-    public RemoveCommandHandler(ServiceBase service) : base(service)
+    public Remove(ServiceBase service) : base(service)
     {
     }
 

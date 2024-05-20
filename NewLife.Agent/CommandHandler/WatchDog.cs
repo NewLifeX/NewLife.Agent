@@ -1,18 +1,19 @@
-﻿using NewLife.Log;
+﻿using NewLife.Agent.Command;
+using NewLife.Log;
 using NewLife.Model;
 
-namespace NewLife.Agent.Command;
+namespace NewLife.Agent.CommandHandler;
 
 /// <summary>
 /// 看门狗命令处理类
 /// </summary>
-public class WatchDogCommandHandler : BaseCommandHandler
+public class WatchDog : BaseCommandHandler
 {
     /// <summary>
     /// 看门狗构造函数
     /// </summary>
     /// <param name="service"></param>
-    public WatchDogCommandHandler(ServiceBase service) : base(service)
+    public WatchDog(ServiceBase service) : base(service)
     {
     }
 
@@ -38,7 +39,7 @@ public class WatchDogCommandHandler : BaseCommandHandler
     public override void Process(String[] args)
     {
         CheckWatchDog();
-        
+
     }
 
     /// <summary>检查看门狗。</summary>
@@ -49,7 +50,6 @@ public class WatchDogCommandHandler : BaseCommandHandler
     public virtual void CheckWatchDog()
     {
         foreach (var item in WatchDogs)
-        {
             // 已安装未运行
             if (!Service.Host.IsInstalled(item))
                 XTrace.WriteLine("未发现服务{0}，是否已安装？", item);
@@ -59,6 +59,5 @@ public class WatchDogCommandHandler : BaseCommandHandler
 
                 Service.Host.Start(item);
             }
-        }
     }
 }

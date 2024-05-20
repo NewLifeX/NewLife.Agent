@@ -1,19 +1,20 @@
-﻿using NewLife.Log;
+﻿using NewLife.Agent.Command;
+using NewLife.Log;
 using NewLife.Reflection;
 using System.Reflection;
 
-namespace NewLife.Agent.Command;
+namespace NewLife.Agent.CommandHandler;
 
 /// <summary>
 /// 显示状态命令处理类
 /// </summary>
-public class ShowStatusCommandHandler : BaseCommandHandler
+public class ShowStatus : BaseCommandHandler
 {
     /// <summary>
     /// 显示状态构造函数
     /// </summary>
     /// <param name="service"></param>
-    public ShowStatusCommandHandler(ServiceBase service) : base(service)
+    public ShowStatus(ServiceBase service) : base(service)
     {
     }
 
@@ -56,7 +57,6 @@ public class ShowStatusCommandHandler : BaseCommandHandler
 
         // 执行文件路径
         if (installed)
-        {
             try
             {
                 var cfg = Service.Host.QueryConfig(name);
@@ -66,7 +66,6 @@ public class ShowStatusCommandHandler : BaseCommandHandler
             {
                 if (XTrace.Log.Level <= LogLevel.Debug) XTrace.Log.Debug("", ex);
             }
-        }
 
         var asm = AssemblyX.Create(Assembly.GetExecutingAssembly());
         Console.WriteLine();

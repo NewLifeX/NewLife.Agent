@@ -1,15 +1,17 @@
-﻿namespace NewLife.Agent.Command;
+﻿using NewLife.Agent.Command;
+
+namespace NewLife.Agent.CommandHandler;
 
 /// <summary>
 /// 停止服务命令处理类
 /// </summary>
-public class StopCommandHandler : BaseCommandHandler
+public class Stop : BaseCommandHandler
 {
     /// <summary>
     /// 停止服务构造函数
     /// </summary>
     /// <param name="service"></param>
-    public StopCommandHandler(ServiceBase service) : base(service)
+    public Stop(ServiceBase service) : base(service)
     {
     }
 

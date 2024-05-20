@@ -1,15 +1,17 @@
-﻿namespace NewLife.Agent.Command;
+﻿using NewLife.Agent.Command;
+
+namespace NewLife.Agent.CommandHandler;
 
 /// <summary>
 /// 启动服务命令处理类
 /// </summary>
-public class StartCommandHandler : BaseCommandHandler
+public class Start : BaseCommandHandler
 {
     /// <summary>
     /// 启动服务构造函数
     /// </summary>
     /// <param name="service"></param>
-    public StartCommandHandler(ServiceBase service) : base(service)
+    public Start(ServiceBase service) : base(service)
     {
     }
 

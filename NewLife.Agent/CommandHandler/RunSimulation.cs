@@ -1,17 +1,18 @@
 ﻿using System.Xml.Linq;
+using NewLife.Agent.Command;
 
-namespace NewLife.Agent.Command;
+namespace NewLife.Agent.CommandHandler;
 
 /// <summary>
 /// 模拟运行命令处理类
 /// </summary>
-public class RunSimulationCommandHandler : BaseCommandHandler
+public class RunSimulation : BaseCommandHandler
 {
     /// <summary>
     /// 模拟运行构造函数
     /// </summary>
     /// <param name="service"></param>
-    public RunSimulationCommandHandler(ServiceBase service) : base(service)
+    public RunSimulation(ServiceBase service) : base(service)
     {
     }
 

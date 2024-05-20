@@ -1,19 +1,20 @@
 ﻿using System.Xml.Linq;
+using NewLife.Agent.Command;
 using NewLife.Log;
 using NewLife.Model;
 
-namespace NewLife.Agent.Command;
+namespace NewLife.Agent.CommandHandler;
 
 /// <summary>
 /// 重新安装服务命令处理类
 /// </summary>
-public class ReinstallCommandHandler : BaseCommandHandler
+public class Reinstall : BaseCommandHandler
 {
     /// <summary>
     /// 重新安装服务构造函数
     /// </summary>
     /// <param name="service"></param>
-    public ReinstallCommandHandler(ServiceBase service) : base(service)
+    public Reinstall(ServiceBase service) : base(service)
     {
     }
 
@@ -28,13 +29,6 @@ public class ReinstallCommandHandler : BaseCommandHandler
 
     /// <inheritdoc/>
     public override void Process(String[] args)
-    {
-        Reinstall(args);
-
-        // 稍微等一下，以便后续状态刷新
-        Thread.Sleep(500);
-    }
-    private void Reinstall(String[] args)
     {
         try
         {
@@ -55,5 +49,8 @@ public class ReinstallCommandHandler : BaseCommandHandler
             Thread.Sleep(100);
         }
         Service.Host.Start(Service.ServiceName);
+
+        // 稍微等一下，以便后续状态刷新
+        Thread.Sleep(500);
     }
 }
