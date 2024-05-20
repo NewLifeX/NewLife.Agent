@@ -14,6 +14,10 @@ public class Menu : IComparable<Menu>
     /// <summary>命令</summary>
     public String Cmd { get; set; }
 
+    /// <summary>回调方法</summary>
+    [Obsolete("建议定义命令处理类，并继承 BaseCommandHandler")]
+    public Action Callback { get; set; }
+
     /// <summary>
     /// 实例化
     /// </summary>
@@ -25,6 +29,20 @@ public class Menu : IComparable<Menu>
         Key = key;
         Name = name;
         Cmd = cmd;
+    }
+
+    /// <summary>
+    /// 实例化
+    /// </summary>
+    /// <param name="key"></param>
+    /// <param name="name"></param>
+    /// <param name="callback"></param>
+    [Obsolete("建议定义命令处理类，并继承 BaseCommandHandler")]
+    public Menu(Char key, String name, Action callback)
+    {
+        Key = key;
+        Name = name;
+        Callback = callback;
     }
 
     /// <summary>比较</summary>

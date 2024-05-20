@@ -24,19 +24,13 @@ public class InstallAndStartCommandHandler : BaseCommandHandler
     /// <inheritdoc />
     public override Char? ShortcutKey { get; set; }
 
-    /// <inheritdoc />
-    public override Boolean IsShowMenu()
-    {
-        return false;
-    }
-
     /// <inheritdoc/>
     public override void Process(String[] args)
     {
         // 可能服务已存在，安装时报错，但不要影响服务启动
         try
         {
-            new InstallCommandHandler(Service).Process(args);
+            Service.Command.Handle(CommandConst.Install, args);
         }
         catch (Exception ex)
         {

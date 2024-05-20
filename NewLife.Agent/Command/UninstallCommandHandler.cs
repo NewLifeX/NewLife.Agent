@@ -24,12 +24,6 @@ public class UninstallCommandHandler : BaseCommandHandler
     /// <inheritdoc />
     public override Char? ShortcutKey { get; set; }
 
-    /// <inheritdoc />
-    public override Boolean IsShowMenu()
-    {
-        return false;
-    }
-
     /// <inheritdoc/>
     public override void Process(String[] args)
     {

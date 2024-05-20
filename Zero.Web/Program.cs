@@ -33,7 +33,6 @@ public class MyServices : ServiceBase
 
     protected override void Init()
     {
-        var set = Setting.Current;
         base.Init();
 
         // 依赖网络

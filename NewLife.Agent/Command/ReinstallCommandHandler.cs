@@ -26,12 +26,6 @@ public class ReinstallCommandHandler : BaseCommandHandler
     /// <inheritdoc />
     public override Char? ShortcutKey { get; set; }
 
-    /// <inheritdoc />
-    public override Boolean IsShowMenu()
-    {
-        return false;
-    }
-
     /// <inheritdoc/>
     public override void Process(String[] args)
     {
@@ -52,7 +46,7 @@ public class ReinstallCommandHandler : BaseCommandHandler
             XTrace.WriteException(ex);
         }
 
-        new InstallCommandHandler(Service).Process(args);
+        Service.Command.Handle(CommandConst.Install, args);
 
         // 稍微等待
         for (var i = 0; i < 50; i++)

@@ -68,16 +68,14 @@ public class CommandFactory
     /// </summary>
     /// <param name="cmd">命令</param>
     /// <param name="args">参数</param>
-    public void Handle(String cmd, String[] args = null)
+    public Boolean Handle(String cmd, String[] args = null)
     {
         if (_commandHandlerDict.TryGetValue(cmd, out var handler))
         {
             handler.Process(args);
+            return true;
         }
-        else
-        {
-            Console.WriteLine($"您输入的命令参数 [{cmd}] 无效，请重新输入！");
-        }
+        return false;
     }
 
     /// <summary>
@@ -85,17 +83,17 @@ public class CommandFactory
     /// </summary>
     /// <param name="key"></param>
     /// <param name="args"></param>
-    public void Handle(Char key, String[] args = null)
+    public Boolean Handle(Char key, String[] args = null)
     {
         foreach (var commandHandler in _commandHandlerList)
         {
             if (commandHandler.ShortcutKey == key && commandHandler.IsShowMenu())
             {
                 Handle(commandHandler.Cmd, args);
-                return;
+                return true;
             }
         }
-        Console.WriteLine($"您输入的命令序号 [{key}] 无效，请重新输入！");
+        return false;
     }
 
     /// <summary>

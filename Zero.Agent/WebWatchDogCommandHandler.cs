@@ -14,13 +14,8 @@ namespace Zero.Agent
 
         public WebWatchDogCommandHandler(ServiceBase service) : base(service)
         {
+            //本功能主要是用于演示如何覆盖默认的看门狗保护服务，实现自己的看门狗逻辑，其他需要覆盖基础命令处理器也可以参照这个类实现
         }
-
-        public override Boolean IsShowMenu()
-        {
-            return true;
-        }
-
 
         public override void Process(String[] args)
         {

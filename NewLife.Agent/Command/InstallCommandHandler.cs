@@ -19,7 +19,7 @@ public class InstallCommandHandler : BaseCommandHandler
     public override String Cmd { get; set; } = CommandConst.Install;
 
     /// <inheritdoc />
-    public override String Description { get; set; } = "安装并启动服务";
+    public override String Description { get; set; } = "安装服务";
 
     /// <inheritdoc />
     public override Char? ShortcutKey { get; set; } = '2';

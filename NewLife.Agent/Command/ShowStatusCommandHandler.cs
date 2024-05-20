@@ -26,12 +26,6 @@ public class ShowStatusCommandHandler : BaseCommandHandler
     /// <inheritdoc />
     public override Char? ShortcutKey { get; set; } = '1';
 
-    /// <inheritdoc />
-    public override Boolean IsShowMenu()
-    {
-        return true;
-    }
-
     /// <inheritdoc/>
     public override void Process(String[] args)
     {

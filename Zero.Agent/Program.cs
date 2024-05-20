@@ -31,8 +31,15 @@ namespace Zero.Agent
 
             DisplayName = "服务代理例程";
             Description = "用于承载各种服务的服务代理！";
+
+            AddMenu('v', "测试回调菜单【已过时】", TestMenuCallback);
         }
         #endregion
+
+        private void TestMenuCallback()
+        {
+            Console.WriteLine("这是[测试回调菜单]输出");
+        }
 
         #region 核心
         private TimerX _timer;
