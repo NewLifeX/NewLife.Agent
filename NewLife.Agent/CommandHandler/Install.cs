@@ -59,7 +59,7 @@ public class Install : BaseCommandHandler
             if (list.Count > 0) arg += " " + list.Join(" ");
         }
 
-        Service.Host.Install(Service.ServiceName, Service.DisplayName, exe, arg, Description);
+        Service.Host.Install(Service.ServiceName, Service.DisplayName, exe, arg, Service.Description);
 
         // 稍微等一下，以便后续状态刷新
         Thread.Sleep(500);
