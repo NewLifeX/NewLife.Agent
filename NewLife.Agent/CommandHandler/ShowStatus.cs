@@ -33,7 +33,7 @@ public class ShowStatus : BaseCommandHandler
             Console.WriteLine("服务：{0}({1})", Service.DisplayName, name);
         else
             Console.WriteLine("服务：{0}", name);
-        Console.WriteLine("描述：{0}", Description);
+        Console.WriteLine("描述：{0}", Service.Description);
         Console.Write("状态：{0} ", Service.Host.Name);
 
         String status;

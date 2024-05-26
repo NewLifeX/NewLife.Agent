@@ -3,7 +3,7 @@
 namespace NewLife.Agent.Command;
 
 /// <summary>
-/// 
+/// 命令工厂
 /// </summary>
 public class CommandFactory
 {
@@ -11,7 +11,7 @@ public class CommandFactory
     private Dictionary<String, BaseCommandHandler> _commandHandlerDict = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// 
+    /// 命令工厂
     /// </summary>
     /// <param name="service">服务对象</param>
     /// <param name="customCommandHandlerAssembly">自定义命令处理程序所在程序集</param>
@@ -33,7 +33,7 @@ public class CommandFactory
             }
         }
 
-        // 使用反射获取所有实现了ICommandHandler接口的类型
+        // 使用反射获取所有实现了BaseCommandHandler的类型
         var commandHandlerTypes = assemblies.Values.SelectMany(n => n.GetTypes().Where(t => typeof(BaseCommandHandler).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract)).ToList();
         var commandHandlers = new List<BaseCommandHandler>();
         foreach (var type in commandHandlerTypes)
