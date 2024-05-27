@@ -33,7 +33,7 @@ public class WatchDog : BaseCommandHandler
 
     /// <summary>检查看门狗。</summary>
     /// <remarks>
-    /// XAgent看门狗功能由管理线程完成，每分钟一次。
+    /// XAgent看门狗功能由管理线程完成。
     /// 检查指定的任务是否已经停止，如果已经停止，则启动它。
     /// </remarks>
     public virtual void CheckWatchDog()

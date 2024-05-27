@@ -24,7 +24,11 @@ public class Setting : Config<Setting>
 
     /// <summary>使用自动运行。在Windows系统上，自动运行是登录后在桌面运行，而不使用后台服务。默认false</summary>
     [Description("使用自动运行。在Windows系统上，自动运行是登录后在桌面运行，而不使用后台服务。默认false")]
-    public Boolean UseAutorun { get; set; } 
+    public Boolean UseAutorun { get; set; }
+
+    /// <summary>服务管理线程资源监控时间间隔。多久检测一次服务资源占用情况。默认10秒</summary>
+    [Description("服务管理线程资源监控时间间隔。多久检测一次服务资源占用情况。默认10秒")]
+    public Int32 WatchInterval { get; set; } = 10;
 
     /// <summary>最大占用内存。超过最大占用时，整个服务进程将会重启，以释放资源。默认0M</summary>
     [Description("最大占用内存。超过最大占用时，整个服务进程将会重启，以释放资源。默认0M")]

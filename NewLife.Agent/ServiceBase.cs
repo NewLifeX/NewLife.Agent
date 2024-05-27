@@ -320,7 +320,7 @@ public abstract class ServiceBase : DisposeBase
                 XTrace.WriteException(ex);
             }
 
-            _event.WaitOne(10_000);
+            _event.WaitOne(set.WatchInterval * 1000);
         }
 
         _event.Dispose();
