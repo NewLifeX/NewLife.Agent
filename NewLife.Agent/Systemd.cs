@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Text;
 using NewLife.Log;
 using NewLife.Serialization;
 
@@ -17,15 +18,20 @@ public class Systemd : DefaultHost
     /// <summary>是否可用</summary>
     public static Boolean Available => !ServicePath.IsNullOrEmpty();
 
+    //相关目录，可以参考 systemd 目录优先级
+    private static string[] ps = new[] {
+        "/etc/systemd/system",
+        "/run/systemd/system",
+        "/usr/local/lib/systemd/system",
+        "/lib/systemd/system",
+        "/usr/lib/systemd/system",
+        //基于 SysVinit 的服务
+        "/etc/init.d",
+    };
+
     /// <summary>实例化</summary>
     static Systemd()
     {
-        var ps = new[] {
-            "/etc/systemd/system",
-            "/lib/systemd/system",
-            "/run/systemd/system",
-            "/usr/lib/systemd/system",
-        };
         foreach (var p in ps)
         {
             if (Directory.Exists(p))
@@ -78,9 +84,8 @@ public class Systemd : DefaultHost
     /// <returns></returns>
     public override Boolean IsInstalled(String serviceName)
     {
-        var file = ServicePath.CombinePath($"{serviceName}.service");
-
-        return File.Exists(file);
+        var file = GetServicePath(serviceName);
+        return file != null;
     }
 
     /// <summary>服务是否已启动</summary>
@@ -88,11 +93,33 @@ public class Systemd : DefaultHost
     /// <returns></returns>
     public override Boolean IsRunning(String serviceName)
     {
-        var file = ServicePath.CombinePath($"{serviceName}.service");
-        if (!File.Exists(file)) return false;
-
-        var str = Execute("systemctl", $"status {serviceName}", false);
-        if (!str.IsNullOrEmpty() && str.Contains("running")) return true;
+        if (!IsInstalled(serviceName)) return false;
+        //检查服务状态
+        var str = Execute("systemctl", $"show {serviceName} -p SubState", false);
+        if (!str.IsNullOrEmpty())
+        {
+            //大部分服务状态为running时，表示服务已启动
+            if (str.Contains("=running"))
+            {
+                return true;
+            }
+            else if (str.Contains("=exited"))
+            {
+                //某些服务状态为active (exited)时，通常是因为服务配置中使用了 Type=forking 类型，而 systemd 误认为主进程已经退出
+                //所以需要进一步检查，例如：nginx、redis等
+                str = Execute("systemctl", $"show {serviceName} -p Type", false);
+                if (!str.IsNullOrEmpty() && str.Contains("=forking"))
+                {
+                    //此方案并不完美，但是可以解决大部分情况
+                    //pgrep -a {serviceName}
+                    str = Execute("pgrep", $"-a {serviceName}", false);
+                    if (!str.IsNullOrEmpty())
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
 
         return false;
     }
@@ -243,9 +270,21 @@ public class Systemd : DefaultHost
     /// <param name="serviceName">服务名</param>
     public override ServiceConfig QueryConfig(String serviceName)
     {
-        var file = ServicePath.CombinePath($"{serviceName}.service");
-        if (!File.Exists(file)) return null;
+        var file = GetServicePath(serviceName);
+        if (file == null) return null;
 
+        //  /etc/init.d 目录下的服务配置文件不是systemd格式，特殊处理
+        if (file.StartsWith("/etc/init.d"))
+        {
+            // systemd-sysv-generator 在系统启动时自动运行，它会扫描 /etc/init.d 目录，
+            // 并为每个脚本生成一个对应的 systemd 服务单元文件。
+            // 这些生成的单元文件存放在 /run/systemd/generator.late/ 目录中。
+            file = "/run/systemd/generator.late".CombinePath($"{serviceName}.service");
+            if (!File.Exists(file))
+            {
+                return null;
+            }
+        }
         var txt = File.ReadAllText(file);
         if (txt != null)
         {
@@ -260,6 +299,26 @@ public class Systemd : DefaultHost
             return cfg;
         }
 
+        return null;
+    }
+
+    /// <summary>
+    /// 获取服务配置文件的路径
+    /// </summary>
+    /// <param name="serviceName">服务名称</param>
+    /// <returns></returns>
+    private String GetServicePath(String serviceName)
+    {
+        foreach (var p in ps)
+        {
+            var file = new StringBuilder(p.CombinePath(serviceName));
+            // /etc/init.d 目录下的服务配置文件不是systemd格式，没有.service后缀名
+            if (p != "/etc/init.d")
+            {
+                file.Append(".service");
+            }
+            if (File.Exists(file.ToString())) return file.ToString();
+        }
         return null;
     }
 }
