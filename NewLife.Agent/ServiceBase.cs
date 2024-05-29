@@ -193,6 +193,7 @@ public abstract class ServiceBase : DisposeBase
             Console.WriteLine();
 
             if (key.KeyChar == '0') break;
+            if (key.KeyChar == '\r' || key.KeyChar == '\n') continue;
             try
             {
                 var result = Command.Handle(key.KeyChar, args);
