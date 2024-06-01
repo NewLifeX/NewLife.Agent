@@ -71,7 +71,7 @@ namespace Zero.Agent
         }
 
         private void DoWork1(Object state)
-        {
+        { 
             // 简易型埋点，测量调用次数和耗时，跟内部HttpClient和数据库操作形成上下级调用链，并送往星尘监控中心
             using var span = Tracer?.NewSpan("work1");
 

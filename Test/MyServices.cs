@@ -35,7 +35,7 @@ public class MyServices : ServiceBase
         WriteLog("业务开始……");
 
         // 5秒开始，每60秒执行一次
-        _timer = new TimerX(DoWork, null, 5_000, 60_000) { Async = true };
+        _timer = new TimerX(DoWork, null, 1_000, 60_000) { Async = true };
         // 每天凌晨2点13分执行一次
         _timer2 = new TimerX(DoWork, null, DateTime.Today.AddMinutes(2 * 60 + 13), 24 * 3600 * 1000) { Async = true };
 
@@ -46,7 +46,7 @@ public class MyServices : ServiceBase
     {
         var data = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
-        //日志会输出到BinTest目录中
+        // 日志会输出到 Bin/Test 目录中
         XTrace.WriteLine($"代码执行时间：{data}");
     }
 
