@@ -107,13 +107,12 @@ public class Systemd : DefaultHost
             {
                 //某些服务状态为active (exited)时，通常是因为服务配置中使用了 Type=forking 类型，而 systemd 误认为主进程已经退出
                 //所以需要进一步检查，例如：nginx、redis等
-                str = Execute("systemctl", $"show {serviceName} -p Type", false);
-                if (!str.IsNullOrEmpty() && str.Contains("=forking"))
+                var file = GetServicePath(serviceName);
+                if (file != null && file.StartsWith("/etc/init.d"))
                 {
-                    //此方案并不完美，但是可以解决大部分情况
-                    //pgrep -a {serviceName}
-                    str = Execute("pgrep", $"-a {serviceName}", false);
-                    if (!str.IsNullOrEmpty())
+                    //SysVinit 服务，可以使用 /etc/init.d/{serviceName} status 命令检查服务状态
+                    str = Execute($"/etc/init.d/{serviceName}", "status", false);
+                    if (!str.IsNullOrEmpty() && str.Contains("running"))
                     {
                         return true;
                     }
@@ -222,7 +221,16 @@ public class Systemd : DefaultHost
     {
         XTrace.WriteLine("{0}.Start {1}", Name, serviceName);
 
-        return Process.Start("systemctl", $"start {serviceName}") != null;
+        var file = GetServicePath(serviceName);
+        if (file != null && file.StartsWith("/etc/init.d"))
+        {
+            //SysVinit 服务，可以使用 /etc/init.d/{serviceName} start 命令启动服务
+            return Process.Start($"/etc/init.d/{serviceName}", "start") != null;
+        }
+        else
+        {
+            return Process.Start("systemctl", $"start {serviceName}") != null;
+        }
     }
 
     /// <summary>停止服务</summary>
@@ -231,8 +239,16 @@ public class Systemd : DefaultHost
     public override Boolean Stop(String serviceName)
     {
         XTrace.WriteLine("{0}.Stop {1}", Name, serviceName);
-
-        return Process.Start("systemctl", $"stop {serviceName}") != null;
+        var file = GetServicePath(serviceName);
+        if (file != null && file.StartsWith("/etc/init.d"))
+        {
+            //SysVinit 服务，可以使用 /etc/init.d/{serviceName} stop 命令停止服务
+            return Process.Start($"/etc/init.d/{serviceName}", "stop") != null;
+        }
+        else
+        {
+            return Process.Start("systemctl", $"stop {serviceName}") != null;
+        }
     }
 
     /// <summary>重启服务</summary>
@@ -241,10 +257,19 @@ public class Systemd : DefaultHost
     {
         XTrace.WriteLine("{0}.Restart {1}", Name, serviceName);
 
-        //if (InService)
-        return Process.Start("systemctl", $"restart {serviceName}") != null;
-        //else
-        //    return Process.Start(Service.GetExeName(), "-run -delay") != null;
+        var file = GetServicePath(serviceName);
+        if (file != null && file.StartsWith("/etc/init.d"))
+        {
+            //SysVinit 服务，可以使用 /etc/init.d/{serviceName} restart 命令重启服务
+            return Process.Start($"/etc/init.d/{serviceName}", "restart") != null;
+        }
+        else
+        {
+            //if (InService)
+            return Process.Start("systemctl", $"restart {serviceName}") != null;
+            //else
+            //    return Process.Start(Service.GetExeName(), "-run -delay") != null;
+        }
     }
 
     private static String Execute(String cmd, String arguments, Boolean writeLog = true)
