@@ -40,15 +40,49 @@ public class WatchDog : BaseCommandHandler
     {
         foreach (var item in WatchDogs)
         {
+            var host = Service.Host;
+            if (Service.Host is Systemd)
+            {
+                // 优先使用Systemd
+                host = GetHost(item);
+            }
             // 已安装未运行
-            if (!Service.Host.IsInstalled(item))
+            if (!host.IsInstalled(item))
                 XTrace.WriteLine("未发现服务{0}，是否已安装？", item);
-            else if (!Service.Host.IsRunning(item))
+            else if (!host.IsRunning(item))
             {
                 XTrace.WriteLine("发现服务{0}被关闭，准备启动！", item);
 
-                Service.Host.Start(item);
+                host.Start(item);
             }
         }
     }
+
+
+    /// <summary>
+    /// 获取服务配置文件的路径
+    /// </summary>
+    /// <param name="serviceName">服务名称</param>
+    /// <returns></returns>
+    private IHost GetHost(String serviceName)
+    {
+        // Check for systemd service
+        foreach (var path in Systemd.SystemdPaths)
+        {
+            var file = Path.Combine(path, $"{serviceName}.service");
+            if (File.Exists(file))
+            {
+                return new Systemd(){Service = this.Service};
+            }
+        }
+
+        // Check for SysVinit service
+        var sysVinitFile = Path.Combine(SysVinit.ServicePath, serviceName);
+        if (File.Exists(sysVinitFile))
+        {
+            return new SysVinit();
+        }
+        return Service.Host;
+    }
+
 }

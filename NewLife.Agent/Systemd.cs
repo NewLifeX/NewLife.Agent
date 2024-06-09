@@ -19,20 +19,18 @@ public class Systemd : DefaultHost
     public static Boolean Available => !ServicePath.IsNullOrEmpty();
 
     //相关目录，可以参考 systemd 目录优先级
-    private static string[] ps = new[] {
+    public readonly static string[] SystemdPaths = new[] {
         "/etc/systemd/system",
         "/run/systemd/system",
         "/usr/local/lib/systemd/system",
         "/lib/systemd/system",
         "/usr/lib/systemd/system",
-        //基于 SysVinit 的服务
-        "/etc/init.d",
     };
 
     /// <summary>实例化</summary>
     static Systemd()
     {
-        foreach (var p in ps)
+        foreach (var p in SystemdPaths)
         {
             if (Directory.Exists(p))
             {
@@ -95,28 +93,13 @@ public class Systemd : DefaultHost
     {
         if (!IsInstalled(serviceName)) return false;
         //检查服务状态
-        var str = Execute("systemctl", $"show {serviceName} -p SubState", false);
-        if (!str.IsNullOrEmpty())
+        var status = Execute("systemctl", $"show {serviceName} -p SubState", false);
+        if (!status.IsNullOrEmpty())
         {
             //大部分服务状态为running时，表示服务已启动
-            if (str.Contains("=running"))
+            if (status.Contains("=running"))
             {
                 return true;
-            }
-            else if (str.Contains("=exited"))
-            {
-                //某些服务状态为active (exited)时，通常是因为服务配置中使用了 Type=forking 类型，而 systemd 误认为主进程已经退出
-                //所以需要进一步检查，例如：nginx、redis等
-                var file = GetServicePath(serviceName);
-                if (file != null && file.StartsWith("/etc/init.d"))
-                {
-                    //SysVinit 服务，可以使用 /etc/init.d/{serviceName} status 命令检查服务状态
-                    str = Execute($"/etc/init.d/{serviceName}", "status", false);
-                    if (!str.IsNullOrEmpty() && str.Contains("running"))
-                    {
-                        return true;
-                    }
-                }
             }
         }
 
@@ -220,17 +203,7 @@ public class Systemd : DefaultHost
     public override Boolean Start(String serviceName)
     {
         XTrace.WriteLine("{0}.Start {1}", Name, serviceName);
-
-        var file = GetServicePath(serviceName);
-        if (file != null && file.StartsWith("/etc/init.d"))
-        {
-            //SysVinit 服务，可以使用 /etc/init.d/{serviceName} start 命令启动服务
-            return Process.Start($"/etc/init.d/{serviceName}", "start") != null;
-        }
-        else
-        {
-            return Process.Start("systemctl", $"start {serviceName}") != null;
-        }
+        return Process.Start("systemctl", $"start {serviceName}") != null;
     }
 
     /// <summary>停止服务</summary>
@@ -239,16 +212,7 @@ public class Systemd : DefaultHost
     public override Boolean Stop(String serviceName)
     {
         XTrace.WriteLine("{0}.Stop {1}", Name, serviceName);
-        var file = GetServicePath(serviceName);
-        if (file != null && file.StartsWith("/etc/init.d"))
-        {
-            //SysVinit 服务，可以使用 /etc/init.d/{serviceName} stop 命令停止服务
-            return Process.Start($"/etc/init.d/{serviceName}", "stop") != null;
-        }
-        else
-        {
-            return Process.Start("systemctl", $"stop {serviceName}") != null;
-        }
+        return Process.Start("systemctl", $"stop {serviceName}") != null;
     }
 
     /// <summary>重启服务</summary>
@@ -257,19 +221,10 @@ public class Systemd : DefaultHost
     {
         XTrace.WriteLine("{0}.Restart {1}", Name, serviceName);
 
-        var file = GetServicePath(serviceName);
-        if (file != null && file.StartsWith("/etc/init.d"))
-        {
-            //SysVinit 服务，可以使用 /etc/init.d/{serviceName} restart 命令重启服务
-            return Process.Start($"/etc/init.d/{serviceName}", "restart") != null;
-        }
-        else
-        {
-            //if (InService)
-            return Process.Start("systemctl", $"restart {serviceName}") != null;
-            //else
-            //    return Process.Start(Service.GetExeName(), "-run -delay") != null;
-        }
+        //if (InService)
+        return Process.Start("systemctl", $"restart {serviceName}") != null;
+        //else
+        //    return Process.Start(Service.GetExeName(), "-run -delay") != null;
     }
 
     private static String Execute(String cmd, String arguments, Boolean writeLog = true)
@@ -298,18 +253,6 @@ public class Systemd : DefaultHost
         var file = GetServicePath(serviceName);
         if (file == null) return null;
 
-        //  /etc/init.d 目录下的服务配置文件不是systemd格式，特殊处理
-        if (file.StartsWith("/etc/init.d"))
-        {
-            // systemd-sysv-generator 在系统启动时自动运行，它会扫描 /etc/init.d 目录，
-            // 并为每个脚本生成一个对应的 systemd 服务单元文件。
-            // 这些生成的单元文件存放在 /run/systemd/generator.late/ 目录中。
-            file = "/run/systemd/generator.late".CombinePath($"{serviceName}.service");
-            if (!File.Exists(file))
-            {
-                return null;
-            }
-        }
         var txt = File.ReadAllText(file);
         if (txt != null)
         {
@@ -334,15 +277,10 @@ public class Systemd : DefaultHost
     /// <returns></returns>
     private String GetServicePath(String serviceName)
     {
-        foreach (var p in ps)
+        foreach (var p in SystemdPaths)
         {
-            var file = new StringBuilder(p.CombinePath(serviceName));
-            // /etc/init.d 目录下的服务配置文件不是systemd格式，没有.service后缀名
-            if (p != "/etc/init.d")
-            {
-                file.Append(".service");
-            }
-            if (File.Exists(file.ToString())) return file.ToString();
+            var file = p.CombinePath($"{serviceName}.service");
+            if (File.Exists(file)) return file;
         }
         return null;
     }
