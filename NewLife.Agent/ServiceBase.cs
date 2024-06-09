@@ -513,11 +513,13 @@ public abstract class ServiceBase : DisposeBase
         if (ts.TotalMinutes < auto) return false;
 
         var timeRange = Setting.Current.RestartTimeRange?.Split('-');
-        if (timeRange?.Length == 2
-            && TimeSpan.TryParse(timeRange[0], out var startTime) && startTime <= DateTime.Now.TimeOfDay
-            && TimeSpan.TryParse(timeRange[1], out var endTime) && endTime >= DateTime.Now.TimeOfDay)
+        if (timeRange?.Length == 2)
         {
-            WriteLog("服务已运行 {0:n0}分钟，达到预设重启时间（{1:n0}分钟），并且当前时间在预设时间范围之内（{2}），准备重启！", ts.TotalMinutes, auto, Setting.Current.RestartTimeRange);
+            if (TimeSpan.TryParse(timeRange[0], out var startTime) && startTime <= DateTime.Now.TimeOfDay 
+                && TimeSpan.TryParse(timeRange[1], out var endTime) && endTime >= DateTime.Now.TimeOfDay)
+            {
+                WriteLog("服务已运行 {0:n0}分钟，达到预设重启时间（{1:n0}分钟），并且当前时间在预设时间范围之内（{2}），准备重启！", ts.TotalMinutes, auto, Setting.Current.RestartTimeRange);
+            }
         }
         else
         {
