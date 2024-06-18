@@ -76,6 +76,11 @@ public class Desktop
                 si.dwFlags = STARTF_USESHOWWINDOW;
                 si.wShowWindow = (Int16)SW.SW_MINIMIZE;
             }
+            if (!noWindow)
+            {
+                si.dwFlags = STARTF_USESHOWWINDOW;
+                si.wShowWindow = (Int16)SW.SW_SHOW;
+            }
 
             // 指定进程的优先级和创建方法，这里代表是普通优先级，并且创建方法是带有UI的进程
             var dwCreationFlags = CREATE_UNICODE_ENVIRONMENT | NORMAL_PRIORITY_CLASS | (noWindow ? CREATE_NO_WINDOW : CREATE_NEW_CONSOLE);
