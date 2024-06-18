@@ -41,11 +41,11 @@ public class WatchDog : BaseCommandHandler
         foreach (var item in WatchDogs)
         {
             var host = Service.Host;
-            if (Service.Host is Systemd)
-            {
-                // 优先使用Systemd
-                host = GetHost(item);
-            }
+            //if (Service.Host is Systemd)
+            //{
+            //    // 优先使用Systemd
+            //    host = GetHost(item);
+            //}
             // 已安装未运行
             if (!host.IsInstalled(item))
                 XTrace.WriteLine("未发现服务{0}，是否已安装？", item);
@@ -58,31 +58,29 @@ public class WatchDog : BaseCommandHandler
         }
     }
 
+    ///// <summary>
+    ///// 获取服务配置文件的路径
+    ///// </summary>
+    ///// <param name="serviceName">服务名称</param>
+    ///// <returns></returns>
+    //private IHost GetHost(String serviceName)
+    //{
+    //    // Check for systemd service
+    //    foreach (var path in Systemd.SystemdPaths)
+    //    {
+    //        var file = Path.Combine(path, $"{serviceName}.service");
+    //        if (File.Exists(file))
+    //        {
+    //            return new Systemd() { Service = Service };
+    //        }
+    //    }
 
-    /// <summary>
-    /// 获取服务配置文件的路径
-    /// </summary>
-    /// <param name="serviceName">服务名称</param>
-    /// <returns></returns>
-    private IHost GetHost(String serviceName)
-    {
-        // Check for systemd service
-        foreach (var path in Systemd.SystemdPaths)
-        {
-            var file = Path.Combine(path, $"{serviceName}.service");
-            if (File.Exists(file))
-            {
-                return new Systemd(){Service = this.Service};
-            }
-        }
-
-        // Check for SysVinit service
-        var sysVinitFile = Path.Combine(SysVinit.ServicePath, serviceName);
-        if (File.Exists(sysVinitFile))
-        {
-            return new SysVinit();
-        }
-        return Service.Host;
-    }
-
+    //    // Check for SysVinit service
+    //    var sysVinitFile = Path.Combine(SysVinit.ServicePath, serviceName);
+    //    if (File.Exists(sysVinitFile))
+    //    {
+    //        return new SysVinit();
+    //    }
+    //    return Service.Host;
+    //}
 }

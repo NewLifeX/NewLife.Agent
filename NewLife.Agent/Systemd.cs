@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Text;
 using NewLife.Log;
 using NewLife.Serialization;
 
@@ -18,19 +17,19 @@ public class Systemd : DefaultHost
     /// <summary>是否可用</summary>
     public static Boolean Available => !ServicePath.IsNullOrEmpty();
 
-    //相关目录，可以参考 systemd 目录优先级
-    public readonly static string[] SystemdPaths = new[] {
+    /// <summary>相关目录，可以参考 systemd 目录优先级</summary>
+    private readonly static String[] _paths = [
         "/etc/systemd/system",
         "/run/systemd/system",
         "/usr/local/lib/systemd/system",
         "/lib/systemd/system",
         "/usr/lib/systemd/system",
-    };
+    ];
 
     /// <summary>实例化</summary>
     static Systemd()
     {
-        foreach (var p in SystemdPaths)
+        foreach (var p in _paths)
         {
             if (Directory.Exists(p))
             {
@@ -277,11 +276,9 @@ public class Systemd : DefaultHost
     /// <returns></returns>
     private String GetServicePath(String serviceName)
     {
-        foreach (var p in SystemdPaths)
-        {
-            var file = p.CombinePath($"{serviceName}.service");
-            if (File.Exists(file)) return file;
-        }
+        var file = ServicePath.CombinePath($"{serviceName}.service");
+        if (File.Exists(file)) return file;
+
         return null;
     }
 }

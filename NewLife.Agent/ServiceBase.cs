@@ -141,6 +141,8 @@ public abstract class ServiceBase : DisposeBase
                 Host = new OSXLaunch { Service = this };
             else if (Systemd.Available)
                 Host = new Systemd { Service = this };
+            else if (SysVinit.Available)
+                Host = new SysVinit { Service = this };
             else if (Procd.Available)
                 Host = new Procd { Service = this };
             else if (RcInit.Available)
