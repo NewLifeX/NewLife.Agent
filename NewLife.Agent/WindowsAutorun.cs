@@ -60,6 +60,9 @@ public class WindowsAutorun : DefaultHost
     /// <summary>服务是否已启动</summary>
     /// <param name="serviceName">服务名</param>
     /// <returns></returns>
+#if NET5_0_OR_GREATER
+    [SupportedOSPlatform("windows")]
+#endif
     public override unsafe Boolean IsRunning(String serviceName)
     {
         var p = GetProcess(serviceName, out _);
@@ -156,6 +159,9 @@ public class WindowsAutorun : DefaultHost
 #endif
     }
 
+#if NET5_0_OR_GREATER
+    [SupportedOSPlatform("windows")]
+#endif
     private Process GetProcess(String serviceName, out String pid)
     {
         var config = QueryConfig(serviceName);

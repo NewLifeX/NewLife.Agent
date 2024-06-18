@@ -2,6 +2,9 @@
 using NewLife.Agent;
 using NewLife.Log;
 using NewLife.Threading;
+using NewLife.Agent.Windows;
+using System.Reflection;
+using System.IO;
 
 namespace Test;
 
@@ -48,6 +51,13 @@ public class MyServices : ServiceBase
 
         // 日志会输出到 Bin/Test 目录中
         XTrace.WriteLine($"代码执行时间：{data}");
+
+        var desktop = new Desktop { Log = Log };
+        //desktop.StartProcess(@"D:\Net\ILSpy\ILSpy\ILSpy.exe");
+
+        var file = Assembly.GetEntryAssembly().Location;
+        file = Path.ChangeExtension(file, ".exe");
+        desktop.StartProcess(file);
     }
 
     /// <summary>停止服务</summary>
