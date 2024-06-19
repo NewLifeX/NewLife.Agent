@@ -29,8 +29,20 @@ public class Desktop
         var duplicateToken = IntPtr.Zero;
         var environmentBlock = IntPtr.Zero;
 
+        var duplicateToken = IntPtr.Zero;
+        var environmentBlock = IntPtr.Zero;
         try
         {
+            // 复制令牌
+            var sa = new SECURITY_ATTRIBUTES();
+            sa.Length = Marshal.SizeOf(sa);
+            if (!DuplicateTokenEx(userToken, MAXIMUM_ALLOWED, ref sa, (Int32)SECURITY_IMPERSONATION_LEVEL.SecurityIdentification, (Int32)TOKEN_TYPE.TokenPrimary, out duplicateToken))
+                throw new ApplicationException("Could not duplicate token.");
+
+            // 创建环境块
+            if (!CreateEnvironmentBlock(out environmentBlock, duplicateToken, false))
+                throw new ApplicationException("Could not create environment block.");
+
             var file = fileName;
             var shell = workDir.IsNullOrEmpty() && (!fileName.Contains('/') && !fileName.Contains('\\'));
             if (shell)
@@ -73,7 +85,10 @@ public class Desktop
             };
 
             /*
-             * 2024-6-19 CreateProcessAsUser不能直接传递workDir，否则进程无法启动
+             * 2024-6-19
+             * CreateProcessAsUser不能直接传递workDir，否则进程无法启动
+             * 设置environmentBlock后也无法启动
+             * 因此，暂时无法控制目标进程的工作目录和环境变量
              */
 
             // 在用户会话中创建进程

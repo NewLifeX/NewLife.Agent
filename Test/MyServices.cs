@@ -5,6 +5,7 @@ using NewLife.Threading;
 using NewLife.Agent.Windows;
 using System.Reflection;
 using System.IO;
+using System.Diagnostics;
 
 namespace Test;
 
@@ -52,10 +53,15 @@ public class MyServices : ServiceBase
         // 日志会输出到 Bin/Test 目录中
         XTrace.WriteLine($"代码执行时间：{data}");
 
+        //Process.Start("ping.exe", "-n 10 newlifex.com");
+
         var desktop = new Desktop { Log = Log };
-        desktop.StartProcess(@"D:\Net\ILSpy\ILSpy\ILSpy.exe");
-        desktop.StartProcess(@"ping.exe", "-n 10 newlifex.com");
-        desktop.StartProcess("../net45/test.exe", "-n 10 newlifex.com");
+        //desktop.StartProcess(@"D:\Net\ILSpy\ILSpy\ILSpy.exe");
+        //desktop.StartProcess(@"D:\X\NewLife.XCoder\Bin\CrazyCoder\CrazyCoder.exe");
+        //desktop.StartProcess(@"ping.exe", "-n 10 newlifex.com");
+        //desktop.StartProcess("../net45/test.exe", "-n 10 newlifex.com");
+
+        desktop.StartProcess(@"C:\Windows\System32\notepad.exe");
 
         //var file = Assembly.GetEntryAssembly().Location;
         //file = Path.ChangeExtension(file, ".exe");
