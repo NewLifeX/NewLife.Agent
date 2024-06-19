@@ -1,12 +1,12 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using Microsoft.Win32.SafeHandles;
 using NewLife.Log;
 
 namespace NewLife.Agent.Windows;
 
 /// <summary>桌面助手</summary>
+//[SupportedOSPlatform("windows")]
 public class Desktop
 {
     /// <summary>在用户桌面上启动进程</summary>
@@ -26,6 +26,8 @@ public class Desktop
         var userToken = GetSessionUserToken();
         if (userToken == IntPtr.Zero)
             throw new ApplicationException("Failed to get user token for the active session.");
+        var duplicateToken = IntPtr.Zero;
+        var environmentBlock = IntPtr.Zero;
 
         try
         {
@@ -39,15 +41,22 @@ public class Desktop
             {
                 if (!Path.IsPathRooted(fileName))
                 {
-                    if (!workDir.IsNullOrEmpty())
-                        file = Path.Combine(workDir, fileName).GetFullPath();
-                    else
-                        file = fileName.GetFullPath();
+                    file = !workDir.IsNullOrEmpty() ? Path.Combine(workDir, fileName).GetFullPath() : fileName.GetFullPath();
                 }
                 if (workDir.IsNullOrWhiteSpace()) workDir = Path.GetDirectoryName(file);
             }
 
             if (commandLine.IsNullOrWhiteSpace()) commandLine = "";
+
+            // 复制令牌
+            var sa = new SECURITY_ATTRIBUTES();
+            sa.Length = Marshal.SizeOf(sa);
+            if (!DuplicateTokenEx(userToken, MAXIMUM_ALLOWED, ref sa, SECURITY_IMPERSONATION_LEVEL.SecurityIdentification, TOKEN_TYPE.TokenPrimary, out duplicateToken))
+                throw new ApplicationException("Could not duplicate token.");
+
+            // 创建环境块（检索该用户的环境变量）
+            if (!CreateEnvironmentBlock(out environmentBlock, duplicateToken, false))
+                throw new ApplicationException("Could not create environment block.");
 
             // 启动信息
             var psi = new ProcessStartInfo
@@ -68,8 +77,10 @@ public class Desktop
              */
 
             // 在用户会话中创建进程
-            var pi = new PROCESS_INFORMATION();
-            var success = CreateProcessAsUser(userToken, null, file, IntPtr.Zero, IntPtr.Zero, false, 0, IntPtr.Zero, null, ref psi, out pi);
+            var saProcessAttributes = new SECURITY_ATTRIBUTES();
+            var saThreadAttributes = new SECURITY_ATTRIBUTES();
+            var createProcessFlags = (noWindow ? CreateProcessFlags.CREATE_NO_WINDOW : CreateProcessFlags.CREATE_NEW_CONSOLE) | CreateProcessFlags.CREATE_UNICODE_ENVIRONMENT;
+            var success = CreateProcessAsUser(duplicateToken, null, file, ref saProcessAttributes, ref saThreadAttributes, false, createProcessFlags, environmentBlock, null, ref psi, out PROCESS_INFORMATION pi);
             if (!success)
             {
                 throw new Win32Exception(Marshal.GetLastWin32Error());
@@ -82,6 +93,8 @@ public class Desktop
         {
             // 清理资源
             if (userToken != IntPtr.Zero) CloseHandle(userToken);
+            if (duplicateToken != IntPtr.Zero) CloseHandle(duplicateToken);
+            if (environmentBlock != IntPtr.Zero) DestroyEnvironmentBlock(environmentBlock);
         }
     }
 
@@ -154,13 +167,59 @@ public class Desktop
     }
 
     #region PInvoke调用
-    private const Int32 TOKEN_DUPLICATE = 0x0002;
+    private const UInt32 TOKEN_DUPLICATE = 0x0002;
     private const UInt32 MAXIMUM_ALLOWED = 0x2000000;
-    private const Int32 CREATE_NEW_CONSOLE = 0x00000010;
-    private const Int32 CREATE_NO_WINDOW = 0x08000000;
-    private const Int32 CREATE_UNICODE_ENVIRONMENT = 0x00000400;
-    private const Int32 NORMAL_PRIORITY_CLASS = 0x20;
-    private const Int32 STARTF_USESHOWWINDOW = 0x00000001;
+    private const UInt32 STARTF_USESHOWWINDOW = 0x00000001;
+
+    /// <summary>
+    /// Process Creation Flags。<br/>
+    /// More：https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags
+    /// </summary>
+    [Flags]
+    private enum CreateProcessFlags : UInt32
+    {
+        DEBUG_PROCESS = 0x00000001,
+        DEBUG_ONLY_THIS_PROCESS = 0x00000002,
+        CREATE_SUSPENDED = 0x00000004,
+        DETACHED_PROCESS = 0x00000008,
+        /// <summary>
+        /// The new process has a new console, instead of inheriting its parent's console (the default). For more information, see Creation of a Console. <br />
+        /// This flag cannot be used with <see cref="DETACHED_PROCESS"/>.
+        /// </summary>
+        CREATE_NEW_CONSOLE = 0x00000010,
+        NORMAL_PRIORITY_CLASS = 0x00000020,
+        IDLE_PRIORITY_CLASS = 0x00000040,
+        HIGH_PRIORITY_CLASS = 0x00000080,
+        REALTIME_PRIORITY_CLASS = 0x00000100,
+        CREATE_NEW_PROCESS_GROUP = 0x00000200,
+        /// <summary>
+        /// If this flag is set, the environment block pointed to by lpEnvironment uses Unicode characters. Otherwise, the environment block uses ANSI characters.
+        /// </summary>
+        CREATE_UNICODE_ENVIRONMENT = 0x00000400,
+        CREATE_SEPARATE_WOW_VDM = 0x00000800,
+        CREATE_SHARED_WOW_VDM = 0x00001000,
+        CREATE_FORCEDOS = 0x00002000,
+        BELOW_NORMAL_PRIORITY_CLASS = 0x00004000,
+        ABOVE_NORMAL_PRIORITY_CLASS = 0x00008000,
+        INHERIT_PARENT_AFFINITY = 0x00010000,
+        INHERIT_CALLER_PRIORITY = 0x00020000,
+        CREATE_PROTECTED_PROCESS = 0x00040000,
+        EXTENDED_STARTUPINFO_PRESENT = 0x00080000,
+        PROCESS_MODE_BACKGROUND_BEGIN = 0x00100000,
+        PROCESS_MODE_BACKGROUND_END = 0x00200000,
+        CREATE_BREAKAWAY_FROM_JOB = 0x01000000,
+        CREATE_PRESERVE_CODE_AUTHZ_LEVEL = 0x02000000,
+        CREATE_DEFAULT_ERROR_MODE = 0x04000000,
+        /// <summary>
+        /// The process is a console application that is being run without a console window. Therefore, the console handle for the application is not set. <br />
+        /// This flag is ignored if the application is not a console application, or if it is used with either <see cref="CREATE_NEW_CONSOLE"/> or <see cref="DETACHED_PROCESS"/>.
+        /// </summary>
+        CREATE_NO_WINDOW = 0x08000000,
+        PROFILE_USER = 0x10000000,
+        PROFILE_KERNEL = 0x20000000,
+        PROFILE_SERVER = 0x40000000,
+        CREATE_IGNORE_SYSTEM_DEFAULT = 0x80000000,
+    }
 
     /// <summary>
     /// 获取当前活动的控制台会话ID
@@ -212,7 +271,7 @@ public class Desktop
     private static extern Boolean OpenProcessToken(IntPtr ProcessHandle, Int32 DesiredAccess, out IntPtr TokenHandle);
 
     [DllImport("advapi32.dll", SetLastError = true)]
-    private static extern Boolean DuplicateTokenEx(IntPtr hExistingToken, UInt32 dwDesiredAccess, ref SECURITY_ATTRIBUTES lpTokenAttributes, Int32 ImpersonationLevel, Int32 TokenType, out IntPtr phNewToken);
+    private static extern Boolean DuplicateTokenEx(IntPtr hExistingToken, UInt32 dwDesiredAccess, ref SECURITY_ATTRIBUTES lpTokenAttributes, SECURITY_IMPERSONATION_LEVEL impersonationLevel, TOKEN_TYPE tokenType, out IntPtr phNewToken);
 
     [DllImport("userenv.dll", SetLastError = true)]
     private static extern Boolean CreateEnvironmentBlock(out IntPtr lpEnvironment, IntPtr hToken, Boolean bInherit);
@@ -221,17 +280,17 @@ public class Desktop
     private static extern Boolean DestroyEnvironmentBlock(IntPtr lpEnvironment);
 
     [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-    private static extern Boolean CreateProcessAsUser(IntPtr hToken, String lpApplicationName, String lpCommandLine, ref SECURITY_ATTRIBUTES lpProcessAttributes, ref SECURITY_ATTRIBUTES lpThreadAttributes, Boolean bInheritHandles, UInt32 dwCreationFlags, IntPtr lpEnvironment, String lpCurrentDirectory, ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION lpProcessInformation);
+    private static extern Boolean CreateProcessAsUser(IntPtr hToken, String lpApplicationName, String lpCommandLine, ref SECURITY_ATTRIBUTES lpProcessAttributes, ref SECURITY_ATTRIBUTES lpThreadAttributes, Boolean bInheritHandles, CreateProcessFlags dwCreationFlags, IntPtr lpEnvironment, String lpCurrentDirectory, ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION lpProcessInformation);
 
     [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Auto)]
     private static extern Boolean CreateProcessAsUser(
         IntPtr hToken,
         String lpApplicationName,
         String lpCommandLine,
-        IntPtr lpProcessAttributes,
-        IntPtr lpThreadAttributes,
+        ref SECURITY_ATTRIBUTES lpProcessAttributes,
+        ref SECURITY_ATTRIBUTES lpThreadAttributes,
         Boolean bInheritHandles,
-        UInt32 dwCreationFlags,
+        CreateProcessFlags dwCreationFlags,
         IntPtr lpEnvironment,
         String lpCurrentDirectory,
         ref ProcessStartInfo lpStartupInfo,
