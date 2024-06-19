@@ -49,9 +49,9 @@ public class Desktop
             if (commandLine.IsNullOrWhiteSpace()) commandLine = "";
 
             // 复制令牌
-            var sa = new SECURITY_ATTRIBUTES();
+            var sa = new SecurityAttributes();
             sa.Length = Marshal.SizeOf(sa);
-            if (!DuplicateTokenEx(userToken, MAXIMUM_ALLOWED, ref sa, SECURITY_IMPERSONATION_LEVEL.SecurityIdentification, TOKEN_TYPE.TokenPrimary, out duplicateToken))
+            if (!DuplicateTokenEx(userToken, MAXIMUM_ALLOWED, ref sa, SecurityImpersonationLevel.SecurityIdentification, TokenType.TokenPrimary, out duplicateToken))
                 throw new ApplicationException("Could not duplicate token.");
 
             // 创建环境块（检索该用户的环境变量）
@@ -62,7 +62,7 @@ public class Desktop
             var psi = new ProcessStartInfo
             {
                 UseShellExecute = shell,
-                FileName = file,
+                FileName = file + ' ' + commandLine,
                 Arguments = commandLine,
                 WorkingDirectory = workDir,
                 RedirectStandardError = false,
@@ -77,10 +77,10 @@ public class Desktop
              */
 
             // 在用户会话中创建进程
-            var saProcessAttributes = new SECURITY_ATTRIBUTES();
-            var saThreadAttributes = new SECURITY_ATTRIBUTES();
+            var saProcessAttributes = new SecurityAttributes();
+            var saThreadAttributes = new SecurityAttributes();
             var createProcessFlags = (noWindow ? CreateProcessFlags.CREATE_NO_WINDOW : CreateProcessFlags.CREATE_NEW_CONSOLE) | CreateProcessFlags.CREATE_UNICODE_ENVIRONMENT;
-            var success = CreateProcessAsUser(duplicateToken, null, file, ref saProcessAttributes, ref saThreadAttributes, false, createProcessFlags, environmentBlock, null, ref psi, out PROCESS_INFORMATION pi);
+            var success = CreateProcessAsUser(duplicateToken, null, file + ' ' + commandLine, ref saProcessAttributes, ref saThreadAttributes, false, createProcessFlags, environmentBlock, null, ref psi, out ProcessInformation pi);
             if (!success)
             {
                 throw new Win32Exception(Marshal.GetLastWin32Error());
@@ -142,15 +142,15 @@ public class Desktop
             // 枚举所有用户会话
             if (WTSEnumerateSessions(IntPtr.Zero, 0, 1, ref pSessionInfo, ref sessionCount) != 0)
             {
-                var arrayElementSize = Marshal.SizeOf(typeof(WTS_SESSION_INFO));
+                var arrayElementSize = Marshal.SizeOf(typeof(WtsSessionInfo));
                 var current = pSessionInfo;
 
                 for (var i = 0; i < sessionCount; i++)
                 {
-                    var si = (WTS_SESSION_INFO)Marshal.PtrToStructure(current, typeof(WTS_SESSION_INFO));
+                    var si = (WtsSessionInfo)Marshal.PtrToStructure(current, typeof(WtsSessionInfo));
                     current += arrayElementSize;
 
-                    if (si.State == WTS_CONNECTSTATE_CLASS.WTSActive)
+                    if (si.State == WtsConnectStateClass.WTSActive)
                     {
                         return si.SessionID;
                     }
@@ -167,9 +167,116 @@ public class Desktop
     }
 
     #region PInvoke调用
+    /// <summary>
+    /// 获取当前活动的控制台会话ID
+    /// </summary>
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern UInt32 WTSGetActiveConsoleSessionId();
+
+    [DllImport("wtsapi32.dll", SetLastError = true)]
+    private static extern Int32 WTSEnumerateSessions(IntPtr hServer, Int32 Reserved, Int32 Version, ref IntPtr ppSessionInfo, ref Int32 pCount);
+
+    [DllImport("wtsapi32.dll", SetLastError = false)]
+    private static extern void WTSFreeMemory(IntPtr memory);
+
+    /// <summary>
+    /// 获取活动会话的用户访问令牌
+    /// </summary>
+    [DllImport("wtsapi32.dll", SetLastError = true)]
+    private static extern Boolean WTSQueryUserToken(UInt32 sessionId, out IntPtr phToken);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr OpenProcess(UInt32 dwDesiredAccess, Boolean bInheritHandle, Int32 dwProcessId);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern Boolean OpenProcessToken(IntPtr ProcessHandle, Int32 DesiredAccess, out IntPtr TokenHandle);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern Boolean DuplicateTokenEx(IntPtr hExistingToken, UInt32 dwDesiredAccess, ref SecurityAttributes lpTokenAttributes, SecurityImpersonationLevel impersonationLevel, TokenType tokenType, out IntPtr phNewToken);
+
+    [DllImport("userenv.dll", SetLastError = true)]
+    private static extern Boolean CreateEnvironmentBlock(out IntPtr lpEnvironment, IntPtr hToken, Boolean bInherit);
+
+    [DllImport("userenv.dll", SetLastError = true)]
+    private static extern Boolean DestroyEnvironmentBlock(IntPtr lpEnvironment);
+
+    [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+    private static extern Boolean CreateProcessAsUser(IntPtr hToken, String lpApplicationName, String lpCommandLine, ref SecurityAttributes lpProcessAttributes, ref SecurityAttributes lpThreadAttributes, Boolean bInheritHandles, CreateProcessFlags dwCreationFlags, IntPtr lpEnvironment, String lpCurrentDirectory, ref StartupInfo lpStartupInfo, out ProcessInformation lpProcessInformation);
+
+    [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+    private static extern Boolean CreateProcessAsUser(
+        IntPtr hToken,
+        String lpApplicationName,
+        String lpCommandLine,
+        ref SecurityAttributes lpProcessAttributes,
+        ref SecurityAttributes lpThreadAttributes,
+        Boolean bInheritHandles,
+        CreateProcessFlags dwCreationFlags,
+        IntPtr lpEnvironment,
+        String lpCurrentDirectory,
+        ref ProcessStartInfo lpStartupInfo,
+        out ProcessInformation lpProcessInformation);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern Boolean CloseHandle(IntPtr hObject);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern Boolean SetTokenInformation(IntPtr TokenHandle, TokenInformationClass TokenInformationClass, ref UInt32 TokenInformation, UInt32 TokenInformationLength);
+
     private const UInt32 TOKEN_DUPLICATE = 0x0002;
     private const UInt32 MAXIMUM_ALLOWED = 0x2000000;
     private const UInt32 STARTF_USESHOWWINDOW = 0x00000001;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct SecurityAttributes
+    {
+        public Int32 Length;
+        public IntPtr SecurityDescriptor;
+        public Boolean InheritHandle;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct StartupInfo
+    {
+        public Int32 cb;
+        public String lpReserved;
+        public String lpDesktop;
+        public String lpTitle;
+        public Int32 dwX;
+        public Int32 dwY;
+        public Int32 dwXSize;
+        public Int32 dwYSize;
+        public Int32 dwXCountChars;
+        public Int32 dwYCountChars;
+        public Int32 dwFillAttribute;
+        public Int32 dwFlags;
+        public Int16 wShowWindow;
+        public Int16 cbReserved2;
+        public IntPtr lpReserved2;
+        public IntPtr hStdInput;
+        public IntPtr hStdOutput;
+        public IntPtr hStdError;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct ProcessInformation
+    {
+        public IntPtr hProcess;
+        public IntPtr hThread;
+        public Int32 dwProcessId;
+        public Int32 dwThreadId;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private readonly struct WtsSessionInfo
+    {
+        public readonly UInt32 SessionID;
+
+        [MarshalAs(UnmanagedType.LPStr)]
+        public readonly String pWinStationName;
+
+        public readonly WtsConnectStateClass State;
+    }
 
     /// <summary>
     /// Process Creation Flags。<br/>
@@ -221,36 +328,7 @@ public class Desktop
         CREATE_IGNORE_SYSTEM_DEFAULT = 0x80000000,
     }
 
-    /// <summary>
-    /// 获取当前活动的控制台会话ID
-    /// </summary>
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern UInt32 WTSGetActiveConsoleSessionId();
-
-    [DllImport("wtsapi32.dll", SetLastError = true)]
-    private static extern Int32 WTSEnumerateSessions(IntPtr hServer, Int32 Reserved, Int32 Version, ref IntPtr ppSessionInfo, ref Int32 pCount);
-
-    [DllImport("wtsapi32.dll", SetLastError = false)]
-    private static extern void WTSFreeMemory(IntPtr memory);
-
-    /// <summary>
-    /// 获取活动会话的用户访问令牌
-    /// </summary>
-    [DllImport("wtsapi32.dll", SetLastError = true)]
-    private static extern Boolean WTSQueryUserToken(UInt32 sessionId, out IntPtr phToken);
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct WTS_SESSION_INFO
-    {
-        public readonly UInt32 SessionID;
-
-        [MarshalAs(UnmanagedType.LPStr)]
-        public readonly String pWinStationName;
-
-        public readonly WTS_CONNECTSTATE_CLASS State;
-    }
-
-    private enum WTS_CONNECTSTATE_CLASS
+    private enum WtsConnectStateClass
     {
         WTSActive,
         WTSConnected,
@@ -264,45 +342,7 @@ public class Desktop
         WTSInit
     }
 
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern IntPtr OpenProcess(UInt32 dwDesiredAccess, Boolean bInheritHandle, Int32 dwProcessId);
-
-    [DllImport("advapi32.dll", SetLastError = true)]
-    private static extern Boolean OpenProcessToken(IntPtr ProcessHandle, Int32 DesiredAccess, out IntPtr TokenHandle);
-
-    [DllImport("advapi32.dll", SetLastError = true)]
-    private static extern Boolean DuplicateTokenEx(IntPtr hExistingToken, UInt32 dwDesiredAccess, ref SECURITY_ATTRIBUTES lpTokenAttributes, SECURITY_IMPERSONATION_LEVEL impersonationLevel, TOKEN_TYPE tokenType, out IntPtr phNewToken);
-
-    [DllImport("userenv.dll", SetLastError = true)]
-    private static extern Boolean CreateEnvironmentBlock(out IntPtr lpEnvironment, IntPtr hToken, Boolean bInherit);
-
-    [DllImport("userenv.dll", SetLastError = true)]
-    private static extern Boolean DestroyEnvironmentBlock(IntPtr lpEnvironment);
-
-    [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-    private static extern Boolean CreateProcessAsUser(IntPtr hToken, String lpApplicationName, String lpCommandLine, ref SECURITY_ATTRIBUTES lpProcessAttributes, ref SECURITY_ATTRIBUTES lpThreadAttributes, Boolean bInheritHandles, CreateProcessFlags dwCreationFlags, IntPtr lpEnvironment, String lpCurrentDirectory, ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION lpProcessInformation);
-
-    [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-    private static extern Boolean CreateProcessAsUser(
-        IntPtr hToken,
-        String lpApplicationName,
-        String lpCommandLine,
-        ref SECURITY_ATTRIBUTES lpProcessAttributes,
-        ref SECURITY_ATTRIBUTES lpThreadAttributes,
-        Boolean bInheritHandles,
-        CreateProcessFlags dwCreationFlags,
-        IntPtr lpEnvironment,
-        String lpCurrentDirectory,
-        ref ProcessStartInfo lpStartupInfo,
-        out PROCESS_INFORMATION lpProcessInformation);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern Boolean CloseHandle(IntPtr hObject);
-
-    [DllImport("advapi32.dll", SetLastError = true)]
-    private static extern Boolean SetTokenInformation(IntPtr TokenHandle, TOKEN_INFORMATION_CLASS TokenInformationClass, ref UInt32 TokenInformation, UInt32 TokenInformationLength);
-
-    private enum SECURITY_IMPERSONATION_LEVEL
+    private enum SecurityImpersonationLevel
     {
         SecurityAnonymous,
         SecurityIdentification,
@@ -310,13 +350,13 @@ public class Desktop
         SecurityDelegation
     }
 
-    private enum TOKEN_TYPE
+    private enum TokenType
     {
         TokenPrimary = 1,
         TokenImpersonation
     }
 
-    private enum TOKEN_INFORMATION_CLASS
+    private enum TokenInformationClass
     {
         TokenUser = 1,
         TokenGroups,
@@ -349,37 +389,6 @@ public class Desktop
         MaxTokenInfoClass
     }
 
-    [StructLayout(LayoutKind.Sequential)]
-    private struct SECURITY_ATTRIBUTES
-    {
-        public Int32 Length;
-        public IntPtr SecurityDescriptor;
-        public Boolean InheritHandle;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct STARTUPINFO
-    {
-        public Int32 cb;
-        public String lpReserved;
-        public String lpDesktop;
-        public String lpTitle;
-        public Int32 dwX;
-        public Int32 dwY;
-        public Int32 dwXSize;
-        public Int32 dwYSize;
-        public Int32 dwXCountChars;
-        public Int32 dwYCountChars;
-        public Int32 dwFillAttribute;
-        public Int32 dwFlags;
-        public Int16 wShowWindow;
-        public Int16 cbReserved2;
-        public IntPtr lpReserved2;
-        public IntPtr hStdInput;
-        public IntPtr hStdOutput;
-        public IntPtr hStdError;
-    }
-
     private enum SW : Int32
     {
         SW_HIDE = 0,
@@ -396,15 +405,6 @@ public class Desktop
         SW_RESTORE = 9,
         SW_SHOWDEFAULT = 10,
         SW_FORCEMINIMIZE = 11,
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct PROCESS_INFORMATION
-    {
-        public IntPtr hProcess;
-        public IntPtr hThread;
-        public Int32 dwProcessId;
-        public Int32 dwThreadId;
     }
     #endregion
 }
