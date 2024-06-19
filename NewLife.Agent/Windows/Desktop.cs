@@ -20,6 +20,8 @@ public class Desktop
     {
         if (fileName.IsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(fileName));
 
+        WriteLog("StartProcess: {0}", fileName);
+
         // 获取当前活动的控制台会话ID和安全的用户访问令牌
         var userToken = GetSessionUserToken();
         if (userToken == IntPtr.Zero)
@@ -27,15 +29,31 @@ public class Desktop
 
         try
         {
-            fileName = fileName.GetFullPath();
+            var file = fileName;
+            var shell = workDir.IsNullOrEmpty() && (!fileName.Contains('/') && !fileName.Contains('\\'));
+            if (shell)
+            {
+                if (workDir.IsNullOrWhiteSpace()) workDir = Environment.CurrentDirectory;
+            }
+            else
+            {
+                if (!Path.IsPathRooted(fileName))
+                {
+                    if (!workDir.IsNullOrEmpty())
+                        file = Path.Combine(workDir, fileName).GetFullPath();
+                    else
+                        file = fileName.GetFullPath();
+                }
+                if (workDir.IsNullOrWhiteSpace()) workDir = Path.GetDirectoryName(file);
+            }
+
             if (commandLine.IsNullOrWhiteSpace()) commandLine = "";
-            if (workDir.IsNullOrWhiteSpace()) workDir = Path.GetDirectoryName(fileName);
 
             // 启动信息
             var psi = new ProcessStartInfo
             {
-                UseShellExecute = false,
-                FileName = fileName,
+                UseShellExecute = shell,
+                FileName = file,
                 Arguments = commandLine,
                 WorkingDirectory = workDir,
                 RedirectStandardError = false,
@@ -45,15 +63,19 @@ public class Desktop
                 WindowStyle = minimize ? ProcessWindowStyle.Minimized : ProcessWindowStyle.Normal
             };
 
+            /*
+             * 2024-6-19 CreateProcessAsUser不能直接传递workDir，否则进程无法启动
+             */
+
             // 在用户会话中创建进程
             var pi = new PROCESS_INFORMATION();
-            var success = CreateProcessAsUser(userToken, null, fileName, IntPtr.Zero, IntPtr.Zero, false, 0, IntPtr.Zero, null, ref psi, out pi);
+            var success = CreateProcessAsUser(userToken, null, file, IntPtr.Zero, IntPtr.Zero, false, 0, IntPtr.Zero, null, ref psi, out pi);
             if (!success)
             {
-                throw new ApplicationException("Could not create process as user.");
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+                //throw new ApplicationException("Could not create process as user.");
             }
 
-            WriteLog("ProcessId: {0}", pi.dwProcessId);
             return pi.dwProcessId;
         }
         finally
