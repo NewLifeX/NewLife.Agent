@@ -16,179 +16,52 @@ public class Desktop
     /// <param name="noWindow"></param>
     /// <param name="minimize"></param>
     /// <exception cref="ApplicationException"></exception>
-    public void StartProcess(String fileName, String commandLine = null, String workDir = null, Boolean noWindow = false, Boolean minimize = false)
+    public Int32 StartProcess(String fileName, String commandLine = null, String workDir = null, Boolean noWindow = false, Boolean minimize = false)
     {
-        WriteLog("StartProcess {0}", fileName);
-
-        //var userToken = IntPtr.Zero;
-        //var duplicateToken = IntPtr.Zero;
-        //var environmentBlock = IntPtr.Zero;
-
-        //try
-        //{
-        //    // 获取当前活动的控制台会话ID
-        //    var sessionId = GetSessionId();
-        //    WriteLog("sessionId: {0}", sessionId);
-
-        //    var winlogonPid = 0;
-        //    foreach (var p in Process.GetProcessesByName("winlogon"))
-        //    {
-        //        if ((UInt32)p.SessionId == sessionId)
-        //        {
-        //            winlogonPid = p.Id;
-        //        }
-        //    }
-
-        //    // 获取进程令牌
-        //    var hProcess = OpenProcess(MAXIMUM_ALLOWED, false, winlogonPid);
-        //    if (!OpenProcessToken(hProcess, TOKEN_DUPLICATE, out userToken))
-        //        throw new ApplicationException("Could not OpenProcessToken.");
-
-        //    //// 获取用户令牌
-        //    //if (!WTSQueryUserToken(sessionId, out userToken))
-        //    //    throw new ApplicationException("Could not get user token.");
-
-        //    WriteLog("UserToken: 0x{0:X8}", userToken);
-
-        //    // 复制令牌
-        //    var sa = new SECURITY_ATTRIBUTES();
-        //    sa.Length = Marshal.SizeOf(sa);
-        //    if (!DuplicateTokenEx(userToken, MAXIMUM_ALLOWED, ref sa, (Int32)SECURITY_IMPERSONATION_LEVEL.SecurityIdentification, (Int32)TOKEN_TYPE.TokenPrimary, out duplicateToken))
-        //        throw new ApplicationException("Could not duplicate token.");
-
-        //    WriteLog("duplicateToken: 0x{0:X8}", duplicateToken);
-
-        //    //// 把令牌的SessionId替换成当前活动的Session(即替换到可与用户交互的winsta0下)
-        //    //if (!SetTokenInformation(duplicateToken, TOKEN_INFORMATION_CLASS.TokenSessionId, ref sessionId, (UInt32)IntPtr.Size))
-        //    //    throw new ApplicationException("Could not set token information.");
-
-        //    // 创建环境块
-        //    if (!CreateEnvironmentBlock(out environmentBlock, duplicateToken, false))
-        //        throw new ApplicationException("Could not create environment block.");
-
-        //    WriteLog("environmentBlock: 0x{0:X8}", environmentBlock);
-
-        //    // 启动信息
-        //    var si = new STARTUPINFO();
-        //    si.cb = Marshal.SizeOf(si);
-        //    si.lpDesktop = @"winsta0\default";
-
-        //    if (minimize)
-        //    {
-        //        si.dwFlags = STARTF_USESHOWWINDOW;
-        //        si.wShowWindow = (Int16)SW.SW_MINIMIZE;
-        //    }
-        //    if (!noWindow)
-        //    {
-        //        si.dwFlags = STARTF_USESHOWWINDOW;
-        //        si.wShowWindow = (Int16)SW.SW_SHOW;
-        //    }
-
-        //    // 指定进程的优先级和创建方法，这里代表是普通优先级，并且创建方法是带有UI的进程
-        //    var dwCreationFlags = CREATE_UNICODE_ENVIRONMENT | NORMAL_PRIORITY_CLASS | (noWindow ? CREATE_NO_WINDOW : CREATE_NEW_CONSOLE);
-
-        //    var pi = new PROCESS_INFORMATION();
-
-        //    // 在用户会话中创建进程
-        //    if (!CreateProcessAsUser(duplicateToken,
-        //        fileName,
-        //        commandLine,
-        //        ref sa,
-        //        ref sa,
-        //        false,
-        //        (UInt32)dwCreationFlags,
-        //        environmentBlock,
-        //        workDir,
-        //        ref si,
-        //        out pi))
-        //        throw new ApplicationException("Could not create process as user.");
-
-        //    WriteLog("ProcessId: {0}", pi.dwProcessId);
-        //}
-        //finally
-        //{
-        //    // 清理资源
-        //    if (userToken != IntPtr.Zero) CloseHandle(userToken);
-        //    if (duplicateToken != IntPtr.Zero) CloseHandle(duplicateToken);
-        //    if (environmentBlock != IntPtr.Zero) DestroyEnvironmentBlock(environmentBlock);
-        //}
+        if (fileName.IsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(fileName));
 
         // 获取当前活动的控制台会话ID和安全的用户访问令牌
-        SafeTokenHandle userTokenSafeHandle = GetSessionUserToken(out var sessionId);
-        if (userTokenSafeHandle.IsInvalid)
-        {
+        var userToken = GetSessionUserToken();
+        if (userToken == IntPtr.Zero)
             throw new ApplicationException("Failed to get user token for the active session.");
-        }
-        WriteLog("sessionId: {0}", sessionId);
 
-        // 启动信息
-        ProcessStartInfo psi = new ProcessStartInfo
+        try
         {
-            UseShellExecute = false,
-            FileName = fileName,
-            Arguments = String.IsNullOrWhiteSpace(commandLine) ? String.Empty : commandLine,
-            WorkingDirectory = String.IsNullOrWhiteSpace(workDir)
-                ? Environment.GetFolderPath(Environment.SpecialFolder.System)
-                : workDir,
-            RedirectStandardError = false,
-            RedirectStandardOutput = false,
-            RedirectStandardInput = false,
-            CreateNoWindow = noWindow,
-            WindowStyle = minimize ? ProcessWindowStyle.Minimized : ProcessWindowStyle.Normal
-        };
+            fileName = fileName.GetFullPath();
+            if (commandLine.IsNullOrWhiteSpace()) commandLine = "";
+            if (workDir.IsNullOrWhiteSpace()) workDir = Path.GetDirectoryName(fileName);
 
-        IntPtr userToken = userTokenSafeHandle.DangerousGetHandle();
-        WriteLog("UserToken: 0x{0:X8}", userToken);
+            // 启动信息
+            var psi = new ProcessStartInfo
+            {
+                UseShellExecute = false,
+                FileName = fileName,
+                Arguments = commandLine,
+                WorkingDirectory = workDir,
+                RedirectStandardError = false,
+                RedirectStandardOutput = false,
+                RedirectStandardInput = false,
+                CreateNoWindow = noWindow,
+                WindowStyle = minimize ? ProcessWindowStyle.Minimized : ProcessWindowStyle.Normal
+            };
 
-        // 在用户会话中创建进程
-        PROCESS_INFORMATION pi = new PROCESS_INFORMATION();
-        Boolean success = CreateProcessAsUser(userToken, null, fileName, IntPtr.Zero, IntPtr.Zero, false, 0, IntPtr.Zero, null, ref psi, out _);
-        if (!success)
-        {
-            throw new ApplicationException("Could not create process as user.");
+            // 在用户会话中创建进程
+            var pi = new PROCESS_INFORMATION();
+            var success = CreateProcessAsUser(userToken, null, fileName, IntPtr.Zero, IntPtr.Zero, false, 0, IntPtr.Zero, null, ref psi, out pi);
+            if (!success)
+            {
+                throw new ApplicationException("Could not create process as user.");
+            }
+
+            WriteLog("ProcessId: {0}", pi.dwProcessId);
+            return pi.dwProcessId;
         }
-
-        WriteLog("ProcessId: {0}", pi.dwProcessId);
+        finally
+        {
+            // 清理资源
+            if (userToken != IntPtr.Zero) CloseHandle(userToken);
+        }
     }
-
-    ///// <summary>获取会话Id</summary>
-    ///// <returns></returns>
-    //public UInt32 GetSessionId()
-    //{
-    //    var sessionId = WTSGetActiveConsoleSessionId();
-    //    if (sessionId > 0) return sessionId;
-
-    //    var pSessionInfo = IntPtr.Zero;
-    //    try
-    //    {
-    //        var sessionCount = 0;
-
-    //        // 枚举所有用户会话
-    //        if (WTSEnumerateSessions(IntPtr.Zero, 0, 1, ref pSessionInfo, ref sessionCount) != 0)
-    //        {
-    //            var arrayElementSize = Marshal.SizeOf(typeof(WTS_SESSION_INFO));
-    //            var current = pSessionInfo;
-
-    //            for (var i = 0; i < sessionCount; i++)
-    //            {
-    //                var si = (WTS_SESSION_INFO)Marshal.PtrToStructure(current, typeof(WTS_SESSION_INFO));
-    //                current += arrayElementSize;
-
-    //                if (si.State == WTS_CONNECTSTATE_CLASS.WTSActive)
-    //                {
-    //                    return si.SessionID;
-    //                }
-    //            }
-    //        }
-
-    //        return UInt32.MaxValue;
-    //    }
-    //    finally
-    //    {
-    //        WTSFreeMemory(pSessionInfo);
-    //        CloseHandle(pSessionInfo);
-    //    }
-    //}
 
     /// <summary>日志</summary>
     public ILog Log { get; set; }
@@ -202,40 +75,23 @@ public class Desktop
     /// 获取活动会话的用户访问令牌
     /// </summary>
     /// <exception cref="Win32Exception"></exception>
-    private static SafeTokenHandle GetSessionUserToken(out UInt32 sessionId)
+    private static IntPtr GetSessionUserToken()
     {
         // 获取当前活动的控制台会话ID
-        sessionId = WTSGetActiveConsoleSessionId();
+        var sessionId = WTSGetActiveConsoleSessionId();
+
         // 获取活动会话的用户访问令牌
-        Boolean success = WTSQueryUserToken(sessionId, out IntPtr hToken);
+        var success = WTSQueryUserToken(sessionId, out var hToken);
         // 如果失败，则从会话列表中获取第一个活动的会话ID，并再次尝试获取用户访问令牌
         if (!success)
         {
-            //Win32Exception firstException = new Win32Exception(Marshal.GetLastWin32Error());
-
             sessionId = GetFirstActiveSessionOfEnumerateSessions();
             success = WTSQueryUserToken(sessionId, out hToken);
             if (!success)
-            {
-                //throw new ApplicationException("Failed to query user token.", firstException);
                 throw new Win32Exception(Marshal.GetLastWin32Error());
-            }
         }
 
-        SafeTokenHandle safeTokenHandle = new SafeTokenHandle(hToken);
-        return safeTokenHandle;
-    }
-
-    /// <summary>
-    /// 安全处理用户访问令牌
-    /// </summary>
-    public sealed class SafeTokenHandle : SafeHandleZeroOrMinusOneIsInvalid
-    {
-        private SafeTokenHandle() : base(true) { }
-
-        internal SafeTokenHandle(IntPtr handle) : base(true) => SetHandle(handle);
-
-        protected override Boolean ReleaseHandle() => CloseHandle(handle);
+        return hToken;
     }
 
     /// <summary>
@@ -243,20 +99,20 @@ public class Desktop
     /// </summary>
     private static UInt32 GetFirstActiveSessionOfEnumerateSessions()
     {
-        IntPtr pSessionInfo = IntPtr.Zero;
+        var pSessionInfo = IntPtr.Zero;
         try
         {
-            Int32 sessionCount = 0;
+            var sessionCount = 0;
 
             // 枚举所有用户会话
             if (WTSEnumerateSessions(IntPtr.Zero, 0, 1, ref pSessionInfo, ref sessionCount) != 0)
             {
-                Int32 arrayElementSize = Marshal.SizeOf(typeof(WTS_SESSION_INFO));
-                IntPtr current = pSessionInfo;
+                var arrayElementSize = Marshal.SizeOf(typeof(WTS_SESSION_INFO));
+                var current = pSessionInfo;
 
                 for (var i = 0; i < sessionCount; i++)
                 {
-                    WTS_SESSION_INFO si = (WTS_SESSION_INFO)Marshal.PtrToStructure(current, typeof(WTS_SESSION_INFO));
+                    var si = (WTS_SESSION_INFO)Marshal.PtrToStructure(current, typeof(WTS_SESSION_INFO));
                     current += arrayElementSize;
 
                     if (si.State == WTS_CONNECTSTATE_CLASS.WTSActive)

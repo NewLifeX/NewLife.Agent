@@ -53,11 +53,13 @@ public class MyServices : ServiceBase
         XTrace.WriteLine($"代码执行时间：{data}");
 
         var desktop = new Desktop { Log = Log };
-        //desktop.StartProcess(@"D:\Net\ILSpy\ILSpy\ILSpy.exe");
+        desktop.StartProcess(@"D:\Net\ILSpy\ILSpy\ILSpy.exe");
+        desktop.StartProcess(@"ping.exe", "-n 10 newlifex.com");
+        desktop.StartProcess("../net45/test.exe", "-n 10 newlifex.com");
 
-        var file = Assembly.GetEntryAssembly().Location;
-        file = Path.ChangeExtension(file, ".exe");
-        desktop.StartProcess(file);
+        //var file = Assembly.GetEntryAssembly().Location;
+        //file = Path.ChangeExtension(file, ".exe");
+        //desktop.StartProcess(file);
     }
 
     /// <summary>停止服务</summary>
