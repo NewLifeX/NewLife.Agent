@@ -339,7 +339,18 @@ public abstract class ServiceBase : DisposeBase
 
         //StartWork("StartLoop");
 
-        var task = Task.Factory.StartNew(() => StartWork("StartLoop"));
+        var task = Task.Factory.StartNew(() =>
+        {
+            try
+            {
+                StartWork("StartLoop");
+            }
+            catch (Exception ex)
+            {
+                WriteLog("StartWork失败，为保证服务稳定，Agent继续调度管理，请自行确认相关异常！");
+                Log?.Error(ex.ToString());
+            }
+        });
         if (!task.Wait(3_000)) XTrace.WriteLine("服务启动函数StartWork耗时过长，建议优化，StartWork应该避免阻塞操作！");
     }
 
@@ -517,7 +528,7 @@ public abstract class ServiceBase : DisposeBase
         var timeRange = Setting.Current.RestartTimeRange?.Split('-');
         if (timeRange?.Length == 2)
         {
-            if (TimeSpan.TryParse(timeRange[0], out var startTime) && startTime <= DateTime.Now.TimeOfDay 
+            if (TimeSpan.TryParse(timeRange[0], out var startTime) && startTime <= DateTime.Now.TimeOfDay
                 && TimeSpan.TryParse(timeRange[1], out var endTime) && endTime >= DateTime.Now.TimeOfDay)
             {
                 WriteLog("服务已运行 {0:n0}分钟，达到预设重启时间（{1:n0}分钟），并且当前时间在预设时间范围之内（{2}），准备重启！", ts.TotalMinutes, auto, Setting.Current.RestartTimeRange);
