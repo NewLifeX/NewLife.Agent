@@ -18,8 +18,8 @@ public class RunSimulation : BaseCommandHandler
         ShortcutKey = '5';
     }
 
-    /// <inheritdoc />
-    public override Boolean IsShowMenu() => !Service.Host.IsRunning(Service.ServiceName);
+    ///// <inheritdoc />
+    //public override Boolean IsShowMenu() => !Service.Host.IsRunning(Service.ServiceName);
 
     /// <inheritdoc/>
     public override void Process(String[] args)
