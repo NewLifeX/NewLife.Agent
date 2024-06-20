@@ -41,6 +41,7 @@ public class Desktop
             {
                 if (!Path.IsPathRooted(fileName))
                 {
+                    // TODO: 如果文件名是一个命令，例如ping.exe，又刚好传入了工作目录参数workDir，那么就会拼接文件名，从而引发异常：找不到文件。这里应该判断文件名是否存在，或者看看应该如何处理比较合适？
                     file = !workDir.IsNullOrEmpty() ? Path.Combine(workDir, fileName).GetFullPath() : fileName.GetFullPath();
                 }
                 if (workDir.IsNullOrWhiteSpace()) workDir = Path.GetDirectoryName(file);
@@ -140,20 +141,23 @@ public class Desktop
             var sessionCount = 0;
 
             // 枚举所有用户会话
-            if (WTSEnumerateSessions(IntPtr.Zero, 0, 1, ref pSessionInfo, ref sessionCount) != 0)
+            if (WTSEnumerateSessions(IntPtr.Zero, 0, 1, ref pSessionInfo, ref sessionCount) == 0)
             {
-                var arrayElementSize = Marshal.SizeOf(typeof(WtsSessionInfo));
-                var current = pSessionInfo;
+                var errorCode = Marshal.GetLastWin32Error();
+                throw new Win32Exception(errorCode, $"Failed to enumerate sessions. Error code: {errorCode}");
+            }
 
-                for (var i = 0; i < sessionCount; i++)
+            var arrayElementSize = Marshal.SizeOf(typeof(WtsSessionInfo));
+            var current = pSessionInfo;
+
+            for (var i = 0; i < sessionCount; i++)
+            {
+                var si = (WtsSessionInfo)Marshal.PtrToStructure(current, typeof(WtsSessionInfo));
+                current += arrayElementSize;
+
+                if (si.State == WtsConnectStateClass.WTSActive)
                 {
-                    var si = (WtsSessionInfo)Marshal.PtrToStructure(current, typeof(WtsSessionInfo));
-                    current += arrayElementSize;
-
-                    if (si.State == WtsConnectStateClass.WTSActive)
-                    {
-                        return si.SessionID;
-                    }
+                    return si.SessionID;
                 }
             }
 
@@ -161,8 +165,13 @@ public class Desktop
         }
         finally
         {
-            WTSFreeMemory(pSessionInfo);
-            CloseHandle(pSessionInfo);
+            // 清理资源
+            if (pSessionInfo != IntPtr.Zero)
+            {
+                WTSFreeMemory(pSessionInfo);
+                //如果没有判断是否为IntPtr.Zero，会导致引发SEHException异常："external component has thrown an exception"
+                CloseHandle(pSessionInfo);
+            }
         }
     }
 
