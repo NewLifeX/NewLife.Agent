@@ -87,6 +87,7 @@ public class SysVinit : DefaultHost
         XTrace.WriteLine("{0}.Start {1}", Name, serviceName);
         var file = GetServicePath(serviceName);
         if (file == null) return false;
+
         return Process.Start(file, "start") != null;
     }
 
@@ -98,6 +99,7 @@ public class SysVinit : DefaultHost
         XTrace.WriteLine("{0}.Stop {1}", Name, serviceName);
         var file = GetServicePath(serviceName);
         if (file == null) return false;
+
         return Process.Start(file, "stop") != null;
     }
 
@@ -108,6 +110,7 @@ public class SysVinit : DefaultHost
         XTrace.WriteLine("{0}.Restart {1}", Name, serviceName);
         var file = GetServicePath(serviceName);
         if (file == null) return false;
+
         return Process.Start(file, "restart") != null;
     }
 

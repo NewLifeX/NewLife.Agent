@@ -18,7 +18,7 @@ public class Systemd : DefaultHost
     public static Boolean Available => !ServicePath.IsNullOrEmpty();
 
     /// <summary>相关目录，可以参考 systemd 目录优先级</summary>
-    private readonly static String[] _paths = [
+    public readonly static String[] SystemdPaths = [
         "/etc/systemd/system",
         "/run/systemd/system",
         "/usr/local/lib/systemd/system",
@@ -29,7 +29,7 @@ public class Systemd : DefaultHost
     /// <summary>实例化</summary>
     static Systemd()
     {
-        foreach (var p in _paths)
+        foreach (var p in SystemdPaths)
         {
             if (Directory.Exists(p))
             {
