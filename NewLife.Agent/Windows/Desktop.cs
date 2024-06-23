@@ -1,12 +1,16 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
+using Microsoft.Win32.SafeHandles;
 using NewLife.Log;
 
 namespace NewLife.Agent.Windows;
 
 /// <summary>桌面助手</summary>
-//[SupportedOSPlatform("windows")]
+#if NET5_0_OR_GREATER
+[System.Runtime.Versioning.SupportedOSPlatform("windows")]
+#endif
 public class Desktop
 {
     /// <summary>在用户桌面上启动进程</summary>
@@ -16,7 +20,7 @@ public class Desktop
     /// <param name="noWindow"></param>
     /// <param name="minimize"></param>
     /// <exception cref="ApplicationException"></exception>
-    public Int32 StartProcess(String fileName, String commandLine = null, String workDir = null, Boolean noWindow = false, Boolean minimize = false)
+    public UInt32 StartProcess(String fileName, String commandLine = null, String workDir = null, Boolean noWindow = false, Boolean minimize = false)
     {
         if (fileName.IsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(fileName));
 
@@ -31,24 +35,6 @@ public class Desktop
         var environmentBlock = IntPtr.Zero;
         try
         {
-            var file = fileName;
-            var shell = workDir.IsNullOrEmpty() && (!fileName.Contains('/') && !fileName.Contains('\\'));
-            if (shell)
-            {
-                if (workDir.IsNullOrWhiteSpace()) workDir = Environment.CurrentDirectory;
-            }
-            else
-            {
-                if (!Path.IsPathRooted(fileName))
-                {
-                    // TODO: 如果文件名是一个命令，例如ping.exe，又刚好传入了工作目录参数workDir，那么就会拼接文件名，从而引发异常：找不到文件。这里应该判断文件名是否存在，或者看看应该如何处理比较合适？
-                    file = !workDir.IsNullOrEmpty() ? Path.Combine(workDir, fileName).GetFullPath() : fileName.GetFullPath();
-                }
-                if (workDir.IsNullOrWhiteSpace()) workDir = Path.GetDirectoryName(file);
-            }
-
-            if (commandLine.IsNullOrWhiteSpace()) commandLine = "";
-
             // 复制令牌
             var sa = new SecurityAttributes();
             sa.Length = Marshal.SizeOf(sa);
@@ -59,13 +45,68 @@ public class Desktop
             if (!CreateEnvironmentBlock(out environmentBlock, duplicateToken, false))
                 throw new ApplicationException("Could not create environment block.");
 
+            Boolean theCommandIsInPath;
+            // 如果文件名不包含路径分隔符，则尝试先在workDir参数中查找。如果找不到，再在指定用户会话的PATH环境变量中查找。如果还是找不到，则抛出异常
+            if ((!fileName.Contains('/') && !fileName.Contains('\\')))
+            {
+                if (!workDir.IsNullOrEmpty())
+                {
+                    if (File.Exists(Path.Combine(workDir, fileName)))
+                    {
+                        // 在指定的工作目录中找到可执行命令文件
+                        theCommandIsInPath = false;
+                    }
+                    else
+                    {
+                        // 在指定的工作目录(workDir)中找不到可执行命令文件，再在指定用户会话的PATH环境变量中查找。如果还是找不到，则抛出异常
+                        if (!InPathOfSpecificUserEnvironment(in duplicateToken, in environmentBlock, fileName))
+                        {
+                            throw new ApplicationException($"The file '{fileName}' was not found in the specified directory '{workDir}' or in the PATH environment variable.");
+                        }
+                        else
+                        {
+                            // 在指定用户会话的PATH环境变量中找到可执行命令文件
+                            theCommandIsInPath = true;
+                        }
+                    }
+                }
+                else
+                {
+                    // 在指定用户会话的PATH环境变量中查找，如果找不到，则抛出异常
+                    if (!InPathOfSpecificUserEnvironment(in duplicateToken, in environmentBlock, fileName))
+                    {
+                        throw new ApplicationException($"The file '{fileName}' was not found in the PATH environment variable.");
+                    }
+                    // 在指定用户会话的PATH环境变量中找到可执行命令文件
+                    theCommandIsInPath = true;
+                }
+            }
+            else
+            {
+                theCommandIsInPath = false;
+            }
+
+            String file;
+            if (!theCommandIsInPath && !Path.IsPathRooted(fileName))
+            {
+                file = !workDir.IsNullOrEmpty() ? Path.Combine(workDir, fileName).GetFullPath() : fileName.GetFullPath();
+            }
+            else
+            {
+                file = fileName;
+            }
+
+            if (workDir.IsNullOrWhiteSpace()) workDir = theCommandIsInPath ? Environment.CurrentDirectory : Path.GetDirectoryName(file);
+
+            if (commandLine.IsNullOrWhiteSpace()) commandLine = "";
+
             // 启动信息
             var psi = new ProcessStartInfo
             {
-                UseShellExecute = shell,
+                UseShellExecute = true,
                 FileName = file + ' ' + commandLine,
                 Arguments = commandLine,
-                WorkingDirectory = workDir,
+                WorkingDirectory = workDir!,
                 RedirectStandardError = false,
                 RedirectStandardOutput = false,
                 RedirectStandardInput = false,
@@ -106,6 +147,105 @@ public class Desktop
     /// <param name="format"></param>
     /// <param name="args"></param>
     public void WriteLog(String format, params Object[] args) => Log?.Info(format, args);
+
+    /// <summary>
+    /// 使用win32api实现在指定用户身份的环境变量中查找命令(command参数)是否存在。
+    /// </summary>
+    private Boolean InPathOfSpecificUserEnvironment(in IntPtr userToken, in IntPtr environmentBlock, in String command)
+    {
+        // 在指定用户会话环境中执行命令，并且获得控制台标准输出内容
+        String commandLine = $"cmd.exe /c chcp 65001 && where {command}";
+        String output = ExecuteCommandAsUserAndReturnStdOutput(userToken, environmentBlock, commandLine, Encoding.UTF8);
+
+        // OperatingSystem.IsOSPlatform("WINDOWS") 该方法仅在 .NET Core及以上版本可用，在 .NET Standard 和 .NET Framework 中不可用。
+        // 现有操作系统中，Windows 操作系统的目录分隔符为 '\'，而 Unix 操作系统的目录分隔符为 '/'，因此可以用它来判断和区分操作系统。
+        // 如果是Windows操作系统，则不区分大小写
+        var comparison = Path.DirectorySeparatorChar == '\\' ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        return output.IndexOf(command, comparison) >= 0;
+    }
+
+    /// <summary>
+    /// 在指定用户会话环境中执行命令，并且返回控制台标准输出内容
+    /// </summary>
+    private String ExecuteCommandAsUserAndReturnStdOutput(in IntPtr userToken, in IntPtr environmentBlock, String commandLine, Encoding encoding)
+    {
+        // 创建匿名管道
+        var saPipeAttributes = new SecurityAttributes();
+        saPipeAttributes.Length = Marshal.SizeOf(saPipeAttributes);
+        saPipeAttributes.InheritHandle = true; // 允许句柄被继承
+        //saPipeAttributes.SecurityDescriptor = IntPtr.Zero;
+        if (!CreatePipe(out IntPtr readPipe, out IntPtr writePipe, ref saPipeAttributes, 0))
+        {
+            throw new Win32Exception(Marshal.GetLastWin32Error());
+        }
+
+        // 确保管道句柄有效
+        if (readPipe == IntPtr.Zero)
+        {
+            throw new InvalidOperationException("Failed to create read pipe.");
+        }
+        if (writePipe == IntPtr.Zero)
+        {
+            throw new InvalidOperationException("Failed to create write pipe.");
+        }
+
+        try
+        {
+            // 确保读取句柄不被子进程继承
+            SetHandleInformation(readPipe, 0x00000001/*HANDLE_FLAG_INHERIT*/, 0);
+
+            var startInfo = new StartupInfo();
+            startInfo.cb = Marshal.SizeOf(startInfo);
+            // 设置子进程的标准输出为管道的写入端
+            startInfo.hStdError = writePipe;
+            startInfo.hStdOutput = writePipe;
+            startInfo.dwFlags = StartupInfoFlags.STARTF_USESTDHANDLES;
+
+            // 在用户会话中创建进程
+            const CreateProcessFlags createProcessFlags = CreateProcessFlags.CREATE_NEW_CONSOLE | CreateProcessFlags.CREATE_UNICODE_ENVIRONMENT;
+            var success = CreateProcessAsUser(
+                userToken,
+                null,
+                commandLine,
+                ref saPipeAttributes,
+                ref saPipeAttributes,
+                true,
+                createProcessFlags,
+                environmentBlock,
+                null,
+                ref startInfo,
+                out ProcessInformation pi);
+            if (!success)
+            {
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+            }
+
+            // 关闭管道的写入端句柄，因为它已经被子进程继承
+            CloseHandle(writePipe);
+            writePipe = IntPtr.Zero;
+
+            // 从管道的读取端读取数据
+            String output;
+            using (var streamReader = new StreamReader(new FileStream(new SafeFileHandle(readPipe, true), FileAccess.Read, 4096, false), encoding))
+            {
+                // 读取控制台标准输出内容
+                output = streamReader.ReadToEnd();
+                Log?.Debug($"The commandLine [{commandLine}] std output -> {output}");
+            }
+
+            // 关闭进程和线程句柄
+            CloseHandle(pi.hProcess);
+            CloseHandle(pi.hThread);
+
+            // 返回控制台标准输出内容
+            return output;
+        }
+        finally
+        {
+            if (readPipe != IntPtr.Zero) CloseHandle(readPipe);
+            if (writePipe != IntPtr.Zero) CloseHandle(writePipe);
+        }
+    }
 
     /// <summary>
     /// 获取活动会话的用户访问令牌
@@ -227,14 +367,20 @@ public class Desktop
         out ProcessInformation lpProcessInformation);
 
     [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern Boolean CreatePipe(out IntPtr hReadPipe, out IntPtr hWritePipe, ref SecurityAttributes lpPipeAttributes, UInt32 nSize);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
     private static extern Boolean CloseHandle(IntPtr hObject);
 
     [DllImport("advapi32.dll", SetLastError = true)]
     private static extern Boolean SetTokenInformation(IntPtr TokenHandle, TokenInformationClass TokenInformationClass, ref UInt32 TokenInformation, UInt32 TokenInformationLength);
 
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern Boolean SetHandleInformation(IntPtr hObject, UInt32 dwMask, UInt32 dwFlags);
+
     private const UInt32 TOKEN_DUPLICATE = 0x0002;
     private const UInt32 MAXIMUM_ALLOWED = 0x2000000;
-    private const UInt32 STARTF_USESHOWWINDOW = 0x00000001;
 
     [StructLayout(LayoutKind.Sequential)]
     private struct SecurityAttributes
@@ -251,17 +397,17 @@ public class Desktop
         public String lpReserved;
         public String lpDesktop;
         public String lpTitle;
-        public Int32 dwX;
-        public Int32 dwY;
-        public Int32 dwXSize;
-        public Int32 dwYSize;
-        public Int32 dwXCountChars;
-        public Int32 dwYCountChars;
-        public Int32 dwFillAttribute;
-        public Int32 dwFlags;
-        public Int16 wShowWindow;
-        public Int16 cbReserved2;
-        public IntPtr lpReserved2;
+        public UInt32 dwX;
+        public UInt32 dwY;
+        public UInt32 dwXSize;
+        public UInt32 dwYSize;
+        public UInt32 dwXCountChars;
+        public UInt32 dwYCountChars;
+        public UInt32 dwFillAttribute;
+        public StartupInfoFlags dwFlags;
+        public UInt16 wShowWindow;
+        public UInt16 cbReserved2;
+        public unsafe Byte* lpReserved2;
         public IntPtr hStdInput;
         public IntPtr hStdOutput;
         public IntPtr hStdError;
@@ -272,8 +418,8 @@ public class Desktop
     {
         public IntPtr hProcess;
         public IntPtr hThread;
-        public Int32 dwProcessId;
-        public Int32 dwThreadId;
+        public UInt32 dwProcessId;
+        public UInt32 dwThreadId;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -335,6 +481,71 @@ public class Desktop
         PROFILE_KERNEL = 0x20000000,
         PROFILE_SERVER = 0x40000000,
         CREATE_IGNORE_SYSTEM_DEFAULT = 0x80000000,
+    }
+
+    /// <summary>
+    /// 指定创建进程时的窗口工作站、桌面、标准句柄和main窗口的外观。<br/>
+    /// More：https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-startupinfoa
+    /// </summary>
+    [Flags]
+    private enum StartupInfoFlags : UInt32
+    {
+        /// <summary>
+        /// 强制反馈光标显示，即使用户没有启用。
+        /// </summary>
+        STARTF_FORCEONFEEDBACK = 0x00000040,
+        /// <summary>
+        /// 强制反馈光标不显示，即使用户启用了它。
+        /// </summary>
+        STARTF_FORCEOFFFEEDBACK = 0x00000080,
+        /// <summary>
+        /// 防止应用程序被固定在任务栏或开始菜单。
+        /// </summary>
+        STARTF_PREVENTPINNING = 0x00002000,
+        /// <summary>
+        /// 不再支持，原用于强制控制台应用程序全屏运行。
+        /// </summary>
+        STARTF_RUNFULLSCREEN = 0x00000020,
+        /// <summary>
+        /// lpTitle成员是一个AppUserModelID。
+        /// </summary>
+        STARTF_TITLEISAPPID = 0x00001000,
+        /// <summary>
+        /// lpTitle成员是一个链接名。
+        /// </summary>
+        STARTF_TITLEISLINKNAME = 0x00000800,
+        /// <summary>
+        /// 启动程序来自不受信任的源，可能会显示警告。
+        /// </summary>
+        STARTF_UNTRUSTEDSOURCE = 0x00008000,
+        /// <summary>
+        /// 使用dwXCountChars和dwYCountChars成员。
+        /// </summary>
+        STARTF_USECOUNTCHARS = 0x00000008,
+        /// <summary>
+        /// 使用dwFillAttribute成员。
+        /// </summary>
+        STARTF_USEFILLATTRIBUTE = 0x00000010,
+        /// <summary>
+        /// 使用hStdInput成员指定热键。
+        /// </summary>
+        STARTF_USEHOTKEY = 0x00000200,
+        /// <summary>
+        /// 使用dwX和dwY成员。
+        /// </summary>
+        STARTF_USEPOSITION = 0x00000004,
+        /// <summary>
+        /// 使用wShowWindow成员。
+        /// </summary>
+        STARTF_USESHOWWINDOW = 0x00000001,
+        /// <summary>
+        /// 使用dwXSize和dwYSize成员。
+        /// </summary>
+        STARTF_USESIZE = 0x00000002,
+        /// <summary>
+        /// 使用hStdInput、hStdOutput和hStdError成员。
+        /// </summary>
+        STARTF_USESTDHANDLES = 0x00000100
     }
 
     private enum WtsConnectStateClass
