@@ -533,6 +533,10 @@ public abstract class ServiceBase : DisposeBase
             {
                 WriteLog("服务已运行 {0:n0}分钟，达到预设重启时间（{1:n0}分钟），并且当前时间在预设时间范围之内（{2}），准备重启！", ts.TotalMinutes, auto, Setting.Current.RestartTimeRange);
             }
+            else
+            {
+                return false;
+            }
         }
         else
         {
