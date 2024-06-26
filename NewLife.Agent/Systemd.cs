@@ -190,9 +190,10 @@ public class Systemd : DefaultHost
     {
         XTrace.WriteLine("{0}.Remove {1}", Name, serviceName);
 
+        Process.Start("systemctl", $"disable  {serviceName}");
         var file = ServicePath.CombinePath($"{serviceName}.service");
         if (File.Exists(file)) File.Delete(file);
-
+        Process.Start("systemctl", "daemon-reload");
         return true;
     }
 
