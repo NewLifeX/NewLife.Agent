@@ -38,20 +38,21 @@ public class WatchDog : BaseCommandHandler
     /// </remarks>
     public virtual void CheckWatchDog()
     {
-        /*
-         * @zero
-         * 比如，我这边一台服务器，系统是Ubuntu 22，默认用的是Systemd服务，
-         * 如果我在服务器上安装NewLife.Agent，启动时，肯定是以Systemd服务运行
-         * 如果我在服务器上，再安装一个宝塔面板，在宝塔面板中，安装nginx、mysql、redis，等等，他全是以SysVinit服务运行的
-         * 我现在在NewLife.Agent中，配置监控nginx、mysql、redis，以你现在的方式，主服务是以Systemd服务运行，你的逻辑无法读取到SysVinit服务
-         * 就造成监控无用，检不到nginx、mysql、redis是否有安装
-         */
         foreach (var item in WatchDogs)
         {
             var host = Service.Host;
             if (Service.Host is Systemd)
             {
-                // 优先使用Systemd
+                /*
+                 * @zero
+                 * 在Linux中，同一台服务器，可能同时存在Systemd和SysVinit服务。
+                 * 例如，Ubuntu 22系统，默认用的是Systemd服务，
+                 * 如果在服务器上安装NewLife.Agent，启动时，将是以Systemd服务运行
+                 * 如果在服务器上，再安装一个宝塔面板，在宝塔面板中，安装nginx、mysql、redis等等，都是以SysVinit服务运行
+                 * 现在如果在NewLife.Agent中，配置监控nginx、mysql、redis，由于主服务是以Systemd服务运行，
+                 * 在 Systemd 的 Host 中，无法读取到nginx、mysql、redis对应的SysVinit服务配置文件
+                 * 最终将被认为服务未安装，也就造成监控无用，所以，这里需要进行调用GetHost，判断到底是哪种服务方式，以方便后续服务的状态检测
+                 */
                 host = GetHost(item);
             }
             // 已安装未运行
@@ -73,22 +74,21 @@ public class WatchDog : BaseCommandHandler
     /// <returns></returns>
     private IHost GetHost(String serviceName)
     {
-        // Check for systemd service
-        foreach (var path in Systemd.SystemdPaths)
+        // 优先使用Systemd
+        // 检测Systemd服务配置文件
+        var servicePath = Systemd.GetServicePath(serviceName);
+        if (servicePath != null)
         {
-            var file = Path.Combine(path, $"{serviceName}.service");
-            if (File.Exists(file))
-            {
-                return new Systemd() { Service = Service };
-            }
+            return new Systemd() { Service = Service };
         }
-
-        // Check for SysVinit service
+        // 检测SysVinit服务配置文件
+        servicePath = SysVinit.GetServicePath(serviceName);
         var sysVinitFile = Path.Combine(SysVinit.ServicePath, serviceName);
-        if (File.Exists(sysVinitFile))
+        if (servicePath != null)
         {
-            return new SysVinit();
+            return new SysVinit() { Service = Service };
         }
+        //依然找不到时，则默认当前Host
         return Service.Host;
     }
 }

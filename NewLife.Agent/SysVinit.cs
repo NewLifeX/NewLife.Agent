@@ -167,7 +167,12 @@ public class SysVinit : DefaultHost
         return process.StandardOutput.ReadToEnd();
     }
 
-    private String GetServicePath(String serviceName)
+    /// <summary>
+    /// 获取服务配置文件的路径
+    /// </summary>
+    /// <param name="serviceName">服务名称</param>
+    /// <returns></returns>
+    public static String GetServicePath(String serviceName)
     {
         var file = Path.Combine(ServicePath, serviceName);
         return File.Exists(file) ? file : null;
