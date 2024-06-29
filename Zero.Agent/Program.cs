@@ -50,22 +50,16 @@ namespace Zero.Agent
         {
             WriteLog("业务开始……");
 
-            // 配置APM性能跟踪器
-            var set = Setting.Current;
-            if (!set.TracerServer.IsNullOrEmpty())
-            {
-                // 配置指向星尘监控中心
-                var tracer = new StarTracer(set.TracerServer) { Log = XTrace.Log };
-                DefaultTracer.Instance = tracer;
-                ApiHelper.Tracer = tracer;
-                DAL.GlobalTracer = tracer;
-                Tracer = tracer;
-            }
+            var tracer = new DefaultTracer() { Log = XTrace.Log };
+            DefaultTracer.Instance = tracer;
+            ApiHelper.Tracer = tracer;
+            DAL.GlobalTracer = tracer;
+            Tracer = tracer;
 
             // 5秒开始，每60秒执行一次
-            _timer = new TimerX(DoWork1, null, 5_000, 60_000) { Async = true };
-            // 每天凌晨2点13分执行一次
-            _timer2 = new TimerX(DoWork2, null, DateTime.Today.AddMinutes(2 * 60 + 13), 24 * 3600 * 1000) { Async = true };
+            //_timer = new TimerX(DoWork1, null, 5_000, 60_000) { Async = true };
+            //// 每天凌晨2点13分执行一次
+            //_timer2 = new TimerX(DoWork2, null, DateTime.Today.AddMinutes(2 * 60 + 13), 24 * 3600 * 1000) { Async = true };
 
             base.StartWork(reason);
         }
@@ -95,8 +89,8 @@ namespace Zero.Agent
         {
             WriteLog("业务结束！{0}", reason);
 
-            _timer.Dispose();
-            _timer2.Dispose();
+            //_timer.Dispose();
+            //_timer2.Dispose();
 
             base.StopWork(reason);
         }

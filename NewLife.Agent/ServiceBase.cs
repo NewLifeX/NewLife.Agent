@@ -513,7 +513,7 @@ public abstract class ServiceBase : DisposeBase
     }
 
     /// <summary>服务开始时间</summary>
-    private readonly DateTime Start = DateTime.Now;
+    private DateTime Start = DateTime.Now;
 
     /// <summary>检查自动重启</summary>
     /// <returns></returns>
@@ -542,6 +542,8 @@ public abstract class ServiceBase : DisposeBase
         {
             WriteLog("服务已运行 {0:n0}分钟，达到预设重启时间（{1:n0}分钟），准备重启！", ts.TotalMinutes, auto);
         }
+        //重置开始时间，防止检测时间过快，重启时间较长时，导致多次重复重启
+        Start = DateTime.Now;
 
         Host.Restart(ServiceName);
 
