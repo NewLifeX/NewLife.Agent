@@ -32,7 +32,7 @@
     <RepositoryUrl>https://github.com/NewLifeX/NewLife.Agent</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>新生命团队;X组件;NewLife;$(AssemblyName)</PackageTags>
-    <PackageReleaseNotes>重构菜单架构；增强Systemd支持更多参数设置</PackageReleaseNotes>
+    <PackageReleaseNotes>新增Desktop，支持Windows后台服务在用户会话打开应用；重构菜单架构；增强Systemd支持更多参数设置</PackageReleaseNotes>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
@@ -61,9 +61,9 @@
     </None>
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'!='net40'">
-    <PackageReference Include="NewLife.Core" Version="10.10.2024.0601" />
+    <PackageReference Include="NewLife.Core" Version="10.10.2024.0701" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'=='net40'">
-    <PackageReference Include="NewLife.Core" Version="10.10.2024.0501-net40" />
+    <PackageReference Include="NewLife.Core" Version="10.10.2024.0701-net40" />
   </ItemGroup>
 </Project>
