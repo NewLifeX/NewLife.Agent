@@ -82,7 +82,7 @@ public class OSXLaunch : DefaultHost
         var file = GetFileName(serviceName);
         if (!File.Exists(file)) return false;
 
-        var str = Execute("launchctl", $"status {serviceName}", false);
+        var str = "launchctl".Execute($"status {serviceName}", 3_000);
         if (!str.IsNullOrEmpty() && str.Contains("running")) return true;
 
         return false;
@@ -223,25 +223,6 @@ public class OSXLaunch : DefaultHost
         Process.Start("launchctl", $"start {serviceName}");
 
         return true;
-    }
-
-    private static String Execute(String cmd, String arguments, Boolean writeLog = true)
-    {
-        if (writeLog) XTrace.WriteLine("{0} {1}", cmd, arguments);
-
-        var psi = new ProcessStartInfo(cmd, arguments)
-        {
-            UseShellExecute = false,
-            RedirectStandardOutput = true
-        };
-        var process = Process.Start(psi);
-        if (!process.WaitForExit(3_000))
-        {
-            process.Kill();
-            return null;
-        }
-
-        return process.StandardOutput.ReadToEnd();
     }
 
     /// <summary>查询服务配置</summary>

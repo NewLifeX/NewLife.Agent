@@ -49,7 +49,7 @@ public class SysVinit : DefaultHost
         var file = GetServicePath(serviceName);
         if (file == null) return false;
 
-        var status = Execute($"{ServicePath}/{serviceName}", "status", false);
+        var status = $"{ServicePath}/{serviceName}".Execute("status", 3_000);
         return status.Contains("running");
     }
 
@@ -76,7 +76,7 @@ public class SysVinit : DefaultHost
         var file = GetServicePath(serviceName);
         if (file == null) return false;
 
-        return Execute("update-rc.d", $"-f {serviceName} remove").Contains("Removing any system startup links for");
+        return "update-rc.d".Execute($"-f {serviceName} remove", 3_000).Contains("Removing any system startup links for");
     }
 
     /// <summary>启动服务</summary>
@@ -146,25 +146,6 @@ public class SysVinit : DefaultHost
         }
 
         return null;
-    }
-
-    private static String Execute(String cmd, String arguments, Boolean writeLog = true)
-    {
-        if (writeLog) XTrace.WriteLine("{0} {1}", cmd, arguments);
-
-        var psi = new ProcessStartInfo(cmd, arguments)
-        {
-            UseShellExecute = false,
-            RedirectStandardOutput = true
-        };
-        var process = Process.Start(psi);
-        if (!process.WaitForExit(3_000))
-        {
-            process.Kill();
-            return null;
-        }
-
-        return process.StandardOutput.ReadToEnd();
     }
 
     /// <summary>

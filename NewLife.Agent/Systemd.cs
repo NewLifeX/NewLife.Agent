@@ -92,7 +92,7 @@ public class Systemd : DefaultHost
     {
         if (!IsInstalled(serviceName)) return false;
         //检查服务状态
-        var status = Execute("systemctl", $"show {serviceName} -p SubState", false);
+        var status = "systemctl".Execute($"show {serviceName} -p SubState", 3_000);
         if (!status.IsNullOrEmpty())
         {
             //大部分服务状态为running时，表示服务已启动
@@ -225,25 +225,6 @@ public class Systemd : DefaultHost
         return Process.Start("systemctl", $"restart {serviceName}") != null;
         //else
         //    return Process.Start(Service.GetExeName(), "-run -delay") != null;
-    }
-
-    private static String Execute(String cmd, String arguments, Boolean writeLog = true)
-    {
-        if (writeLog) XTrace.WriteLine("{0} {1}", cmd, arguments);
-
-        var psi = new ProcessStartInfo(cmd, arguments)
-        {
-            UseShellExecute = false,
-            RedirectStandardOutput = true
-        };
-        var process = Process.Start(psi);
-        if (!process.WaitForExit(3_000))
-        {
-            process.Kill();
-            return null;
-        }
-
-        return process.StandardOutput.ReadToEnd();
     }
 
     /// <summary>查询服务配置</summary>
