@@ -432,23 +432,13 @@ public abstract class ServiceBase : DisposeBase
             ReleaseMemory();
         }
 
-        var cur = GC.GetTotalMemory(false);
-        cur = cur / 1024 / 1024;
-        if (cur < max) return false;
+        //var memory = GC.GetTotalMemory(false);
+        var p = Process.GetCurrentProcess();
+        var memory = p.WorkingSet64;
+        memory = memory / 1024 / 1024;
+        if (memory < max) return false;
 
-        //        // 执行一次GC回收
-        //#if NETFRAMEWORK
-        //        GC.Collect(2, GCCollectionMode.Forced);
-        //#else
-        //        GC.Collect(2, GCCollectionMode.Forced, false);
-        //#endif
-
-        //        // 再次判断内存
-        //        cur = GC.GetTotalMemory(true);
-        //        cur = cur / 1024 / 1024;
-        //        if (cur < max) return false;
-
-        WriteLog("当前进程占用内存 {0:n0}M，超过阀值 {1:n0}M，准备重新启动！", cur, max);
+        WriteLog("当前进程占用内存 {0:n0}M，超过阀值 {1:n0}M，准备重新启动！", memory, max);
 
         Host.Restart(ServiceName);
 
