@@ -371,7 +371,7 @@ public abstract class ServiceBase : DisposeBase
         }
         catch { }
 
-        ReleaseMemory();
+        FreeMemory();
     }
 
     /// <summary>开始工作</summary>
@@ -422,15 +422,16 @@ public abstract class ServiceBase : DisposeBase
     /// <returns>是否超标重启</returns>
     protected virtual Boolean CheckMemory()
     {
-        var max = Setting.Current.MaxMemory;
-        if (max <= 0) return false;
-
-        if (_nextCollect < DateTime.Now)
+        var set = Setting.Current;
+        if (set.FreeMemoryInterval > 0 && _nextCollect < DateTime.Now)
         {
-            _nextCollect = DateTime.Now.AddSeconds(600);
+            _nextCollect = DateTime.Now.AddSeconds(set.FreeMemoryInterval);
 
-            ReleaseMemory();
+            FreeMemory();
         }
+
+        var max = set.MaxMemory;
+        if (max <= 0) return false;
 
         //var memory = GC.GetTotalMemory(false);
         var p = Process.GetCurrentProcess();
@@ -446,7 +447,7 @@ public abstract class ServiceBase : DisposeBase
     }
 
     /// <summary>释放内存。GC回收后再释放虚拟内存</summary>
-    public void ReleaseMemory()
+    public void FreeMemory()
     {
         var max = GC.MaxGeneration;
         var mode = GCCollectionMode.Forced;

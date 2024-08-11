@@ -38,7 +38,7 @@ public class RunSimulation : BaseCommandHandler
 
             Service.Running = false;
             Service.StopWork("模拟运行停止");
-            Service.ReleaseMemory();
+            Service.FreeMemory();
         }
         catch (Exception ex)
         {

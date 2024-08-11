@@ -30,6 +30,10 @@ public class Setting : Config<Setting>
     [Description("服务管理线程资源监控时间间隔。多久检测一次服务资源占用情况。默认10秒")]
     public Int32 WatchInterval { get; set; } = 10;
 
+    /// <summary>释放内存间隔。定时执行GC回收以及释放虚拟内存。默认600秒</summary>
+    [Description("释放内存间隔。定时执行GC回收以及释放虚拟内存。默认600秒")]
+    public Int32 FreeMemoryInterval { get; set; } = 600;
+
     /// <summary>最大占用内存。超过最大占用时，整个服务进程将会重启，以释放资源。默认0M</summary>
     [Description("最大占用内存。超过最大占用时，整个服务进程将会重启，以释放资源。默认0M")]
     public Int32 MaxMemory { get; set; }
