@@ -122,7 +122,7 @@ public class Desktop
             var saProcessAttributes = new SecurityAttributes();
             var saThreadAttributes = new SecurityAttributes();
             var createProcessFlags = (noWindow ? CreateProcessFlags.CREATE_NO_WINDOW : CreateProcessFlags.CREATE_NEW_CONSOLE) | CreateProcessFlags.CREATE_UNICODE_ENVIRONMENT;
-            var success = CreateProcessAsUser(duplicateToken, null, file + ' ' + commandLine, ref saProcessAttributes, ref saThreadAttributes, false, createProcessFlags, environmentBlock, null, ref psi, out ProcessInformation pi);
+            var success = CreateProcessAsUser(duplicateToken, null, file + ' ' + commandLine, ref saProcessAttributes, ref saThreadAttributes, false, createProcessFlags, environmentBlock, null, ref psi, out var pi);
             if (!success)
             {
                 throw new Win32Exception(Marshal.GetLastWin32Error());
@@ -154,8 +154,8 @@ public class Desktop
     private Boolean InPathOfSpecificUserEnvironment(in IntPtr userToken, in IntPtr environmentBlock, in String command)
     {
         // 在指定用户会话环境中执行命令，并且获得控制台标准输出内容
-        String commandLine = $"cmd.exe /c chcp 65001 && where {command}";
-        String output = ExecuteCommandAsUserAndReturnStdOutput(userToken, environmentBlock, commandLine, Encoding.UTF8);
+        var commandLine = $"cmd.exe /c chcp 65001 && where {command}";
+        var output = ExecuteCommandAsUserAndReturnStdOutput(userToken, environmentBlock, commandLine, Encoding.UTF8);
 
         // OperatingSystem.IsOSPlatform("WINDOWS") 该方法仅在 .NET Core及以上版本可用，在 .NET Standard 和 .NET Framework 中不可用。
         // 现有操作系统中，Windows 操作系统的目录分隔符为 '\'，而 Unix 操作系统的目录分隔符为 '/'，因此可以用它来判断和区分操作系统。
@@ -174,7 +174,7 @@ public class Desktop
         saPipeAttributes.Length = Marshal.SizeOf(saPipeAttributes);
         saPipeAttributes.InheritHandle = true; // 允许句柄被继承
         //saPipeAttributes.SecurityDescriptor = IntPtr.Zero;
-        if (!CreatePipe(out IntPtr readPipe, out IntPtr writePipe, ref saPipeAttributes, 0))
+        if (!CreatePipe(out var readPipe, out var writePipe, ref saPipeAttributes, 0))
         {
             throw new Win32Exception(Marshal.GetLastWin32Error());
         }
@@ -214,7 +214,7 @@ public class Desktop
                 environmentBlock,
                 null,
                 ref startInfo,
-                out ProcessInformation pi);
+                out var pi);
             if (!success)
             {
                 throw new Win32Exception(Marshal.GetLastWin32Error());
@@ -377,7 +377,7 @@ public class Desktop
     private static extern Boolean SetTokenInformation(IntPtr TokenHandle, TokenInformationClass TokenInformationClass, ref UInt32 TokenInformation, UInt32 TokenInformationLength);
 
     [DllImport("kernel32.dll", SetLastError = true)]
-    public static extern Boolean SetHandleInformation(IntPtr hObject, UInt32 dwMask, UInt32 dwFlags);
+    private static extern Boolean SetHandleInformation(IntPtr hObject, UInt32 dwMask, UInt32 dwFlags);
 
     private const UInt32 TOKEN_DUPLICATE = 0x0002;
     private const UInt32 MAXIMUM_ALLOWED = 0x2000000;
