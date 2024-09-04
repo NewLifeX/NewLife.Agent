@@ -9,15 +9,31 @@ namespace Zero.Web;
 
 public class Program
 {
-    private static void Main(String[] args) => new MyServices { Args = args }.Main(args);
+    private static void Main(String[] args)
+    {
+#if DEBUG
+        //调试环境默认启动
+        if (args?.Length == 0)
+            args = ["-run"];
+#endif
+
+        new MyServices { StartAct = () => CreateHostBuilder(args) }.Main(args);
+    }
+
+    public static IHostBuilder CreateHostBuilder(String[] args) =>
+    Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder(args)
+        .ConfigureWebHostDefaults(webBuilder =>
+        {
+            webBuilder.UseStartup<Startup>();
+        });
 }
 
 /// <summary>代理服务例子。自定义服务程序可参照该类实现。</summary>
 public class MyServices : ServiceBase
 {
     #region 属性
-    /// <summary>性能跟踪器</summary>
-    public String[] Args { get; set; }
+    /// <summary>ihost启动委托</summary>
+    public Func<IHostBuilder> StartAct { get; set; }
     #endregion
 
     #region 构造函数
@@ -53,17 +69,17 @@ public class MyServices : ServiceBase
         //Environment.CurrentDirectory = ".".GetFullPath();
 
         _source = new CancellationTokenSource();
-        CreateHostBuilder(Args).Build().RunAsync(_source.Token);
+        if (StartAct != null)
+        {
+            var host = StartAct.Invoke();
+            host.Build().RunAsync(_source.Token);
+        }
+        //CreateHostBuilder(Args).Build().RunAsync(_source.Token);
 
         base.StartWork(reason);
     }
 
-    public static IHostBuilder CreateHostBuilder(String[] args) =>
-        Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder(args)
-            .ConfigureWebHostDefaults(webBuilder =>
-            {
-                webBuilder.UseStartup<Startup>();
-            });
+
 
     /// <summary>停止服务</summary>
     /// <param name="reason"></param>
