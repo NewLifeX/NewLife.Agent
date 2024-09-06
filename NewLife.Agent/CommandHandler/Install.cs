@@ -33,6 +33,11 @@ public class Install : BaseCommandHandler
             if (exe.Contains(' ')) exe = $"\"{exe}\"";
 
             var dll = args[0].GetFullPath();
+            if (!dll.Contains(".dll"))//没有获得到主程的dll
+            {
+                dll = Environment.CommandLine?.Split(' ')[0];//Assembly.GetExecutingAssembly().Location;
+            }
+
             if (dll.Contains(' ')) dll = $"\"{dll}\"";
 
             if (fileName.EqualIgnoreCase("dotnet", "dotnet.exe", "java"))
