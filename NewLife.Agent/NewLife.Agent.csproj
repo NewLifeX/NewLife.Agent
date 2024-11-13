@@ -1,14 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="Current">
   
   <PropertyGroup>
-    <TargetFrameworks>net40;net45;net461;netstandard2.0;netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>net40;net45;net461;netstandard2.0;netstandard2.1;net6.0;net7.0;net8.0;net9.0</TargetFrameworks>
     <AssemblyName>NewLife.Agent</AssemblyName>
     <RootNamespace>NewLife.Agent</RootNamespace>
     <AssemblyTitle>服务管理</AssemblyTitle>
     <Description>应用程序注册为系统服务，支持Windows/Linux</Description>
     <Company>新生命开发团队</Company>
     <Copyright>©2002-2024 NewLife</Copyright>
-    <VersionPrefix>10.9</VersionPrefix>
+    <VersionPrefix>10.10</VersionPrefix>
     <VersionSuffix>$([System.DateTime]::Now.ToString(`yyyy.MMdd`))</VersionSuffix>
     <Version>$(VersionPrefix).$(VersionSuffix)</Version>
     <FileVersion>$(Version)</FileVersion>
