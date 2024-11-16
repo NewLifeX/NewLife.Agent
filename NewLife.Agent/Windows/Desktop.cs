@@ -290,6 +290,15 @@ public class Desktop
             var arrayElementSize = Marshal.SizeOf(typeof(WtsSessionInfo));
             var current = pSessionInfo;
 
+            /*
+             * 常见会话：
+             * 0, Services, WTSDisconnected
+             * 1, Console, WTSActive
+             * 2, "", WTSDisconnected -YiFan
+             * 3, "", WTSDisconnected -YiFei
+             * 65536, 31C5CE94259D4006A9E4, WTSListen
+             * 65537, RDP-Tcp, WTSListen
+             */
             for (var i = 0; i < sessionCount; i++)
             {
                 var si = (WtsSessionInfo)Marshal.PtrToStructure(current, typeof(WtsSessionInfo));
@@ -308,9 +317,8 @@ public class Desktop
             // 清理资源
             if (pSessionInfo != IntPtr.Zero)
             {
-                WTSFreeMemory(pSessionInfo);
                 //如果没有判断是否为IntPtr.Zero，会导致引发SEHException异常："external component has thrown an exception"
-                CloseHandle(pSessionInfo);
+                WTSFreeMemory(pSessionInfo);
             }
         }
     }
