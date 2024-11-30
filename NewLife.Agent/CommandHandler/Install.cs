@@ -55,12 +55,14 @@ public class Install : BaseCommandHandler
             // 跳过系统内置参数
             var list = new List<String>();
             for (var i = 2; i < args.Length; i++)
+            {
                 if (args[i].EqualIgnoreCase("-server", "-user", "-group"))
                     i++;
                 else if (args[i].Contains(' '))
                     list.Add($"\"{args[i]}\"");
                 else
                     list.Add(args[i]);
+            }
             if (list.Count > 0) arg += " " + list.Join(" ");
         }
 

@@ -255,6 +255,7 @@ public abstract class ServiceBase : DisposeBase
         Console.WriteLine();
         Console.ForegroundColor = color;
     }
+
     private readonly List<Menu> _Menus = [];
     /// <summary>添加菜单</summary>
     /// <param name="key"></param>
