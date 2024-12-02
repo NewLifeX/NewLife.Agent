@@ -9,7 +9,7 @@ namespace NewLife.Agent.Command;
 public class CommandFactory
 {
     private readonly List<BaseCommandHandler> _commandHandlerList;
-    private Dictionary<String, BaseCommandHandler> _commandHandlerDict = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<String, BaseCommandHandler> _commandHandlerDict = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// 命令工厂

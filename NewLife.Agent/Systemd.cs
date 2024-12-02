@@ -107,54 +107,21 @@ public class Systemd : DefaultHost
     }
 
     /// <summary>安装服务</summary>
-    /// <param name="serviceName">服务名</param>
-    /// <param name="displayName">显示名</param>
-    /// <param name="fileName">文件路径</param>
-    /// <param name="arguments">命令参数</param>
-    /// <param name="description">描述信息</param>
+    /// <param name="service">服务</param>
     /// <returns></returns>
-    public override Boolean Install(String serviceName, String displayName, String fileName, String arguments, String description)
+    public override Boolean Install(ServiceModel service)
     {
         var set = Setting;
-        set.ServiceName = serviceName;
-        set.DisplayName = displayName;
-        set.Description = description;
-        set.FileName = fileName;
-        set.Arguments = arguments;
+        set.ServiceName = service.ServiceName;
+        set.DisplayName = service.DisplayName;
+        set.Description = service.Description;
+        set.FileName = service.FileName;
+        set.Arguments = service.Arguments;
+        set.WorkingDirectory = service.WorkingDirectory;
 
-        // 从文件名中分析工作目录
-        var ss = fileName.Split(" ");
-        if (ss.Length >= 2 && ss[0].EndsWithIgnoreCase("dotnet", "java"))
-        {
-            var file = ss[1];
-            if (File.Exists(file))
-                set.WorkingDirectory = Path.GetDirectoryName(file).GetFullPath();
-            else
-                set.WorkingDirectory = ".".GetFullPath();
-        }
-
-        if (set.User.IsNullOrEmpty())
-        {
-            // 从命令行参数加载用户设置 -user
-            var args = Environment.GetCommandLineArgs();
-            if (args.Length >= 1)
-            {
-                for (var i = 0; i < args.Length; i++)
-                {
-                    if (args[i].EqualIgnoreCase("-user") && i + 1 < args.Length)
-                    {
-                        set.User = args[i + 1];
-                        break;
-                    }
-                    if (args[i].EqualIgnoreCase("-group") && i + 1 < args.Length)
-                    {
-                        set.Group = args[i + 1];
-                        break;
-                    }
-                }
-                if (!set.User.IsNullOrEmpty() && set.Group.IsNullOrEmpty()) set.Group = set.User;
-            }
-        }
+        set.User = service.User;
+        set.Group = service.Group;
+        if (!set.User.IsNullOrEmpty() && set.Group.IsNullOrEmpty()) set.Group = set.User;
 
         return Install(ServicePath, set);
     }

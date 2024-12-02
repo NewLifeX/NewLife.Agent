@@ -313,15 +313,11 @@ public class WindowsService : DefaultHost
     }
 
     /// <summary>安装服务</summary>
-    /// <param name="serviceName">服务名</param>
-    /// <param name="displayName"></param>
-    /// <param name="fileName">文件路径</param>
-    /// <param name="arguments">命令参数</param>
-    /// <param name="description"></param>
+    /// <param name="service">服务</param>
     /// <returns></returns>
-    public override Boolean Install(String serviceName, String displayName, String fileName, String arguments, String description)
+    public override Boolean Install(ServiceModel service)
     {
-        XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", GetType().Name, serviceName, displayName, fileName, arguments, description);
+        XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", GetType().Name, service.ServiceName, service.DisplayName, service.FileName, service.Arguments, service.Description);
 
         if (!IsAdministrator()) return RunAsAdministrator("-i");
 
@@ -332,17 +328,17 @@ public class WindowsService : DefaultHost
             throw new Win32Exception(Marshal.GetLastWin32Error());
         }
 
-        var binPath = fileName;
-        if (!arguments.IsNullOrEmpty()) binPath += " " + arguments;
+        var binPath = service.FileName;
+        if (!service.Arguments.IsNullOrEmpty()) binPath += " " + service.Arguments;
 
-        using var service = new SafeServiceHandle(CreateService(manager, serviceName, displayName, ServiceOptions.SERVICE_ALL_ACCESS, (Int32)ServiceType.Win32OwnProcess, (Int32)StartType.AutoStart, 1, binPath, null, 0, null, null, null));
-        if (service.IsInvalid) throw new Win32Exception(Marshal.GetLastWin32Error());
+        using var handle = new SafeServiceHandle(CreateService(manager, service.ServiceName, service.DisplayName, ServiceOptions.SERVICE_ALL_ACCESS, (Int32)ServiceType.Win32OwnProcess, (Int32)StartType.AutoStart, 1, binPath, null, 0, null, null, null));
+        if (handle.IsInvalid) throw new Win32Exception(Marshal.GetLastWin32Error());
 
         // 设置描述信息
-        if (!description.IsNullOrEmpty())
+        if (!service.Description.IsNullOrEmpty())
         {
             SERVICE_DESCRIPTION sd;
-            sd.Description = Marshal.StringToHGlobalUni(description);
+            sd.Description = Marshal.StringToHGlobalUni(service.Description);
             var lpInfo = Marshal.AllocHGlobal(Marshal.SizeOf(sd));
 
             try
@@ -350,7 +346,7 @@ public class WindowsService : DefaultHost
                 Marshal.StructureToPtr(sd, lpInfo, false);
 
                 const Int32 SERVICE_CONFIG_DESCRIPTION = 1;
-                ChangeServiceConfig2(service, SERVICE_CONFIG_DESCRIPTION, lpInfo);
+                ChangeServiceConfig2(handle, SERVICE_CONFIG_DESCRIPTION, lpInfo);
             }
             finally
             {

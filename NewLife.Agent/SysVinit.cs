@@ -55,13 +55,9 @@ public class SysVinit : DefaultHost
     }
 
     /// <summary>安装服务</summary>
-    /// <param name="serviceName">服务名</param>
-    /// <param name="displayName">显示名</param>
-    /// <param name="fileName">文件路径</param>
-    /// <param name="arguments">命令参数</param>
-    /// <param name="description">描述信息</param>
+    /// <param name="service">服务</param>
     /// <returns></returns>
-    public override Boolean Install(String serviceName, String displayName, String fileName, String arguments, String description)
+    public override Boolean Install(ServiceModel service)
     {
         //暂不实现SysVinit服务安装
         throw new NotImplementedException("SysVinit installation is not implemented.");

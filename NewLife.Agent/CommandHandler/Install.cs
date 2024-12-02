@@ -1,4 +1,6 @@
 ﻿using NewLife.Agent.Command;
+using NewLife.Agent.Models;
+using NewLife.Log;
 
 namespace NewLife.Agent.CommandHandler;
 
@@ -46,15 +48,34 @@ public class Install : BaseCommandHandler
                 exe = dll;
         }
 
+        var service = new ServiceModel
+        {
+            ServiceName = Service.ServiceName,
+            DisplayName = Service.DisplayName,
+            Description = Service.Description,
+            FileName = exe
+        };
+
+        // 从文件名中分析工作目录
+        var ss = service.FileName.Split(" ");
+        if (ss.Length >= 2 && ss[0].EndsWithIgnoreCase("dotnet", "java"))
+        {
+            var file = ss[1];
+            if (File.Exists(file))
+                service.WorkingDirectory = Path.GetDirectoryName(file).GetFullPath();
+            else
+                service.WorkingDirectory = ".".GetFullPath();
+        }
+
         //var arg = UseAutorun ? "-run" : "-s";
         var arg = "-s";
 
         // 兼容更多参数做为服务启动，譬如：--urls
-        if (args.Length > 2)
+        if (args.Length > 1)
         {
             // 跳过系统内置参数
             var list = new List<String>();
-            for (var i = 2; i < args.Length; i++)
+            for (var i = 1; i < args.Length; i++)
             {
                 if (args[i].EqualIgnoreCase("-server", "-user", "-group"))
                     i++;
@@ -64,9 +85,23 @@ public class Install : BaseCommandHandler
                     list.Add(args[i]);
             }
             if (list.Count > 0) arg += " " + list.Join(" ");
+
+            for (var i = 0; i < args.Length; i++)
+            {
+                if (args[i].EqualIgnoreCase("-user") && i + 1 < args.Length)
+                {
+                    service.User = args[i + 1];
+                }
+                if (args[i].EqualIgnoreCase("-group") && i + 1 < args.Length)
+                {
+                    service.Group = args[i + 1];
+                }
+            }
         }
 
-        Service.Host.Install(Service.ServiceName, Service.DisplayName, exe, arg, Service.Description);
+        service.Arguments = arg;
+        //Service.Host.Install(Service.ServiceName, Service.DisplayName, exe, arg, Service.Description);
+        Service.Host.Install(service);
 
         // 稍微等一下，以便后续状态刷新
         Thread.Sleep(500);

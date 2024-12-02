@@ -8,7 +8,7 @@ namespace NewLife.Agent;
 public class OSXLaunch : DefaultHost
 {
     #region 静态
-    private static String _path;
+    private static readonly String _path;
 
     /// <summary>是否可用</summary>
     public static Boolean Available => !_path.IsNullOrEmpty();
@@ -90,41 +90,24 @@ public class OSXLaunch : DefaultHost
     }
 
     /// <summary>安装服务</summary>
-    /// <param name="serviceName">服务名</param>
-    /// <param name="displayName">显示名</param>
-    /// <param name="fileName">文件路径</param>
-    /// <param name="arguments">命令参数</param>
-    /// <param name="description">描述信息</param>
+    /// <param name="service">服务</param>
     /// <returns></returns>
-    public override Boolean Install(String serviceName, String displayName, String fileName, String arguments, String description)
+    public override Boolean Install(ServiceModel service)
     {
-        if (User.IsNullOrEmpty())
-        {
-            // 从命令行参数加载用户设置 -user
-            var args = Environment.GetCommandLineArgs();
-            if (args.Length >= 1)
-            {
-                for (var i = 0; i < args.Length; i++)
-                {
-                    if (args[i].EqualIgnoreCase("-user") && i + 1 < args.Length)
-                    {
-                        User = args[i + 1];
-                        break;
-                    }
-                    if (args[i].EqualIgnoreCase("-group") && i + 1 < args.Length)
-                    {
-                        Group = args[i + 1];
-                        break;
-                    }
-                }
-                if (!User.IsNullOrEmpty() && Group.IsNullOrEmpty()) Group = User;
-            }
-        }
+        var serviceName = service.ServiceName;
+        var displayName = service.DisplayName;
+        var description = service.Description;
+        var fileName = service.FileName;
+        var arguments = service.Arguments;
+
+        if (!service.User.IsNullOrEmpty()) User = service.User;
+        if (!service.Group.IsNullOrEmpty()) Group = service.Group;
+        if (!User.IsNullOrEmpty() && Group.IsNullOrEmpty()) Group = User;
 
         return Install(_path, serviceName, displayName, fileName, arguments, description, User, Group, DependOnNetwork);
     }
 
-    static String _template = """
+    static readonly String _template = """
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
         <plist version="1.0">

@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.Text;
+using NewLife.Agent.Models;
 using NewLife.Log;
 
 namespace NewLife.Agent;
@@ -105,13 +106,18 @@ public class Procd : DefaultHost
     }
 
     /// <summary>安装服务</summary>
-    /// <param name="serviceName">服务名</param>
-    /// <param name="displayName">显示名</param>
-    /// <param name="fileName">文件路径</param>
-    /// <param name="arguments">命令参数</param>
-    /// <param name="description">描述信息</param>
+    /// <param name="service">服务</param>
     /// <returns></returns>
-    public override Boolean Install(String serviceName, String displayName, String fileName, String arguments, String description) => Install(_path, serviceName, fileName, arguments, displayName, description);
+    public override Boolean Install(ServiceModel service)
+    {
+        var serviceName = service.ServiceName;
+        var displayName = service.DisplayName;
+        var description = service.Description;
+        var fileName = service.FileName;
+        var arguments = service.Arguments;
+
+        return Install(_path, serviceName, fileName, arguments, displayName, description);
+    }
 
     /// <summary>安装服务</summary>
     /// <param name="systemPath">system目录</param>

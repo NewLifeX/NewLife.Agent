@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Test": {
+      "commandName": "Project",
+      "commandLineArgs": "-i -server http://s.newlifex.com:6600"
+    }
+  }
+}

@@ -72,17 +72,18 @@ public class WindowsAutorun : DefaultHost
     }
 
     /// <summary>安装服务</summary>
-    /// <param name="serviceName">服务名</param>
-    /// <param name="displayName"></param>
-    /// <param name="fileName">文件路径</param>
-    /// <param name="arguments">命令参数</param>
-    /// <param name="description"></param>
+    /// <param name="service">服务</param>
     /// <returns></returns>
 #if NET5_0_OR_GREATER
     [SupportedOSPlatform("windows")]
 #endif
-    public override Boolean Install(String serviceName, String displayName, String fileName, String arguments, String description)
+    public override Boolean Install(ServiceModel service)
     {
+        var serviceName = service.ServiceName;
+        var displayName = service.DisplayName;
+        var description = service.Description;
+        var fileName = service.FileName;
+        var arguments = service.Arguments;
         XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", GetType().Name, serviceName, displayName, fileName, arguments, description);
 
         if (!WindowsService.IsAdministrator()) return WindowsService.RunAsAdministrator("-i");

@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.Text;
+using NewLife.Agent.Models;
 using NewLife.Log;
 
 namespace NewLife.Agent;
@@ -84,19 +85,24 @@ public class RcInit : DefaultHost
     /// <returns></returns>
     public override Boolean IsRunning(String serviceName)
     {
-        var p = GetProcess(serviceName, out _);
+        var p = RcInit.GetProcess(serviceName, out _);
 
         return p != null && !GetHasExited(p);
     }
 
     /// <summary>安装服务</summary>
-    /// <param name="serviceName">服务名</param>
-    /// <param name="displayName">显示名</param>
-    /// <param name="fileName">文件路径</param>
-    /// <param name="arguments">命令参数</param>
-    /// <param name="description">描述信息</param>
+    /// <param name="service">服务</param>
     /// <returns></returns>
-    public override Boolean Install(String serviceName, String displayName, String fileName, String arguments, String description) => Install(_path, serviceName, fileName, arguments, displayName, description);
+    public override Boolean Install(ServiceModel service)
+    {
+        var serviceName = service.ServiceName;
+        var displayName = service.DisplayName;
+        var description = service.Description;
+        var fileName = service.FileName;
+        var arguments = service.Arguments;
+
+        return Install(_path, serviceName, fileName, arguments, displayName, description);
+    }
 
     /// <summary>安装服务</summary>
     /// <param name="systemPath">system目录</param>
@@ -256,7 +262,7 @@ public class RcInit : DefaultHost
         XTrace.WriteLine("{0}.Start {1}", Name, serviceName);
 
         // 判断服务是否已启动
-        var p = GetProcess(serviceName, out _);
+        var p = RcInit.GetProcess(serviceName, out _);
         if (p != null && !GetHasExited(p)) return false;
 
         //var file = _path.CombinePath($"{serviceName}");
@@ -277,7 +283,7 @@ public class RcInit : DefaultHost
     {
         XTrace.WriteLine("{0}.Stop {1}", Name, serviceName);
 
-        var p = GetProcess(serviceName, out var pid);
+        var p = RcInit.GetProcess(serviceName, out var pid);
         if (p == null) return false;
 
         try
@@ -311,7 +317,7 @@ public class RcInit : DefaultHost
         return true;
     }
 
-    private Process GetProcess(String serviceName, out String pid)
+    private static Process GetProcess(String serviceName, out String pid)
     {
         var id = 0;
         pid = $"{serviceName}.pid".GetFullPath();
