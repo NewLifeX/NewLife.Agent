@@ -3,6 +3,7 @@ using System.Runtime;
 using System.Runtime.CompilerServices;
 using System.Security;
 using NewLife.Agent.Command;
+using NewLife.Agent.Models;
 using NewLife.Agent.Windows;
 using NewLife.Log;
 using NewLife.Reflection;
@@ -109,7 +110,7 @@ public abstract class ServiceBase : DisposeBase
 
             Command.Handle(CommandConst.ShowStatus, args);
             // 输出状态，菜单循环
-            ProcessMenu();
+            ProcessMenu(args);
         }
 
         // 释放文本文件日志对象，确保日志队列内容写入磁盘
@@ -178,11 +179,11 @@ public abstract class ServiceBase : DisposeBase
     }
 
     /// <summary>显示状态</summary>
-    protected virtual void ProcessMenu()
+    protected virtual void ProcessMenu(String[] args)
     {
         var service = this;
         var name = ServiceName;
-        var args = Environment.GetCommandLineArgs();
+        //var args = Environment.GetCommandLineArgs();
         while (true)
         {
             //输出菜单

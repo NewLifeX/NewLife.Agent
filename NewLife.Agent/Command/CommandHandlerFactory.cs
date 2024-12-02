@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using NewLife.Agent.Models;
 
 namespace NewLife.Agent.Command;
 

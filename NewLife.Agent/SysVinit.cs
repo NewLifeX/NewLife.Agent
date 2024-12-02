@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using NewLife.Agent.Models;
 using NewLife.Log;
 
 namespace NewLife.Agent;

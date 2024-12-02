@@ -1,4 +1,4 @@
-﻿namespace NewLife.Agent;
+﻿namespace NewLife.Agent.Models;
 
 /// <summary>服务配置</summary>
 public class ServiceConfig

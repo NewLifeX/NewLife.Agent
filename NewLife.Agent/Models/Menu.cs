@@ -1,4 +1,4 @@
-﻿namespace NewLife.Agent;
+﻿namespace NewLife.Agent.Models;
 
 /// <summary>
 /// 菜单信息

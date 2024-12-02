@@ -1,4 +1,6 @@
-﻿namespace NewLife.Agent;
+﻿using NewLife.Agent.Models;
+
+namespace NewLife.Agent;
 
 /// <summary>服务主机</summary>
 public interface IHost

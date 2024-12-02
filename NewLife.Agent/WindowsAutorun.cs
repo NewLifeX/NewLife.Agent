@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.Versioning;
 using Microsoft.Win32;
+using NewLife.Agent.Models;
 using NewLife.Agent.Windows;
 using NewLife.Log;
 

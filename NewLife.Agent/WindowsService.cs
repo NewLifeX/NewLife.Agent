@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
+using NewLife.Agent.Models;
 using NewLife.Agent.Windows;
 using NewLife.Log;
 using NewLife.Threading;
