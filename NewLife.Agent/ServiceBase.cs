@@ -94,10 +94,7 @@ public abstract class ServiceBase : DisposeBase
         {
             try
             {
-                WriteLog("ProcessCommand cmd={0} args={1}", cmd, args.Join(" "));
-                cmd = cmd.ToLower();
-                Command.Handle(cmd, args);
-                WriteLog("ProcessFinished cmd={0}", cmd);
+                ProcessCommand(cmd, args);
             }
             catch (Exception ex)
             {
@@ -272,6 +269,16 @@ public abstract class ServiceBase : DisposeBase
         //}
     }
 
+    /// <summary>处理命令。可继承以拦截安装卸载等命令</summary>
+    /// <param name="cmd"></param>
+    /// <param name="args"></param>
+    protected virtual void ProcessCommand(String cmd, String[] args)
+    {
+        WriteLog("ProcessCommand cmd={0} args={1}", cmd, args.Join(" "));
+        cmd = cmd.ToLower();
+        Command.Handle(cmd, args);
+        WriteLog("ProcessFinished cmd={0}", cmd);
+    }
     #endregion
 
     #region 服务控制
