@@ -92,6 +92,7 @@ public class Systemd : DefaultHost
     public override Boolean IsRunning(String serviceName)
     {
         if (!IsInstalled(serviceName)) return false;
+
         //检查服务状态
         var status = "systemctl".Execute($"show {serviceName} -p SubState", 3_000);
         if (!status.IsNullOrEmpty())
@@ -123,6 +124,23 @@ public class Systemd : DefaultHost
         set.Group = service.Group;
         if (!set.User.IsNullOrEmpty() && set.Group.IsNullOrEmpty()) set.Group = set.User;
 
+        // 从文件名中分析工作目录
+        if (set.WorkingDirectory.IsNullOrEmpty() && !set.Arguments.IsNullOrEmpty())
+        {
+            if (service.FileName.EndsWithIgnoreCase("dotnet", "java"))
+            {
+                var ss = service.Arguments.Split(" ");
+                var file = ss[0];
+                var p = file.LastIndexOfAny(['/', '\\']);
+                //if (File.Exists(file))
+                //    set.WorkingDirectory = Path.GetDirectoryName(file).GetFullPath();
+                if (p > 0)
+                    set.WorkingDirectory = file.Substring(0, p);
+                else
+                    set.WorkingDirectory = ".".GetFullPath();
+            }
+        }
+
         return Install(ServicePath, set);
     }
 
@@ -130,7 +148,7 @@ public class Systemd : DefaultHost
     /// <param name="systemdPath">systemd目录有</param>
     /// <param name="set">服务名</param>
     /// <returns></returns>
-    public static Boolean Install(String systemdPath, SystemdSetting set)
+    public virtual Boolean Install(String systemdPath, SystemdSetting set)
     {
         XTrace.WriteLine("{0}.Install {1}", typeof(Systemd).Name, set.ToJson());
 
