@@ -125,21 +125,8 @@ public class Systemd : DefaultHost
         if (!set.User.IsNullOrEmpty() && set.Group.IsNullOrEmpty()) set.Group = set.User;
 
         // 从文件名中分析工作目录
-        if (set.WorkingDirectory.IsNullOrEmpty() && !set.Arguments.IsNullOrEmpty())
-        {
-            if (service.FileName.EndsWithIgnoreCase("dotnet", "java"))
-            {
-                var ss = service.Arguments.Split(" ");
-                var file = ss[0];
-                var p = file.LastIndexOfAny(['/', '\\']);
-                //if (File.Exists(file))
-                //    set.WorkingDirectory = Path.GetDirectoryName(file).GetFullPath();
-                if (p > 0)
-                    set.WorkingDirectory = file.Substring(0, p);
-                else
-                    set.WorkingDirectory = ".".GetFullPath();
-            }
-        }
+        if (set.WorkingDirectory.IsNullOrEmpty())
+            set.WorkingDirectory = set.FileName.GetWorkingDirectory(set.Arguments);
 
         return Install(ServicePath, set);
     }

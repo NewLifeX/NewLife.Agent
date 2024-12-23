@@ -1,6 +1,5 @@
 ﻿using NewLife.Agent.Command;
 using NewLife.Agent.Models;
-using NewLife.Log;
 
 namespace NewLife.Agent.CommandHandler;
 
@@ -42,7 +41,7 @@ public class Install : BaseCommandHandler
 
             if (dll.Contains(' ')) dll = $"\"{dll}\"";
 
-            if (fileName.EqualIgnoreCase("dotnet", "dotnet.exe", "java"))
+            if (fileName.IsRuntime())
                 exe += " " + dll;
             else if (fileName.EqualIgnoreCase("mono", "mono.exe", "mono-sgen"))
                 exe = dll;
@@ -57,15 +56,8 @@ public class Install : BaseCommandHandler
         };
 
         // 从文件名中分析工作目录
-        var ss = service.FileName.Split(" ");
-        if (ss.Length >= 2 && ss[0].EndsWithIgnoreCase("dotnet", "java"))
-        {
-            var file = ss[1];
-            if (File.Exists(file))
-                service.WorkingDirectory = Path.GetDirectoryName(file).GetFullPath();
-            else
-                service.WorkingDirectory = ".".GetFullPath();
-        }
+        if (service.WorkingDirectory.IsNullOrEmpty())
+            service.WorkingDirectory = service.FileName.GetWorkingDirectory(service.Arguments);
 
         //var arg = UseAutorun ? "-run" : "-s";
         var arg = "-s";

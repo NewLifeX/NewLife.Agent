@@ -116,6 +116,49 @@ public class SystemdTests
     }
 
     [Fact]
+    public void Build_StarAgent2()
+    {
+        // Arrange
+        var setting = new SystemdSetting
+        {
+            ServiceName = "StarAgent",
+            DisplayName = "星尘代理",
+            Description = "",
+            FileName = "/usr/share/dotnet/dotnet /root/agent/StarAgent.dll",
+            Arguments = "-s",
+            WorkingDirectory = "/root/agent",
+            KillMode = "process",
+            OOMScoreAdjust = -1000,
+        };
+
+        // Act
+        var result = setting.Build();
+
+        // Assert
+        var expected = """
+            [Unit]
+            Description=星尘代理
+
+            [Service]
+            Type=simple
+            ExecStart=/usr/share/dotnet/dotnet /root/agent/StarAgent.dll -s
+            WorkingDirectory=/root/agent
+            Restart=always
+            RestartSec=3
+            StartLimitInterval=0
+            KillSignal=SIGINT
+            KillMode=process
+            OOMScoreAdjust=-1000
+
+            [Install]
+            WantedBy=multi-user.target
+
+            """;
+
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
     public void Install_StarAgent()
     {
         var model = new ServiceModel
@@ -146,6 +189,36 @@ public class SystemdTests
     }
 
     [Fact]
+    public void Install_StarAgent2()
+    {
+        var model = new ServiceModel
+        {
+            ServiceName = "StarAgent",
+            DisplayName = "星尘代理",
+            Description = "",
+            FileName = "/usr/share/dotnet/dotnet /root/agent/StarAgent.dll",
+            Arguments = "-s",
+            WorkingDirectory = "/root/agent",
+        };
+
+        var mb = new Mock<Systemd> { CallBase = true };
+        mb.Setup(x => x.Install(It.IsNotNull<String>(), It.IsNotNull<SystemdSetting>()))
+            .Returns(true);
+
+        var syd = mb.Object;
+
+        var rs = syd.Install(model);
+        Assert.True(rs);
+
+        Assert.Equal(model.ServiceName, syd.Setting.ServiceName);
+        Assert.Equal(model.DisplayName, syd.Setting.DisplayName);
+        Assert.Equal(model.Description, syd.Setting.Description);
+        Assert.Equal(model.FileName, syd.Setting.FileName);
+        Assert.Equal(model.Arguments, syd.Setting.Arguments);
+        Assert.Equal(model.WorkingDirectory, syd.Setting.WorkingDirectory);
+    }
+
+    [Fact]
     public void Install_StarAgent_NoWorkingDirectory()
     {
         var model = new ServiceModel
@@ -155,6 +228,36 @@ public class SystemdTests
             Description = "",
             FileName = "/usr/share/dotnet/dotnet",
             Arguments = "/root/agent/StarAgent.dll -s",
+            //WorkingDirectory = "/root/agent",
+        };
+
+        var mb = new Mock<Systemd> { CallBase = true };
+        mb.Setup(x => x.Install(It.IsNotNull<String>(), It.IsNotNull<SystemdSetting>()))
+            .Returns(true);
+
+        var syd = mb.Object;
+
+        var rs = syd.Install(model);
+        Assert.True(rs);
+
+        Assert.Equal(model.ServiceName, syd.Setting.ServiceName);
+        Assert.Equal(model.DisplayName, syd.Setting.DisplayName);
+        Assert.Equal(model.Description, syd.Setting.Description);
+        Assert.Equal(model.FileName, syd.Setting.FileName);
+        Assert.Equal(model.Arguments, syd.Setting.Arguments);
+        Assert.Equal("/root/agent", syd.Setting.WorkingDirectory);
+    }
+
+    [Fact]
+    public void Install_StarAgent_NoWorkingDirectory2()
+    {
+        var model = new ServiceModel
+        {
+            ServiceName = "StarAgent",
+            DisplayName = "星尘代理",
+            Description = "",
+            FileName = "/usr/share/dotnet/dotnet /root/agent/StarAgent.dll",
+            Arguments = "-s",
             //WorkingDirectory = "/root/agent",
         };
 
