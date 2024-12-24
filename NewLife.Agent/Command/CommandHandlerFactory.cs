@@ -69,7 +69,7 @@ public class CommandFactory
     /// </summary>
     /// <param name="cmd">命令</param>
     /// <param name="args">参数</param>
-    public Boolean Handle(String cmd, String[] args = null)
+    public Boolean Handle(String cmd, String[] args)
     {
         if (_commandHandlerDict.TryGetValue(cmd, out var handler))
         {
@@ -84,7 +84,7 @@ public class CommandFactory
     /// </summary>
     /// <param name="key"></param>
     /// <param name="args"></param>
-    public Boolean Handle(Char key, String[] args = null)
+    public Boolean Handle(Char key, String[] args)
     {
         foreach (var commandHandler in _commandHandlerList)
         {

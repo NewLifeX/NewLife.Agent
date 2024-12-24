@@ -83,7 +83,7 @@ public abstract class ServiceBase : DisposeBase
     /// <param name="args"></param>
     public void Main(String[] args)
     {
-        args ??= Environment.GetCommandLineArgs();
+        if (args == null || args.Length == 0) args = Environment.GetCommandLineArgs();
 
         if ("-Autorun".EqualIgnoreCase(args)) UseAutorun = true;
 
@@ -106,6 +106,7 @@ public abstract class ServiceBase : DisposeBase
             if (!DisplayName.IsNullOrEmpty()) Console.Title = DisplayName;
 
             Command.Handle(CommandConst.ShowStatus, args);
+
             // 输出状态，菜单循环
             ProcessMenu(args);
         }
@@ -423,7 +424,7 @@ public abstract class ServiceBase : DisposeBase
         if (CheckAutoRestart()) return;
 
         // 检查看门狗
-        Command.Handle(CommandConst.WatchDog);
+        Command.Handle(CommandConst.WatchDog, null);
     }
 
     private DateTime _nextCollect;

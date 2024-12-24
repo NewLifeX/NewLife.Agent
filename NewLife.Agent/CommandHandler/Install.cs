@@ -28,16 +28,18 @@ public class Install : BaseCommandHandler
         var exe = GetExeName();
 
         // 兼容dotnet
-        if (args.Length == 0)
-        {
-            args = Environment.GetCommandLineArgs();
-        }
-        if (args.Length >= 1)
+        //if (args == null || args.Length == 0) args = Environment.GetCommandLineArgs();
+        // 外部传入的args来自Main方法，不包含dll参数。
+        // 参考：https://newlifex.com/core/command_line_args
+        // 参考：https://newlifex.com/tech/dotnet_args
+        var args2 = Environment.GetCommandLineArgs();
+        if (args == null || args.Length == 0) args = args2;
+        if (args2 != null && args2.Length >= 1)
         {
             var fileName = Path.GetFileName(exe);
             if (exe.Contains(' ')) exe = $"\"{exe}\"";
 
-            var dll = args[0].GetFullPath();
+            var dll = args2[0].GetFullPath();
             if (!dll.Contains(".dll"))//没有获得到主程的dll
             {
                 dll = Environment.CommandLine?.Split(' ')[0];//Assembly.GetExecutingAssembly().Location;

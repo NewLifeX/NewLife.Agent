@@ -30,7 +30,7 @@ public class InstallTests
         Assert.NotNull(model);
         Assert.Equal(svc.ServiceName, model.ServiceName);
         Assert.Equal(svc.DisplayName, model.DisplayName);
-        Assert.Equal("-s", model.Arguments);
+        Assert.StartsWith("-s", model.Arguments);
     }
 
     [Fact]
@@ -56,13 +56,14 @@ public class InstallTests
         Assert.NotNull(model);
         Assert.Equal(svc.ServiceName, model.ServiceName);
         Assert.Equal(svc.DisplayName, model.DisplayName);
-        Assert.Equal("-s", model.Arguments);
+        Assert.StartsWith("-s", model.Arguments);
 
         var cur = ".".GetFullPath();
         Assert.Equal(cur, model.WorkingDirectory);
 
         var exe = cur.CombinePath("testhost.exe");
-        var dll = cur.CombinePath("StarAgent.dll");
+        //var dll = cur.CombinePath("StarAgent.dll");
+        var dll = cur.CombinePath("testhost.dll");
         Assert.Equal($"{exe} {dll}", model.FileName);
     }
 }
