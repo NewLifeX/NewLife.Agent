@@ -28,6 +28,10 @@ public class Install : BaseCommandHandler
         var exe = GetExeName();
 
         // 兼容dotnet
+        if (args.Length == 0)
+        {
+            args = Environment.GetCommandLineArgs();
+        }
         if (args.Length >= 1)
         {
             var fileName = Path.GetFileName(exe);
