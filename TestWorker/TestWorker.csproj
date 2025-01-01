@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Worker">
+﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -20,7 +20,7 @@
 
   <ItemGroup>
     <Using Remove="Microsoft.Extensions.Logging" />
-    <PackageReference Include="NewLife.Core" Version="11.2.2025.101" />
+    <PackageReference Include="NewLife.Core" Version="11.3.2025.101" />
     <PackageReference Include="NewLife.Stardust.Extensions" Version="3.2.2024.1211" />
     <ProjectReference Include="..\NewLife.Extensions.Hosting.AgentService\NewLife.Extensions.Hosting.AgentService.csproj" />
   </ItemGroup>
