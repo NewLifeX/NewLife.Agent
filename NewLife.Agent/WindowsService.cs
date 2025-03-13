@@ -51,7 +51,6 @@ public class WindowsService : DefaultHost
             _status.waitHint = 0;
 
             // 正常运行后可接受的命令
-#if NETSTANDARD2_0 || NETCOREAPP
             _acceptedCommands = ControlsAccepted.CanStop
                 | ControlsAccepted.CanShutdown
                 | ControlsAccepted.CanPauseAndContinue
@@ -65,21 +64,6 @@ public class WindowsService : DefaultHost
                 | ControlsAccepted.TriggerEvent
                 //| ControlsAccepted.UserModeReboot
                 ;
-#else
-            _acceptedCommands = ControlsAccepted.CanStop
-                | ControlsAccepted.CanShutdown
-                | ControlsAccepted.CanPauseAndContinue
-                | ControlsAccepted.ParamChange
-                | ControlsAccepted.NetBindChange
-                | ControlsAccepted.HardwareProfileChange
-                | ControlsAccepted.CanHandlePowerEvent
-                | ControlsAccepted.CanHandleSessionChangeEvent
-                | ControlsAccepted.PreShutdown
-                | ControlsAccepted.TimeChange
-                | ControlsAccepted.TriggerEvent
-                //| ControlsAccepted.UserModeReboot
-                ;
-#endif
 
             //!!! 函数委托必须引着，避免GC回收导致PInvoke内部报错
             _table = new SERVICE_TABLE_ENTRY
@@ -201,6 +185,18 @@ public class WindowsService : DefaultHost
                     ReportStatus(ServiceControllerStatus.Stopped);
                 });
                 break;
+            case ControlOptions.PreShuntdown:
+                ReportStatus(ServiceControllerStatus.StopPending);
+                try
+                {
+                    Service.StopLoop();
+                }
+                catch (Exception ex)
+                {
+                    XTrace.WriteException(ex);
+                }
+                ReportStatus(ServiceControllerStatus.Stopped);
+                break;
             case ControlOptions.PowerEvent:
                 var powerStatus = (PowerBroadcastStatus)eventType;
                 var power = new PowerStatus();
@@ -217,6 +213,15 @@ public class WindowsService : DefaultHost
                 Marshal.PtrToStructure(eventData, time);
                 ThreadPoolX.QueueUserWorkItem(() => OnTimeChange(DateTime.FromFileTime(time.OldTime), DateTime.FromFileTime(time.NewTime)));
                 break;
+            case ControlOptions.Pause:
+                break;
+            case ControlOptions.Continue:
+                break;
+            case ControlOptions.ParamChange:
+            case ControlOptions.NetBindAdd:
+            case ControlOptions.NetBindRemove:
+            case ControlOptions.NetBindEnable:
+            case ControlOptions.NetBindDisable:
             default:
                 ReportStatus(_status.currentState);
                 break;

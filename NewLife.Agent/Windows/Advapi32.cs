@@ -93,14 +93,41 @@ internal class Advapi32
 
     internal enum ControlOptions
     {
+        /// <summary>
+        /// 通知服务它应停止。
+        /// 如果服务接受此控制代码，则必须在收到后停止并返回 NO_ERROR。 SCM 发送此控制代码后，不会向服务发送其他控制代码。
+        /// </summary>
         Stop = 1,
         Pause = 2,
         Continue = 3,
+        /// <summary>
+        /// 通知服务将其当前状态信息报告给服务控制管理器。
+        /// 处理程序应仅返回 NO_ERROR;SCM 知道服务的当前状态。
+        /// </summary>
         Interrogate = 4,
+        /// <summary>
+        /// 通知服务系统正在关闭，以便该服务可以执行清理任务。
+        /// 请注意，注册 SERVICE_CONTROL_PRESHUTDOWN 通知的服务无法收到此通知，因为它们已停止。
+        /// </summary>
         Shutdown = 5,
+        /// <summary>
+        /// 通知服务特定于服务的启动参数已更改。 服务应重新读取其启动参数。
+        /// </summary>
+        ParamChange = 6,
+
+        NetBindAdd = 7,
+        NetBindRemove = 8,
+        NetBindEnable = 9,
+        NetBindDisable = 10,
 
         PowerEvent = 13,
         SessionChange = 14,
+        /// <summary>
+        /// 通知服务系统将关闭。
+        /// 在系统关闭时，需要额外时间来执行超出严格时间限制的清理任务的服务可以使用此通知。
+        /// 默认10秒，旧版系统为10分钟。
+        /// </summary>
+        PreShuntdown = 15,
         TimeChange = 16,
     }
 
