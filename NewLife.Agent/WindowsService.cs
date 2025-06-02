@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -9,6 +10,7 @@ using NewLife.Agent.Windows;
 using NewLife.Log;
 using NewLife.Threading;
 using static NewLife.Agent.Windows.Advapi32;
+using static NewLife.Remoting.ApiHttpClient;
 
 namespace NewLife.Agent;
 
@@ -341,26 +343,82 @@ public class WindowsService : DefaultHost
 
         // 设置描述信息
         if (!service.Description.IsNullOrEmpty())
-        {
-            SERVICE_DESCRIPTION sd;
-            sd.Description = Marshal.StringToHGlobalUni(service.Description);
-            var lpInfo = Marshal.AllocHGlobal(Marshal.SizeOf(sd));
+            SetDescription(handle, service.Description);
 
-            try
-            {
-                Marshal.StructureToPtr(sd, lpInfo, false);
-
-                const Int32 SERVICE_CONFIG_DESCRIPTION = 1;
-                ChangeServiceConfig2(handle, SERVICE_CONFIG_DESCRIPTION, lpInfo);
-            }
-            finally
-            {
-                Marshal.FreeHGlobal(lpInfo);
-                Marshal.FreeHGlobal(sd.Description);
-            }
-        }
+        // 设置失败重启动作
+        SetFailureActions(handle);
 
         return true;
+    }
+
+    private void ChangeConfig2<T>(SafeServiceHandle serviceHandle, Int32 infoLevel, ref T value) where T : struct
+    {
+        var lpInfo = Marshal.AllocHGlobal(Marshal.SizeOf(value));
+        try
+        {
+            Marshal.StructureToPtr(value, lpInfo, false);
+
+            ChangeServiceConfig2(serviceHandle, infoLevel, lpInfo);
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(lpInfo);
+        }
+    }
+
+    private void SetDescription(SafeServiceHandle serviceHandle, String description)
+    {
+        SERVICE_DESCRIPTION sd;
+        sd.Description = Marshal.StringToHGlobalUni(description);
+
+        try
+        {
+            const Int32 SERVICE_CONFIG_DESCRIPTION = 1;
+            ChangeConfig2(serviceHandle, SERVICE_CONFIG_DESCRIPTION, ref sd);
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(sd.Description);
+        }
+    }
+
+    private void SetFailureActions(SafeServiceHandle serviceHandle)
+    {
+        const Int32 SC_ACTION_RESTART = 1;
+
+        var actions = new SC_ACTION[3];
+        actions[0].Type = SC_ACTION_RESTART;
+        actions[0].Delay = 10_000;
+        actions[1].Type = SC_ACTION_RESTART;
+        actions[1].Delay = 30_000;
+        actions[2].Type = SC_ACTION_RESTART;
+        actions[2].Delay = 60_000;
+
+        var size = Marshal.SizeOf(typeof(SC_ACTION));
+        var actionsPtr = Marshal.AllocHGlobal(size * actions.Length);
+        for (var i = 0; i < actions.Length; i++)
+        {
+            Marshal.StructureToPtr(actions[i], actionsPtr + i * size, false);
+        }
+
+        var sfa = new SERVICE_FAILURE_ACTIONS
+        {
+            dwResetPeriod = 24 * 3600,// 24小时内失败计数重置
+            lpRebootMsg = null,
+            lpCommand = null,
+            cActions = actions.Length,
+            lpsaActions = actionsPtr
+        };
+
+        try
+        {
+            const Int32 SERVICE_CONFIG_FAILURE_ACTIONS = 2;
+            ChangeConfig2(serviceHandle, SERVICE_CONFIG_FAILURE_ACTIONS, ref sfa);
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(actionsPtr);
+        }
     }
 
     /// <summary>卸载服务</summary>

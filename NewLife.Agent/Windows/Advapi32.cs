@@ -247,6 +247,25 @@ internal class Advapi32
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    internal struct SERVICE_FAILURE_ACTIONS
+    {
+        public Int32 dwResetPeriod;
+        [MarshalAs(UnmanagedType.LPWStr)]
+        public String lpRebootMsg;
+        [MarshalAs(UnmanagedType.LPWStr)]
+        public String lpCommand;
+        public Int32 cActions;
+        public IntPtr lpsaActions;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct SC_ACTION
+    {
+        public Int32 Type;
+        public Int32 Delay;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     internal struct SERVICE_CONFIG
     {
         public ServiceType serviceType;
