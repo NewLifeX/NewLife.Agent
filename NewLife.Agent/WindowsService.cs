@@ -659,7 +659,7 @@ public class WindowsService : DefaultHost
         return sb;
     }
 
-    [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     static extern Int32 GetModuleFileName(HandleRef hModule, StringBuilder buffer, Int32 length);
 
     /// <summary>当前进程是否管理员角色</summary>

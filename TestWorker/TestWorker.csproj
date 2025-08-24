@@ -20,8 +20,8 @@
 
   <ItemGroup>
     <Using Remove="Microsoft.Extensions.Logging" />
-    <PackageReference Include="NewLife.Core" Version="11.5.2025.601" />
-    <PackageReference Include="NewLife.Stardust.Extensions" Version="3.4.2025.601" />
+    <PackageReference Include="NewLife.Core" Version="11.6.2025.824-beta1131" />
+    <PackageReference Include="NewLife.Stardust.Extensions" Version="3.4.2025.801" />
     <ProjectReference Include="..\NewLife.Extensions.Hosting.AgentService\NewLife.Extensions.Hosting.AgentService.csproj" />
   </ItemGroup>
 </Project>

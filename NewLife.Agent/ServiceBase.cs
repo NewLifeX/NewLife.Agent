@@ -224,7 +224,7 @@ public abstract class ServiceBase : DisposeBase
     /// <summary>显示菜单</summary>
     protected virtual void ShowMenu()
     {
-        var name = ServiceName;
+        //var name = ServiceName;
 
         var color = Console.ForegroundColor;
         Console.ForegroundColor = ConsoleColor.Yellow;
