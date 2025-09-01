@@ -17,7 +17,7 @@
     <!--aot发布-->
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="NewLife.Core" Version="11.6.2025.824-beta1131" />
+    <PackageReference Include="NewLife.Core" Version="11.6.2025.901" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\NewLife.Agent\NewLife.Agent.csproj" />
