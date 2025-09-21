@@ -26,9 +26,10 @@
 - [看门狗 WatchDog](#看门狗-watchdog)
 - [自启动 vs 系统服务](#自启动-vs-系统服务)
 - [跨平台主机适配策略](#跨平台主机适配策略)
+- [多种守护体系实现](#多种守护体系实现)
 - [与 NSSM / srvany 对比](#与-nssm--srvany-对比)
 - [常见问题 FAQ](#常见问题-faq)
-- [关于 net8+ Demo](#关于net8的使用)
+- [关于 net8+ 的使用](#关于net8的使用)
 - [快速拥有](#快速拥有)
 - [新生命项目矩阵](#新生命项目矩阵)
 - [新生命开发团队](#新生命开发团队)
@@ -246,6 +247,43 @@ MyApp.exe -watchdog     // 立即执行一次看门狗检查
 3. Linux: `Systemd` -> `Procd` -> `RcInit`（若均不可用则 `DefaultHost`）
 
 这样在不同发行版仍保持统一命令与运维体验。
+
+---
+## 多种守护体系实现
+下面列出各平台对应的守护实现及其行为特征，便于按需选择或排障：
+
+- WindowsService（Windows 服务）
+  - 通过 Win32 服务控制管理器（SCM）注册和运行，内部使用 `StartServiceCtrlDispatcher`/`RegisterServiceCtrlHandlerEx` 等 API。
+  - 支持电源事件、会话变更、时间变更等系统事件回调；安装时自动配置“失败重启”动作。
+  - 安装/启停：需要管理员；对应命令 `sc`/`net start|stop`。适合服务器长期托管。
+
+- WindowsAutorun（Windows 登录自启动）
+  - 将应用写入注册表 `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run`，随登录自动启动。
+  - 使用 `.pid` 文件跟踪进程并实现停止；更适合桌面/开发环境或需要交互桌面的场景。
+  - 安装/卸载：写入 HKLM 需管理员；启停不依赖 SCM。
+
+- Systemd（Linux systemd）
+  - 生成 `<ServiceName>.service` 单元文件到常见目录（优先于 `/etc/systemd/system` 等），并执行 `daemon-reload`/`enable`。
+  - 支持设置 `WorkingDirectory`、`ExecStart`、`User/Group` 等；启动/停止/重启通过 `systemctl` 执行。
+  - 适用大多数现代 Linux 发行版，是 Linux 优先选择的托管方式。
+
+- RcInit（Linux SysV init 兼容）
+  - 生成 `ServiceName.sh` 控制脚本（当前应用目录），并在 `/etc/rc*.d/` 或 `/etc/rc.d/` 创建 `S50/K50` 级别的软链接。
+  - 以 `sh ServiceName.sh start|stop|restart` 方式管理；用 `.pid` 文件跟踪进程。
+  - 适合仍使用 SysV init 或 BusyBox 的传统/裁剪系统。
+
+- Procd（OpenWrt 专用）
+  - 运行时探测 PID 1 是否为 `procd` 判定环境；生成 `ServiceName.sh` 并在 `/etc/rc.d/` 创建 `S50` 链接。
+  - 以 `nohup` 启动，`.pid` 文件跟踪，`kill` 停止；贴合 OpenWrt 生态的守护方式。
+
+- OSXLaunch（macOS launchd）
+  - 在 `~/Library/LaunchAgents/` 写入 `ServiceName.plist`，设定 `ProgramArguments` 与 `RunAtLoad`，通过 `launchctl` 管理。
+  - 适合用户级代理（LaunchAgents）；如需系统级可按需调整到 LaunchDaemons。
+
+- DefaultHost（默认主机）
+  - 无平台集成能力，仅作为兜底执行 `Run/Stop` 循环；通常只有在无法检测到任何平台守护体系时才会落到此实现。
+
+> WatchDog 在 `Systemd` 主机中守护其它服务时，会智能探测被守护服务实际托管方式（Systemd/SysV），避免“已安装但未检测到”的误判。
 
 ---
 ## 与 NSSM / srvany 对比
