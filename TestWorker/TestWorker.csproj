@@ -1,9 +1,9 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
+<Project Sdk="Microsoft.NET.Sdk.Worker">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <AssemblyTitle>系统后台任务</AssemblyTitle>
-    <Description>数据处理、定时任务、MQ生产消费、系统监控等超长独立工作的后台任务</Description>
+    <AssemblyTitle>Worker托管示例</AssemblyTitle>
+    <Description>演示BackgroundService接入AgentService实现系统服务化与守护运行。</Description>
     <Company>新生命开发团队</Company>
     <Copyright>©2002-2026 NewLife</Copyright>
     <VersionPrefix>1.0</VersionPrefix>

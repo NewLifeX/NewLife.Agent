@@ -1,7 +1,9 @@
-﻿<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="Current">
+<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="Current">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net45;net461;netcoreapp3.1;net7.0;net8.0;net9.0;net10.0</TargetFrameworks>
+    <AssemblyTitle>Agent功能测试台</AssemblyTitle>
+    <Description>用于验证Agent命令、主机适配与服务生命周期行为的控制台测试程序。</Description>
     <VersionPrefix>1.0</VersionPrefix>
     <VersionSuffix>$([System.DateTime]::Now.ToString(`yyyy.MMdd`))</VersionSuffix>
     <Version>$(VersionPrefix).$(VersionSuffix)</Version>

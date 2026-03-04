@@ -1,10 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
-    <AssemblyTitle>系统守护服务</AssemblyTitle>
-    <Description>数据处理，定时任务，MQ生产消费，系统监控</Description>
+    <AssemblyTitle>守护服务示例程序</AssemblyTitle>
+    <Description>演示使用NewLife.Agent构建常驻任务服务，支持定时任务、监控与守护。</Description>
     <Company>新生命开发团队</Company>
     <Copyright>©2002-2026 NewLife</Copyright>
     <VersionPrefix>1.0</VersionPrefix>

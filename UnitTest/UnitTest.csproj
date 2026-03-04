@@ -1,7 +1,9 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <AssemblyTitle>Agent单元测试</AssemblyTitle>
+    <Description>覆盖服务管理、命令处理与宿主适配等核心能力的自动化测试项目。</Description>
     <OutputPath>..\Bin\UnitTest</OutputPath>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <ImplicitUsings>enable</ImplicitUsings>
