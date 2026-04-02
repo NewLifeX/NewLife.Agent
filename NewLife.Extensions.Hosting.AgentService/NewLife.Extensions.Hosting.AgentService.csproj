@@ -86,9 +86,6 @@
       <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="NewLife.Core" Version="11.13.2026.301" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\NewLife.Agent\NewLife.Agent.csproj" />
