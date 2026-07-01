@@ -8,7 +8,7 @@
     <Description>跨平台系统服务与守护进程管理框架，支持安装、监控与自动重启。</Description>
     <Company>新生命开发团队</Company>
     <Copyright>©2002-2026 NewLife</Copyright>
-    <VersionPrefix>10.15</VersionPrefix>
+    <VersionPrefix>10.16</VersionPrefix>
     <VersionSuffix>$([System.DateTime]::Now.ToString(`yyyy.MMdd`))</VersionSuffix>
     <Version>$(VersionPrefix).$(VersionSuffix)</Version>
     <FileVersion>$(Version)</FileVersion>
@@ -34,7 +34,7 @@
     <RepositoryUrl>https://github.com/NewLifeX/NewLife.Agent</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>新生命团队;X组件;NewLife;$(AssemblyName)</PackageTags>
-    <PackageReleaseNotes>增强Windows服务稳定性</PackageReleaseNotes>
+    <PackageReleaseNotes>新增轻量级 Web 管理面板，支持浏览器查看服务状态与运维操作；支持扩展面板注册与多主题切换；ApiController 统一 API 路由处理；Web 面板内置 Token 鉴权机制；升级 NewLife.Core 至最新版本</PackageReleaseNotes>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
