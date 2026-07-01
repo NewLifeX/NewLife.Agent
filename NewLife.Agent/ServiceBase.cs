@@ -7,6 +7,9 @@ using NewLife.Agent.Models;
 using NewLife.Agent.Windows;
 using NewLife.Log;
 using NewLife.Reflection;
+#if !NET40
+using NewLife.Agent.WebPanel;
+#endif
 
 [assembly: RuntimeCompatibility(WrapNonExceptionThrows = true)]
 [module: UnverifiableCode]
@@ -37,6 +40,11 @@ public abstract class ServiceBase : DisposeBase
 
     /// <summary>命令工厂</summary>
     public CommandFactory Command { get; }
+
+#if !NET40
+    /// <summary>Web管理面板</summary>
+    protected AgentWebPanel _webPanel;
+#endif
     #endregion
 
     #region 构造
@@ -250,6 +258,16 @@ public abstract class ServiceBase : DisposeBase
             }
         }
 
+#if !NET40
+        // 显示Web面板地址
+        if (_webPanel != null && _webPanel.Active)
+        {
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine($" Web管理：http://localhost:{_webPanel.Port}/");
+            Console.ForegroundColor = ConsoleColor.Yellow;
+        }
+#endif
+
         Console.WriteLine($" 0、 退出\t");
         Console.WriteLine();
         Console.ForegroundColor = color;
@@ -387,7 +405,27 @@ public abstract class ServiceBase : DisposeBase
     /// <summary>开始工作</summary>
     /// <remarks>基类实现用于输出日志</remarks>
     /// <param name="reason"></param>
-    public virtual void StartWork(String reason) => WriteLog("服务启动 {0}", reason);
+    public virtual void StartWork(String reason)
+    {
+        WriteLog("服务启动 {0}", reason);
+
+#if !NET40
+        // 启动Web管理面板
+        var set = Setting.Current;
+        if (set.EnableWebPanel)
+        {
+            try
+            {
+                _webPanel = new AgentWebPanel(this);
+                _webPanel.Start();
+            }
+            catch (Exception ex)
+            {
+                XTrace.WriteException(ex);
+            }
+        }
+#endif
+    }
 
     private void OnProcessExit(Object sender, EventArgs e)
     {
@@ -408,7 +446,26 @@ public abstract class ServiceBase : DisposeBase
     /// <summary>停止服务</summary>
     /// <remarks>基类实现用于输出日志</remarks>
     /// <param name="reason"></param>
-    public virtual void StopWork(String reason) => WriteLog("服务停止 {0}", reason);
+    public virtual void StopWork(String reason)
+    {
+        WriteLog("服务停止 {0}", reason);
+
+#if !NET40
+        // 停止Web管理面板
+        if (_webPanel != null)
+        {
+            try
+            {
+                _webPanel.Stop(reason);
+            }
+            catch (Exception ex)
+            {
+                XTrace.WriteException(ex);
+            }
+            _webPanel = null;
+        }
+#endif
+    }
 
     #endregion
 

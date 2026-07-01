@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agent 管理面板</title>
+<style>
+:root{--bg:#1a1a2e;--card:#16213e;--accent:#0f3460;--text:#eee;--green:#00c853;--red:#ff1744;--yellow:#ffd600;--blue:#448aff;--border:#2a2a4a}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font:14px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.login-box{max-width:360px;margin:80px auto;padding:32px;background:var(--card);border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.4)}
+.login-box h1{text-align:center;margin-bottom:24px;font-size:20px;color:var(--green)}
+.login-box input{width:100%;padding:10px 12px;margin-bottom:12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:14px;outline:none}
+.login-box input:focus{border-color:var(--blue)}
+.login-box button{width:100%;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px}
+.login-box .err{color:var(--red);text-align:center;margin-top:8px;display:none}
+header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:var(--card);border-bottom:1px solid var(--border)}
+header h1{font-size:18px;color:var(--green)}
+header .logout{background:transparent;border:1px solid var(--border);color:var(--text);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px}
+nav{display:flex;gap:2px;padding:8px 16px;background:var(--card);border-bottom:1px solid var(--border);overflow-x:auto}
+nav a{color:var(--text);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:13px;white-space:nowrap;cursor:pointer;transition:background .2s}
+nav a:hover,nav a.active{background:var(--accent);color:#fff}
+main{padding:20px;max-width:1200px;margin:0 auto}
+.panel{display:none}
+.panel.active{display:block}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px}
+.card h2{font-size:16px;margin-bottom:12px;color:var(--blue)}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.stat{padding:16px;background:var(--bg);border-radius:8px;text-align:center}
+.stat .val{font-size:28px;font-weight:700;margin-bottom:4px}
+.stat .lbl{font-size:12px;color:#888}
+.val.green{color:var(--green)}.val.red{color:var(--red)}.val.yellow{color:var(--yellow)}
+.actions{display:flex;gap:12px;flex-wrap:wrap}
+.actions button{padding:12px 28px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .2s}
+.actions button:hover{opacity:.85}
+.btn-start{background:var(--green);color:#000}
+.btn-stop{background:var(--red);color:#fff}
+.btn-restart{background:var(--yellow);color:#000}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border)}
+th{color:#888;font-weight:500;font-size:12px;text-transform:uppercase}
+td .edit-btn{background:var(--blue);color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px}
+td input{width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-size:13px}
+.log-lines{max-height:500px;overflow-y:auto;font-family:monospace;font-size:12px;background:var(--bg);padding:12px;border-radius:8px;white-space:pre-wrap;word-break:break-all}
+.log-lines div{padding:2px 0;border-bottom:1px solid #111}
+.gauge-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.gauge{flex:1;min-width:180px;padding:16px;background:var(--bg);border-radius:8px;text-align:center}
+.gauge .bar{height:16px;background:#333;border-radius:8px;overflow:hidden;margin:8px 0}
+.gauge .bar div{height:100%;border-radius:8px;transition:width .3s}
+.gauge .bar div.ok{background:var(--green)}
+.gauge .bar div.warn{background:var(--yellow)}
+.gauge .bar div.crit{background:var(--red)}
+.toast{position:fixed;top:16px;right:16px;padding:12px 20px;background:var(--green);color:#000;border-radius:8px;font-weight:600;z-index:999;display:none;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.toast.err{background:var(--red);color:#fff}
+#app{display:none}
+</style>
+</head>
+<body>
+
+<div id="login" class="login-box">
+<h1>🔐 Agent 管理面板</h1>
+<input id="luser" placeholder="用户名" autocomplete="off">
+<input id="lpass" type="password" placeholder="密码">
+<button onclick="doLogin()">登 录</button>
+<div id="lerr" class="err"></div>
+</div>
+
+<div id="app">
+<header>
+<h1>🖥 Agent 管理面板</h1>
+<button class="logout" onclick="logout()">退出</button>
+</header>
+<nav>
+<a data-panel="dashboard" class="active">仪表盘</a>
+<a data-panel="control">控制</a>
+<a data-panel="config">配置</a>
+<a data-panel="logs">日志</a>
+<a data-panel="health">健康</a>
+<a data-panel="watchdog">看门狗</a>
+</nav>
+<main>
+<div id="panel-dashboard" class="panel active"></div>
+<div id="panel-control" class="panel"></div>
+<div id="panel-config" class="panel"></div>
+<div id="panel-logs" class="panel"></div>
+<div id="panel-health" class="panel"></div>
+<div id="panel-watchdog" class="panel"></div>
+</main>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+let token='';
+let timer=null;
+
+// ── Login ──
+async function doLogin(){
+ const u=document.getElementById('luser').value;
+ const p=document.getElementById('lpass').value;
+ const e=document.getElementById('lerr');
+ e.style.display='none';
+ try{
+  const r = await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:u,password:p})});
+  const j=await r.json();
+  if(j.code!==0){e.textContent=j.message||'登录失败';e.style.display='block';return}
+  token=j.data.token;
+  sessionStorage.setItem('agent_token',token);
+  showApp();
+ }catch(ex){e.textContent='网络错误';e.style.display='block'}
+}
+
+function logout(){sessionStorage.removeItem('agent_token');token='';clearInterval(timer);document.getElementById('login').style.display='';document.getElementById('app').style.display='none'}
+
+function showApp(){document.getElementById('login').style.display='none';document.getElementById('app').style.display='block';loadDashboard();timer=setInterval(loadDashboard,10000)}
+
+async function api(url,opt={}){
+ const h=opt.headers||{};
+ if(token)h['Authorization']='Bearer '+token;
+ const r=await fetch(url,{...opt,headers:{...h,'Content-Type':'application/json'}});
+ if(r.status===401){logout();showToast('登录已过期，请重新登录','err');throw new Error('Unauthorized')}
+ return r.json()
+}
+
+// ── Toast ──
+function showToast(msg,type){
+ const t=document.getElementById('toast');
+ t.textContent=msg;t.className='toast '+(type||'');t.style.display='block';
+ setTimeout(()=>t.style.display='none',3000)
+}
+
+// ── Tabs ──
+document.querySelectorAll('nav a').forEach(a=>a.addEventListener('click',function(){
+ document.querySelectorAll('nav a').forEach(x=>x.classList.remove('active'));
+ this.classList.add('active');
+ document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+ const id='panel-'+this.dataset.panel;
+ document.getElementById(id).classList.add('active');
+ if(this.dataset.panel==='dashboard')loadDashboard();
+ else if(this.dataset.panel==='config')loadConfig();
+ else if(this.dataset.panel==='logs')loadLogs();
+ else if(this.dataset.panel==='health')loadHealth();
+ else if(this.dataset.panel==='watchdog')loadWatchDog();
+ else document.getElementById(id).innerHTML='<div class=card><h2>'+this.textContent+'</h2></div>'
+}));
+
+// ── Dashboard ──
+async function loadDashboard(){
+ try{
+  const j=await api('/api/status');
+  if(j.code!==0)return;
+  const d=j.data;
+  const color=d.running?'green':'red';
+  document.getElementById('panel-dashboard').innerHTML='<div class=card><h2>📊 服务状态</h2><div class=stats>'+
+   stat('服务名',d.serviceName,'')+
+   stat('状态',d.running?'运行中 ▶':'已停止 ⏹',color)+
+   stat('运行时长',d.uptime,'')+
+   stat('进程ID',d.processId,'')+
+   stat('内存',d.memoryMB+' MB',d.memoryMB>500?'yellow':'')+
+   stat('线程数',d.threadCount,'')+
+   stat('句柄数',d.handleCount,'')+
+   stat('启动时间',d.startTime,'')+
+   stat('主机',d.hostMachine,'')+
+   stat('Web端口',d.port,'')+
+  '</div></div>';
+ }catch(e){}
+}
+function stat(lbl,val,cls){return'<div class=stat><div class="val '+cls+'">'+val+'</div><div class=lbl>'+lbl+'</div></div>'}
+
+// ── Control ──
+async function doControl(action){
+ if(!confirm('确定要 '+{stop:'停止',start:'启动',restart:'重启'}[action]+' 服务吗？'))return;
+ try{
+  const j=await api('/api/control',{method:'POST',body:JSON.stringify({action})});
+  showToast(j.message||'操作已提交',j.code?'err':'');
+  setTimeout(loadDashboard,2000);
+ }catch(e){showToast('操作失败','err')}
+}
+(function initControl(){
+ const el=document.getElementById('panel-control');
+ el.innerHTML='<div class=card><h2>⚡ 服务控制</h2><div class=actions>'+
+  '<button class=btn-start onclick=doControl("start")>▶ 启动服务</button>'+
+  '<button class=btn-stop onclick=doControl("stop")>⏹ 停止服务</button>'+
+  '<button class=btn-restart onclick=doControl("restart")>↻ 重启服务</button>'+
+ '</div></div>';
+})();
+
+// ── Config ──
+let configData={};
+async function loadConfig(){
+ try{
+  const j=await api('/api/config');
+  if(j.code!==0)return;
+  configData=j.data;
+  renderConfig();
+ }catch(e){}
+}
+function renderConfig(){
+ let html='<div class=card><h2>⚙ 服务配置</h2><table><thead><tr><th>配置项</th><th>值</th><th>操作</th></tr></thead><tbody>';
+ const editable=['MaxMemory','MaxThread','MaxHandle','AutoRestart','RestartTimeRange','WatchDog','AfterStart','EnableWebPanel','WebPort','WebAuthLevel'];
+ for(const[k,v]of Object.entries(configData)){
+  if(k==='WebPassword')continue;
+  const canEdit=editable.includes(k);
+  html+='<tr><td>'+k+'</td><td id="cfg-'+k+'">'+val(v)+'</td><td>'+(canEdit?'<button class=edit-btn onclick="editCfg(\''+k+'\')">编辑</button>':'')+'</td></tr>';
+ }
+ html+='</tbody></table><div style="margin-top:12px"><button class=btn-start style="padding:10px 20px" onclick=saveConfig()>💾 保存配置</button></div></div>';
+ document.getElementById('panel-config').innerHTML=html;
+}
+function val(v){return v===true?'✅':v===false?'❌':v===null||v===undefined?'':String(v)}
+function editCfg(key){
+ const td=document.getElementById('cfg-'+key);
+ const cur=configData[key];
+ td.innerHTML='<input id="edit-'+key+'" value="'+(cur===true?'true':cur===false?'false':cur||'')+'" style="width:100%">';
+}
+async function saveConfig(){
+ const updates={};
+ const is=document.querySelectorAll('[id^="edit-"]');
+ is.forEach(i=>{
+  const k=i.id.replace('edit-','');
+  let v=i.value.trim();
+  if(v==='true')v=true;else if(v==='false')v=false;else if(/^\d+$/.test(v))v=parseInt(v);
+  updates[k]=v;
+ });
+ if(Object.keys(updates).length===0){showToast('没有需要保存的修改');return}
+ try{
+  const j=await api('/api/config/update',{method:'POST',body:JSON.stringify(updates)});
+  showToast(j.message||'已保存',j.code?'err':'');
+  loadConfig();
+ }catch(e){showToast('保存失败','err')}
+}
+
+// ── Logs ──
+async function loadLogs(){
+ try{
+  const j=await api('/api/logs?count=100');
+  if(j.code!==0)return;
+  const lines=j.data.lines||[];
+  document.getElementById('panel-logs').innerHTML='<div class=card><h2>📋 最近日志 ('+lines.length+'条) <button style="float:right;background:var(--blue);color:#fff;border:none;padding:4px 12px;border-radius:4px;cursor:pointer" onclick=loadLogs()>刷新</button></h2><div class=log-lines>'+lines.map(l=>'<div>'+escapeHtml(l)+'</div>').join('')+'</div></div>';
+ }catch(e){}
+}
+function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+// ── Health ──
+async function loadHealth(){
+ try{
+  const j=await api('/api/health');
+  if(j.code!==0)return;
+  const d=j.data;
+  const pct=(v,max)=>max>0?Math.min(100,Math.round(v/max*100)):0;
+  const cls=p=>p>80?'crit':p>50?'warn':'ok';
+  const mPct=pct(d.memoryMB,d.memoryLimitMB);
+  const tPct=pct(d.threadCount,d.threadLimit);
+  const hPct=pct(d.handleCount,d.handleLimit);
+  document.getElementById('panel-health').innerHTML='<div class=card><h2>💚 健康指标</h2>'+
+   '<div class=gauge-row>'+
+   gauge('内存',d.memoryMB+' MB / '+(d.memoryLimitMB||'∞'),mPct,cls(mPct))+
+   gauge('线程',d.threadCount+' / '+(d.threadLimit||'∞'),tPct,cls(tPct))+
+   gauge('句柄',d.handleCount+' / '+(d.handleLimit||'∞'),hPct,cls(hPct))+
+   '</div>'+
+   '<div class=card style="margin-top:12px"><table><tr><td>GC Gen0</td><td>'+d.gcCollections.gen0+'</td></tr><tr><td>GC Gen1</td><td>'+d.gcCollections.gen1+'</td></tr><tr><td>GC Gen2</td><td>'+d.gcCollections.gen2+'</td></tr><tr><td>GC 总内存</td><td>'+d.gcTotalMemory+' MB</td></tr><tr><td>CPU 时间</td><td>'+d.totalProcessorTime+'s</td></tr></table></div>'+
+  '</div>';
+ }catch(e){}
+}
+function gauge(lbl,text,pct,cls){
+ return'<div class=gauge><div class=lbl>'+lbl+'</div><div class=val style=font-size:22px>'+text+'</div><div class=bar><div class='+cls+' style=width:'+pct+'%></div></div><div class=lbl>'+pct+'%</div></div>'
+}
+
+// ── Watchdog ──
+async function loadWatchDog(){
+ try{
+  const j=await api('/api/watchdog');
+  if(j.code!==0)return;
+  const svcs=j.data.services||[];
+  let html='<div class=card><h2>🐕 看门狗</h2>';
+  if(svcs.length===0){html+='<p style=color:#888>未配置看门狗服务</p>'}
+  else{
+   html+='<table><thead><tr><th>服务名</th><th>状态</th></tr></thead><tbody>';
+   svcs.forEach(s=>html+='<tr><td>'+s.name+'</td><td style=color:'+(s.running?'var(--green)':'var(--red)')+'>'+(s.running?'✅ 运行中':'❌ 已停止')+'</td></tr>');
+   html+='</tbody></table>';
+  }
+  html+='</div>';
+  document.getElementById('panel-watchdog').innerHTML=html;
+ }catch(e){}
+}
+
+// ── Init ──
+token=sessionStorage.getItem('agent_token')||'';
+if(token)showApp();
+</script>
+</body>
+</html>

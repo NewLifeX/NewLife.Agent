@@ -1,5 +1,4 @@
-﻿#if !__CORE__
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using NewLife.Configuration;
 
 namespace NewLife.Agent;
@@ -61,6 +60,25 @@ public class Setting : Config<Setting>
     /// <summary>启动后命令，服务启动后执行的命令</summary>
     [Description("启动后命令，服务启动后执行的命令")]
     public String AfterStart { get; set; } = "";
+
+    /// <summary>是否启用Web管理面板。默认true</summary>
+    [Description("是否启用Web管理面板。默认true")]
+    public Boolean EnableWebPanel { get; set; } = true;
+
+    /// <summary>Web管理面板端口。默认5580</summary>
+    [Description("Web管理面板端口。默认5580")]
+    public Int32 WebPort { get; set; } = 5580;
+
+    /// <summary>Web面板鉴权级别。None不鉴权，LocalOnly本地免鉴权，Full全部鉴权。默认LocalOnly</summary>
+    [Description("Web面板鉴权级别。None不鉴权，LocalOnly本地免鉴权，Full全部鉴权。默认LocalOnly")]
+    public String WebAuthLevel { get; set; } = "LocalOnly";
+
+    /// <summary>Web面板用户名</summary>
+    [Description("Web面板用户名")]
+    public String WebUserName { get; set; } = "admin";
+
+    /// <summary>Web面板密码</summary>
+    [Description("Web面板密码")]
+    public String WebPassword { get; set; } = "admin";
     #endregion
 }
-#endif
