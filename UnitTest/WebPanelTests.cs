@@ -547,4 +547,89 @@ public class EmbeddedFileHandlerTests
     }
     #endregion
 }
+
+/// <summary>ProcessControl 启停控制测试</summary>
+public class ProcessControlTests
+{
+    [Fact(DisplayName = "停止操作应设置Running为false，不调用StopWork")]
+    public void Stop_SetsRunningFalse_NotStopWork()
+    {
+        var mockSvc = new Mock<ServiceBase> { CallBase = true };
+        mockSvc.Object.ServiceName = "ControlSvc";
+        mockSvc.Object.Running = true;
+
+        var set = Setting.Current;
+        var prevPort = set.WebPort;
+        var prevEnable = set.EnableWebPanel;
+        set.WebPort = 0;
+        set.EnableWebPanel = false;
+
+        try
+        {
+            var panel = new AgentWebPanel(mockSvc.Object);
+
+            // 模拟 POST /api/control {action:"stop"}
+            var ctx = CreateMockContext(body: "{\"action\":\"stop\"}");
+            panel.GetType().GetMethod("ProcessControl",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+                .Invoke(panel, [ctx.Object]);
+
+            Assert.False(mockSvc.Object.Running);
+        }
+        finally
+        {
+            set.WebPort = prevPort;
+            set.EnableWebPanel = prevEnable;
+        }
+    }
+
+    [Fact(DisplayName = "重启操作应调用Host.Restart")]
+    public void Restart_CallsHostRestart()
+    {
+        var mockHost = new Mock<IHost>();
+        var mockSvc = new Mock<ServiceBase> { CallBase = true };
+        mockSvc.Object.ServiceName = "RestartSvc";
+        mockSvc.Object.Host = mockHost.Object;
+        mockSvc.Object.Running = true;
+
+        var set = Setting.Current;
+        var prevPort = set.WebPort;
+        var prevEnable = set.EnableWebPanel;
+        set.WebPort = 0;
+        set.EnableWebPanel = false;
+
+        try
+        {
+            var panel = new AgentWebPanel(mockSvc.Object);
+
+            var ctx = CreateMockContext(body: "{\"action\":\"restart\"}");
+            panel.GetType().GetMethod("ProcessControl",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+                .Invoke(panel, [ctx.Object]);
+
+            mockHost.Verify(h => h.Restart("RestartSvc"), Times.Once);
+        }
+        finally
+        {
+            set.WebPort = prevPort;
+            set.EnableWebPanel = prevEnable;
+        }
+    }
+
+    private Mock<IHttpContext> CreateMockContext(String body = null)
+    {
+        var request = new HttpRequest();
+        if (body != null)
+            request.Body = new ArrayPacket(body.GetBytes());
+
+        var response = new HttpResponse();
+        var context = new Mock<IHttpContext>();
+        context.Setup(x => x.Request).Returns(request);
+        context.Setup(x => x.Response).Returns(response);
+        context.Setup(x => x.Connection).Returns((INetSession?)null);
+        context.Setup(x => x.Socket).Returns((ISocketRemote?)null);
+
+        return context;
+    }
+}
 #endif

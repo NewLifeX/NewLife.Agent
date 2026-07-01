@@ -85,7 +85,7 @@ public class RcInit : DefaultHost
     /// <returns></returns>
     public override Boolean IsRunning(String serviceName)
     {
-        var p = RcInit.GetProcess(serviceName, out _);
+        var p = GetProcess(serviceName, out _);
 
         return p != null && !GetHasExited(p);
     }
@@ -262,7 +262,7 @@ public class RcInit : DefaultHost
         XTrace.WriteLine("{0}.Start {1}", Name, serviceName);
 
         // 判断服务是否已启动
-        var p = RcInit.GetProcess(serviceName, out _);
+        var p = GetProcess(serviceName, out _);
         if (p != null && !GetHasExited(p)) return false;
 
         //var file = _path.CombinePath($"{serviceName}");
@@ -283,7 +283,7 @@ public class RcInit : DefaultHost
     {
         XTrace.WriteLine("{0}.Stop {1}", Name, serviceName);
 
-        var p = RcInit.GetProcess(serviceName, out var pid);
+        var p = GetProcess(serviceName, out var pid);
         if (p == null) return false;
 
         try

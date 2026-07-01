@@ -1,9 +1,11 @@
 ﻿#if !NET40
+using System.Diagnostics;
 using System.Net;
 using System.Reflection;
 using NewLife.Data;
 using NewLife.Http;
 using NewLife.Log;
+using NewLife.Net;
 using NewLife.Reflection;
 using NewLife.Serialization;
 
@@ -128,10 +130,13 @@ public class AgentWebPanel
         MapApi("/api/status", ProcessStatus);
         MapApi("/api/control", ProcessControl);
         MapApi("/api/config", ProcessGetConfig);
+        MapApi("/api/config/metadata", ProcessConfigMetadata);
         MapApi("/api/config/update", ProcessUpdateConfig);
         MapApi("/api/logs", ProcessLogs);
+        MapApi("/api/logs/files", ProcessLogFiles);
         MapApi("/api/health", ProcessHealth);
         MapApi("/api/watchdog", ProcessWatchDog);
+        MapApi("/api/extensions", ProcessExtensions);
 
         // 静态文件（根路径，API 路由优先匹配）
         Server.Map("/*", new EmbeddedFileHandler { Prefix = "/", ContentPath = "NewLife.Agent.WebPanel.wwwroot" });
@@ -155,8 +160,9 @@ public class AgentWebPanel
     /// <param name="ctx">Http上下文</param>
     protected virtual void ProcessStatus(IHttpContext ctx)
     {
-        var p = System.Diagnostics.Process.GetCurrentProcess();
+        var p = Process.GetCurrentProcess();
         var uptime = DateTime.Now - p.StartTime;
+        var mi = MachineInfo.Current ?? MachineInfo.GetCurrent();
 
         WriteJson(ctx, new
         {
@@ -173,9 +179,21 @@ public class AgentWebPanel
                 memoryMB = p.WorkingSet64 / 1024 / 1024,
                 threadCount = p.Threads.Count,
                 handleCount = p.HandleCount,
-                startTime = p.StartTime.ToString("yyyy-MM-dd HH:mm:ss"),
+                startTime = p.StartTime.ToString("MM-dd HH:mm:ss"),
                 hostMachine = Environment.MachineName,
-                platform = Environment.OSVersion.Platform.ToString(),
+                platform = mi.OSName ?? Environment.OSVersion.Platform.ToString(),
+                osVersion = mi.OSVersion,
+                cpuName = mi.Processor,
+                cpuCount = Environment.ProcessorCount,
+                cpuRate = mi.CpuRate > 0 ? mi.CpuRate.ToString("F1") : "",
+                totalMemory = mi.Memory > 0 ? $"{mi.Memory / 1024 / 1024 / 1024} GB" : "",
+                availableMemory = mi.AvailableMemory > 0 ? $"{mi.AvailableMemory / 1024 / 1024 / 1024} GB" : "",
+                freeMemory = mi.FreeMemory > 0 ? $"{mi.FreeMemory / 1024 / 1024 / 1024} GB" : "",
+                board = mi.Board,
+                machineGuid = mi.Guid,
+                uplinkSpeed = mi.UplinkSpeed > 0 ? FormatSpeed(mi.UplinkSpeed) : "",
+                downlinkSpeed = mi.DownlinkSpeed > 0 ? FormatSpeed(mi.DownlinkSpeed) : "",
+                hostUptime = TimeSpan.FromMilliseconds(Runtime.TickCount64).ToString(@"d\.hh\:mm\:ss"),
                 port = Server.Port
             }
         });
@@ -199,14 +217,16 @@ public class AgentWebPanel
         {
             case "stop":
                 XTrace.WriteLine("Web面板触发服务停止");
-                Service.StopWork("WebPanel");
-                WriteJson(ctx, new { code = 0, message = "服务正在停止" });
+                // 仅设置Running=false让服务循环退出，不停止WebPanel（否则无法再操作）
+                Service.Running = false;
+                WriteJson(ctx, new { code = 0, message = "服务正在停止，Web面板仍可用" });
                 break;
 
             case "start":
                 XTrace.WriteLine("Web面板触发服务启动");
-                Service.StartWork("WebPanel");
-                WriteJson(ctx, new { code = 0, message = "服务已启动" });
+                // 通过Host重启进程来重新启动服务
+                Service.Host.Restart(Service.ServiceName);
+                WriteJson(ctx, new { code = 0, message = "服务正在重启" });
                 break;
 
             case "restart":
@@ -301,18 +321,117 @@ public class AgentWebPanel
     protected virtual void ProcessLogs(IHttpContext ctx)
     {
         var countStr = GetQueryParam(ctx, "count");
-        var count = !countStr.IsNullOrEmpty() ? countStr.ToInt(100) : 100;
-        count = Math.Min(count, 500);
+        var count = !countStr.IsNullOrEmpty() ? countStr.ToInt(200) : 200;
+        count = Math.Min(count, 1000);
 
-        var lines = ReadLogLines(count);
+        var file = GetQueryParam(ctx, "file");
+        var level = GetQueryParam(ctx, "level");
 
-        WriteJson(ctx, new { code = 0, data = new { count = lines.Count, lines } });
+        var lines = ReadLogLines(count, file, level);
+
+        WriteJson(ctx, new { code = 0, data = new { fileName = file ?? "latest", count = lines.Count, lines } });
     }
 
-    /// <summary>从RequestUri中获取查询参数</summary>
-    private static String GetQueryParam(IHttpContext ctx, String name)
+    /// <summary>获取日志文件列表</summary>
+    /// <param name="ctx">Http上下文</param>
+    protected virtual void ProcessLogFiles(IHttpContext ctx)
     {
-        var query = ctx.Request.RequestUri != null ? ctx.Request.RequestUri.Query : null;
+        var list = new List<Object>();
+
+        try
+        {
+            var set = NewLife.Setting.Current;
+            var logDir = set.LogPath.GetFullPath();
+            if (Directory.Exists(logDir))
+            {
+                foreach (var file in Directory.GetFiles(logDir, "*.log").OrderByDescending(f => f))
+                {
+                    var fi = new FileInfo(file);
+                    list.Add(new
+                    {
+                        name = fi.Name,
+                        size = fi.Length,
+                        sizeDisplay = fi.Length.ToGMK(),
+                        lastModified = fi.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            XTrace.WriteException(ex);
+        }
+
+        WriteJson(ctx, new { code = 0, data = new { files = list } });
+    }
+
+    /// <summary>获取配置元数据（DisplayName + Description + Type + Value），供前端三列布局渲染</summary>
+    /// <param name="ctx">Http上下文</param>
+    protected virtual void ProcessConfigMetadata(IHttpContext ctx)
+    {
+        var set = Setting.Current;
+        var items = new List<Object>();
+
+        foreach (var prop in typeof(Setting).GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (!prop.CanRead || !prop.CanWrite) continue;
+            if (prop.Name.EqualIgnoreCase(nameof(set.WebPassword))) continue;
+
+            var displayName = prop.GetCustomAttribute<System.ComponentModel.DisplayNameAttribute>()?.DisplayName;
+            if (displayName.IsNullOrEmpty())
+            {
+                var desc = prop.GetCustomAttribute<System.ComponentModel.DescriptionAttribute>()?.Description;
+                // 取第一句作为简短显示名
+                if (!desc.IsNullOrEmpty())
+                {
+                    var dot = desc.IndexOf('。');
+                    displayName = dot > 0 ? desc[..dot] : desc;
+                }
+            }
+            displayName ??= prop.Name;
+
+            var description = prop.GetCustomAttribute<System.ComponentModel.DescriptionAttribute>()?.Description ?? "";
+
+            var typeName = prop.PropertyType.Name switch
+            {
+                "String" => "String",
+                "Int32" => "Int32",
+                "Boolean" => "Boolean",
+                _ => prop.PropertyType.Name
+            };
+
+            items.Add(new
+            {
+                name = prop.Name,
+                displayName,
+                description,
+                type = typeName,
+                value = prop.GetValue(set, null)
+            });
+        }
+
+        WriteJson(ctx, new { code = 0, data = new { items } });
+    }
+
+    /// <summary>获取扩展面板列表</summary>
+    /// <param name="ctx">Http上下文</param>
+    protected virtual void ProcessExtensions(IHttpContext ctx)
+    {
+        var extensions = GetExtensions();
+        WriteJson(ctx, new { code = 0, data = new { panels = extensions } });
+    }
+
+    /// <summary>获取用户注册的扩展面板列表，子类重写以添加自定义面板</summary>
+    /// <returns>扩展面板列表</returns>
+    protected virtual List<PanelExtension> GetExtensions() => [];
+
+    /// <summary>从RequestUri中获取查询参数</summary>
+    /// <param name="ctx">Http上下文</param>
+    /// <param name="name">参数名</param>
+    /// <returns>参数值，不存在返回null</returns>
+    protected static String GetQueryParam(IHttpContext ctx, String name)
+    {
+        var query = ctx.Request.RequestUri?.OriginalString;
         if (query.IsNullOrEmpty()) return null;
 
         // 简单查询参数解析：?key=value&key2=value2
@@ -329,29 +448,49 @@ public class AgentWebPanel
 
     /// <summary>读取日志文件末尾行</summary>
     /// <param name="count">行数</param>
+    /// <param name="fileName">指定日志文件名，null或空则读取最新文件</param>
+    /// <param name="level">可选日志级别过滤（INFO/WARN/ERROR/DEBUG）</param>
     /// <returns></returns>
-    private List<String> ReadLogLines(Int32 count)
+    private List<String> ReadLogLines(Int32 count, String fileName = null, String level = null)
     {
         var list = new List<String>();
 
         try
         {
-            // 查找最新日志文件
-            var logDir = "Log".GetFullPath();
-            if (!Directory.Exists(logDir)) return list;
+            // 尝试多个可能的日志目录路径
+            var logDir = NewLife.Setting.Current.LogPath.GetFullPath();
+            if (logDir == null) return list;
 
-            var logFile = Directory.GetFiles(logDir, "*.log")
-                .OrderByDescending(f => f)
-                .FirstOrDefault();
+            String logFile;
+            if (!fileName.IsNullOrEmpty())
+            {
+                // 安全性：仅取文件名，防止路径穿越
+                var safeName = Path.GetFileName(fileName);
+                logFile = Path.Combine(logDir, safeName);
+                if (!File.Exists(logFile)) logFile = null;
+            }
+            else
+            {
+                logFile = Directory.GetFiles(logDir, "*.log")
+                    .OrderByDescending(f => f)
+                    .FirstOrDefault();
+            }
 
             if (logFile == null) return list;
 
-            // 读取末尾N行
+            // 读取末尾N行（大文件时全量加载性能可接受，后续可改为反向seek）
             var allLines = File.ReadAllLines(logFile);
             var start = Math.Max(0, allLines.Length - count);
             for (var i = start; i < allLines.Length; i++)
             {
-                list.Add(allLines[i]);
+                var line = allLines[i];
+                // 级别过滤
+                if (!level.IsNullOrEmpty())
+                {
+                    if (!line.Contains(level, StringComparison.OrdinalIgnoreCase))
+                        continue;
+                }
+                list.Add(line);
             }
         }
         catch (Exception ex)
@@ -366,7 +505,7 @@ public class AgentWebPanel
     /// <param name="ctx">Http上下文</param>
     protected virtual void ProcessHealth(IHttpContext ctx)
     {
-        var p = System.Diagnostics.Process.GetCurrentProcess();
+        var p = Process.GetCurrentProcess();
         var set = Setting.Current;
 
         WriteJson(ctx, new
@@ -423,7 +562,7 @@ public class AgentWebPanel
         // 使用进程名匹配做简易检查，避免依赖 System.ServiceProcess 程序集
         try
         {
-            var processes = System.Diagnostics.Process.GetProcessesByName(serviceName);
+            var processes = Process.GetProcessesByName(serviceName);
             if (processes.Length > 0) return true;
         }
         catch { }
@@ -432,10 +571,38 @@ public class AgentWebPanel
     #endregion
 
     #region 辅助
+    /// <summary>格式化文件大小为可读字符串</summary>
+    /// <param name="bytes">字节数</param>
+    /// <returns></returns>
+    protected static String FormatFileSize(Int64 bytes)
+    {
+        return bytes switch
+        {
+            < 1024 => $"{bytes} B",
+            < 1024 * 1024 => $"{bytes / 1024.0:F1} KB",
+            < 1024 * 1024 * 1024 => $"{bytes / (1024.0 * 1024):F1} MB",
+            _ => $"{bytes / (1024.0 * 1024 * 1024):F2} GB"
+        };
+    }
+
+    /// <summary>格式化网络速率为可读字符串</summary>
+    /// <param name="bps">比特每秒</param>
+    /// <returns></returns>
+    protected static String FormatSpeed(UInt64 bps)
+    {
+        return bps switch
+        {
+            < 1000UL => $"{bps} bps",
+            < 1000_000UL => $"{bps / 1000.0:F1} Kbps",
+            < 1000_000_000UL => $"{bps / 1000_000.0:F1} Mbps",
+            _ => $"{bps / 1000_000_000.0:F2} Gbps"
+        };
+    }
+
     /// <summary>写JSON响应</summary>
     /// <param name="ctx">Http上下文</param>
     /// <param name="data">数据对象</param>
-    private static void WriteJson(IHttpContext ctx, Object data)
+    protected static void WriteJson(IHttpContext ctx, Object data)
     {
         var json = JsonHelper.ToJson(data);
         ctx.Response.ContentType = "application/json; charset=utf-8";

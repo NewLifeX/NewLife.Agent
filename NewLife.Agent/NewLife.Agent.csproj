@@ -55,6 +55,7 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="WebPanel\wwwroot\index.html" />
+    <EmbeddedResource Include="WebPanel\wwwroot\favicon.ico" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\Doc\leaf.png" Link="leaf.png" PackagePath="\" />

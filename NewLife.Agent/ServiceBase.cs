@@ -361,7 +361,7 @@ public abstract class ServiceBase : DisposeBase
     /// <summary>开始循环</summary>
     protected internal void StartLoop()
     {
-        NewLife.Model.Host.RegisterExit(OnProcessExit);
+        Model.Host.RegisterExit(OnProcessExit);
 
         //GetType().Assembly.WriteVersion();
 

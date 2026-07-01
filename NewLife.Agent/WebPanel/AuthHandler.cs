@@ -35,8 +35,9 @@ public class AuthHandler : IHttpHandler
     /// <summary>密码</summary>
     public String Password { get; set; }
 
-    private readonly Dictionary<String, TokenInfo> _tokens = new();
-    private readonly Object _lock = new();
+    /// <summary>共享Token存储（静态，确保登录签发的Token在所有API路由中有效）</summary>
+    private static readonly Dictionary<String, TokenInfo> _tokens = new();
+    private static readonly Object _lock = new();
     #endregion
 
     /// <summary>实例化鉴权处理器</summary>
@@ -52,7 +53,7 @@ public class AuthHandler : IHttpHandler
     {
         if (!CheckAuth(context))
         {
-            context.Response.StatusCode = System.Net.HttpStatusCode.Unauthorized;
+            context.Response.StatusCode = HttpStatusCode.Unauthorized;
             context.Response.Headers["WWW-Authenticate"] = "Bearer";
             context.Response.Body = new ArrayPacket("Unauthorized".GetBytes());
             return;
@@ -108,7 +109,7 @@ public class AuthHandler : IHttpHandler
         public DateTime Expire { get; set; }
     }
 
-    /// <summary>签发Token</summary>
+    /// <summary>签发Token（共享存储，所有AuthHandler实例共享）</summary>
     /// <param name="user">用户名</param>
     /// <param name="password">密码</param>
     /// <returns>Token字符串，失败返回null</returns>
@@ -133,9 +134,7 @@ public class AuthHandler : IHttpHandler
             // 清理过期Token
             var expired = _tokens.Where(e => e.Value.Expire < DateTime.Now).Select(e => e.Key).ToList();
             foreach (var key in expired)
-            {
                 _tokens.Remove(key);
-            }
 
             _tokens[token] = info;
         }
