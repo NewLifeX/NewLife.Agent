@@ -548,9 +548,19 @@ public class EmbeddedFileHandlerTests
     #endregion
 }
 
-/// <summary>ProcessControl 启停控制测试</summary>
+/// <summary>ApiController 启停控制测试</summary>
 public class ProcessControlTests
 {
+    private static AgentWebPanel CreatePanel(Mock<ServiceBase> mockSvc)
+    {
+        var set = Setting.Current;
+        set.WebPort = 0;
+        set.EnableWebPanel = false;
+
+        var panel = new AgentWebPanel(mockSvc.Object);
+        return panel;
+    }
+
     [Fact(DisplayName = "停止操作应设置Running为false，不调用StopWork")]
     public void Stop_SetsRunningFalse_NotStopWork()
     {
@@ -558,28 +568,23 @@ public class ProcessControlTests
         mockSvc.Object.ServiceName = "ControlSvc";
         mockSvc.Object.Running = true;
 
-        var set = Setting.Current;
-        var prevPort = set.WebPort;
-        var prevEnable = set.EnableWebPanel;
-        set.WebPort = 0;
-        set.EnableWebPanel = false;
+        var prevPort = Setting.Current.WebPort;
+        var prevEnable = Setting.Current.EnableWebPanel;
 
         try
         {
-            var panel = new AgentWebPanel(mockSvc.Object);
+            var panel = CreatePanel(mockSvc);
 
-            // 模拟 POST /api/control {action:"stop"}
-            var ctx = CreateMockContext(body: "{\"action\":\"stop\"}");
-            panel.GetType().GetMethod("ProcessControl",
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-                .Invoke(panel, [ctx.Object]);
+            var controller = new ApiController();
+            var result = controller.Control("stop");
 
+            Assert.NotNull(result);
             Assert.False(mockSvc.Object.Running);
         }
         finally
         {
-            set.WebPort = prevPort;
-            set.EnableWebPanel = prevEnable;
+            Setting.Current.WebPort = prevPort;
+            Setting.Current.EnableWebPanel = prevEnable;
         }
     }
 
@@ -592,27 +597,23 @@ public class ProcessControlTests
         mockSvc.Object.Host = mockHost.Object;
         mockSvc.Object.Running = true;
 
-        var set = Setting.Current;
-        var prevPort = set.WebPort;
-        var prevEnable = set.EnableWebPanel;
-        set.WebPort = 0;
-        set.EnableWebPanel = false;
+        var prevPort = Setting.Current.WebPort;
+        var prevEnable = Setting.Current.EnableWebPanel;
 
         try
         {
-            var panel = new AgentWebPanel(mockSvc.Object);
+            var panel = CreatePanel(mockSvc);
 
-            var ctx = CreateMockContext(body: "{\"action\":\"restart\"}");
-            panel.GetType().GetMethod("ProcessControl",
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-                .Invoke(panel, [ctx.Object]);
+            var controller = new ApiController();
+            var result = controller.Control("restart");
 
+            Assert.NotNull(result);
             mockHost.Verify(h => h.Restart("RestartSvc"), Times.Once);
         }
         finally
         {
-            set.WebPort = prevPort;
-            set.EnableWebPanel = prevEnable;
+            Setting.Current.WebPort = prevPort;
+            Setting.Current.EnableWebPanel = prevEnable;
         }
     }
 

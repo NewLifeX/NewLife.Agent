@@ -425,7 +425,7 @@ async function doControl(action){
 /* ── Config (three-column) ── */
 async function loadConfig(){
  try{
-  const j=await api('/api/config/metadata');if(j.code!==0)return;const items=j.data.items||[];
+  const j=await api('/api/configMetadata');if(j.code!==0)return;const items=j.data.items||[];
   let html=`<div class="glass-card card"><h2>⚙ 服务配置</h2><table class="config-table"><tbody>`;
   items.forEach(item=>{
    html+=`<tr><td>${esc(item.displayName)}</td><td>${renderConfigInput(item)}</td><td>${esc(item.description)}</td></tr>`;
@@ -457,7 +457,7 @@ async function saveConfig(){
   else v=el.value;updates[n]=v;
  });
  try{
-  const j=await api('/api/config/update',{method:'POST',body:JSON.stringify(updates)});
+  const j=await api('/api/updateConfig',{method:'POST',body:JSON.stringify(updates)});
   if(j.code===0){dirtyFields.clear();showToast(j.message,'success');loadConfig()}
   else showToast(j.message,'error');
  }catch(e){showToast('保存失败','error')}
@@ -467,7 +467,7 @@ async function saveConfig(){
 async function loadLogs(){await loadLogFiles();renderLogPanel();if(currentLogFile||logFiles.length>0)await fetchLogContent();else $('log-content').innerHTML=`<div class="log-empty">📂 未找到日志文件<br><span style="font-size:11px;color:var(--text-muted)">请确保 Log 目录中存在 .log 文件</span></div>`}
 
 async function loadLogFiles(){
- try{const j=await api('/api/logs/files');if(j.code===0)logFiles=j.data.files||[]}catch(e){logFiles=[]}
+ try{const j=await api('/api/logFiles');if(j.code===0)logFiles=j.data.files||[]}catch(e){logFiles=[]}
  if(!currentLogFile&&logFiles.length>0)currentLogFile=logFiles[0].name;
 }
 
