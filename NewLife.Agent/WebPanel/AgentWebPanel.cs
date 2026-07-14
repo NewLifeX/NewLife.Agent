@@ -1,15 +1,23 @@
 ﻿#if !NET40
-using System.Diagnostics;
-using System.Net;
-using System.Reflection;
 using NewLife.Data;
 using NewLife.Http;
 using NewLife.Log;
-using NewLife.Net;
-using NewLife.Reflection;
 using NewLife.Serialization;
 
 namespace NewLife.Agent.WebPanel;
+
+/// <summary>Web面板鉴权级别</summary>
+public enum AuthLevel
+{
+    /// <summary>不鉴权</summary>
+    None,
+
+    /// <summary>本地免鉴权，远程需鉴权</summary>
+    LocalOnly,
+
+    /// <summary>全部鉴权</summary>
+    Full
+}
 
 /// <summary>Agent Web管理面板</summary>
 /// <remarks>基于 HttpServer 提供轻量级 Web 管理界面，支持服务状态查看、启停控制、配置管理、日志查看等功能</remarks>
@@ -25,8 +33,14 @@ public class AgentWebPanel
     /// <summary>所属服务</summary>
     public ServiceBase Service { get; }
 
-    /// <summary>鉴权处理器</summary>
-    public AuthHandler Auth { get; }
+    /// <summary>鉴权级别</summary>
+    public AuthLevel Level { get; set; }
+
+    /// <summary>用户名</summary>
+    public String UserName { get; set; }
+
+    /// <summary>密码</summary>
+    public String Password { get; set; }
 
     /// <summary>是否运行中</summary>
     public Boolean Active => Server.Active;
@@ -53,12 +67,9 @@ public class AgentWebPanel
             Log = XTrace.Log
         };
 
-        Auth = new AuthHandler(null!)
-        {
-            Level = ParseAuthLevel(set.WebAuthLevel),
-            UserName = set.WebUserName,
-            Password = set.WebPassword
-        };
+        Level = ParseAuthLevel(set.WebAuthLevel);
+        UserName = set.WebUserName;
+        Password = set.WebPassword;
 
         RegisterRoutes();
     }
@@ -74,6 +85,72 @@ public class AgentWebPanel
             "full" => AuthLevel.Full,
             _ => AuthLevel.LocalOnly
         };
+    }
+    #endregion
+
+    #region Token管理
+    /// <summary>令牌信息</summary>
+    private class TokenInfo
+    {
+        public String User { get; set; } = "";
+        public DateTime Expire { get; set; }
+    }
+
+    private static readonly Dictionary<String, TokenInfo> _tokens = [];
+    private static readonly Object _lock = new();
+
+    /// <summary>签发Token</summary>
+    /// <param name="user">用户名</param>
+    /// <param name="password">密码</param>
+    /// <returns>Token字符串，失败返回null</returns>
+    public String IssueToken(String user, String password)
+    {
+        if (user.IsNullOrEmpty() || password.IsNullOrEmpty()) return null;
+
+        if (UserName.IsNullOrEmpty() || Password.IsNullOrEmpty()) return null;
+
+        if (!user.EqualIgnoreCase(UserName)) return null;
+        if (password != Password) return null;
+
+        var token = Guid.NewGuid().ToString("N");
+        var info = new TokenInfo
+        {
+            User = user,
+            Expire = DateTime.Now.AddHours(24)
+        };
+
+        lock (_lock)
+        {
+            // 清理过期Token
+            var expired = _tokens.Where(e => e.Value.Expire < DateTime.Now).Select(e => e.Key).ToList();
+            foreach (var key in expired)
+                _tokens.Remove(key);
+
+            _tokens[token] = info;
+        }
+
+        return token;
+    }
+
+    /// <summary>验证Token</summary>
+    /// <param name="token">Token字符串</param>
+    /// <returns></returns>
+    public Boolean ValidateToken(String token)
+    {
+        if (token.IsNullOrEmpty()) return false;
+
+        lock (_lock)
+        {
+            if (!_tokens.TryGetValue(token, out var info)) return false;
+
+            if (info.Expire < DateTime.Now)
+            {
+                _tokens.Remove(token);
+                return false;
+            }
+
+            return true;
+        }
     }
     #endregion
 
@@ -105,27 +182,22 @@ public class AgentWebPanel
     /// <remarks>
     /// 路由匹配规则：精确匹配优先于通配符。
     /// /api/login 精确匹配（不走鉴权）→ ApiController.Login()
-    /// /api/* 通配匹配（经 AuthHandler 鉴权）→ ApiController 其他方法
+    /// /api/* 通配匹配 → ApiController 其他方法（控制器自行鉴权）
     /// /* 降级匹配 → 静态文件
     /// </remarks>
     protected virtual void RegisterRoutes()
     {
-        // 登录接口：精确路由，不走鉴权（先注册，精确匹配优先于后面的 /api/* 通配）
-        Server.Map("/api/login", new AgentControllerHandler { ControllerType = typeof(ApiController) });
+        // 使用内置 ControllerHandler 替代 AgentControllerHandler
+        var handler = new ControllerHandler { ControllerType = typeof(ApiController) };
 
-        // API 控制器路由：经 AuthHandler 鉴权包装
-        // AgentControllerHandler 自动将路径 /api/{MethodName} 映射到 ApiController 的对应方法
-        var controllerHandler = new AgentControllerHandler { ControllerType = typeof(ApiController) };
-        var authHandler = new AuthHandler(controllerHandler)
-        {
-            Level = Auth.Level,
-            UserName = Auth.UserName,
-            Password = Auth.Password
-        };
-        Server.Map("/api/*", authHandler);
+        // 登录接口：精确路由，不走鉴权（先注册，精确匹配优先于后面的 /api/* 通配）
+        Server.Map("/api/login", handler);
+
+        // API 控制器路由：控制器自行鉴权
+        Server.Map("/api/*", handler);
 
         // 静态文件（根路径，API 路由优先匹配）
-        Server.Map("/*", new EmbeddedFileHandler { Prefix = "/", ContentPath = "NewLife.Agent.WebPanel.wwwroot" });
+        Server.Map("/*", new EmbeddedFileHandler { Path = "/", ContentPath = "NewLife.Agent.WebPanel.wwwroot", Assembly = typeof(AgentWebPanel).Assembly });
     }
     #endregion
 
@@ -146,69 +218,5 @@ public class AgentWebPanel
         ctx.Response.Body = new ArrayPacket(json.GetBytes());
     }
     #endregion
-}
-
-/// <summary>内嵌资源文件处理器</summary>
-public class EmbeddedFileHandler : IHttpHandler
-{
-    /// <summary>路径前缀，如 /panel/</summary>
-    public String Prefix { get; set; } = "";
-
-    /// <summary>资源名前缀</summary>
-    public String ContentPath { get; set; } = "";
-
-    private static readonly Dictionary<String, String> _mimeTypes = new(StringComparer.OrdinalIgnoreCase)
-    {
-        [".html"] = "text/html; charset=utf-8",
-        [".htm"] = "text/html; charset=utf-8",
-        [".css"] = "text/css; charset=utf-8",
-        [".js"] = "text/javascript; charset=utf-8",
-        [".json"] = "application/json",
-        [".png"] = "image/png",
-        [".jpg"] = "image/jpeg",
-        [".jpeg"] = "image/jpeg",
-        [".gif"] = "image/gif",
-        [".svg"] = "image/svg+xml",
-        [".ico"] = "image/x-icon",
-        [".woff"] = "font/woff",
-        [".woff2"] = "font/woff2",
-    };
-
-    /// <summary>处理请求</summary>
-    /// <param name="ctx">Http上下文</param>
-    public void ProcessRequest(IHttpContext ctx)
-    {
-        var file = ctx.Path;
-        if (file.StartsWithIgnoreCase(Prefix))
-            file = file[Prefix.Length..];
-
-        if (file.IsNullOrEmpty() || file == "/")
-            file = "index.html";
-
-        // 安全：防止路径穿越
-        if (file.Contains(".."))
-        {
-            ctx.Response.StatusCode = HttpStatusCode.NotFound;
-            return;
-        }
-
-        var resourceName = $"{ContentPath}.{file.Replace('/', '.')}";
-        var asm = Assembly.GetExecutingAssembly();
-
-        using var stream = asm.GetManifestResourceStream(resourceName);
-        if (stream == null)
-        {
-            ctx.Response.StatusCode = HttpStatusCode.NotFound;
-            return;
-        }
-
-        var ext = Path.GetExtension(file) ?? "";
-        var contentType = _mimeTypes.TryGetValue(ext, out var mime) ? mime : "application/octet-stream";
-        ctx.Response.ContentType = contentType;
-
-        using var ms2 = new MemoryStream();
-        stream.CopyTo(ms2);
-        ctx.Response.Body = new ArrayPacket(ms2.ToArray());
-    }
 }
 #endif

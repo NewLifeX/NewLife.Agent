@@ -1,4 +1,6 @@
 ﻿#if !NET40
+#nullable disable
+using System.Reflection;
 using Moq;
 using NewLife;
 using NewLife.Agent;
@@ -11,86 +13,52 @@ using Xunit;
 
 namespace UnitTest;
 
-/// <summary>AuthHandler 鉴权处理器单元测试</summary>
-public class AuthHandlerTests
+/// <summary>Token 管理单元测试</summary>
+/// <remarks>验证 AgentWebPanel 的 IssueToken/ValidateToken 方法</remarks>
+[Collection("WebPanel")]
+public class TokenManagerTests
 {
-    #region 构造测试
-    [Fact]
-    public void Constructor_NullHandler_Accepted()
-    {
-        // null handler 允许作为鉴权状态共享对象
-        var auth = new AuthHandler(null!);
-        Assert.Null(auth.Handler);
-        Assert.Equal(AuthLevel.LocalOnly, auth.Level);
-    }
-
-    [Fact]
-    public void Constructor_ValidHandler_SetsProperties()
-    {
-        var handler = new Mock<IHttpHandler>();
-        var auth = new AuthHandler(handler.Object);
-        Assert.Same(handler.Object, auth.Handler);
-        Assert.Equal(AuthLevel.LocalOnly, auth.Level);
-    }
-    #endregion
-
     #region IssueToken 测试
     [Fact]
     public void IssueToken_EmptyUserOrPass_ReturnsNull()
     {
-        var auth = new AuthHandler(new Mock<IHttpHandler>().Object)
-        {
-            UserName = "admin",
-            Password = "123456"
-        };
+        var panel = CreatePanel("admin", "123456");
 
-        Assert.Null(auth.IssueToken("", "123456"));
-        Assert.Null(auth.IssueToken("admin", ""));
-        Assert.Null(auth.IssueToken("", ""));
+        Assert.Null(panel.IssueToken("", "123456"));
+        Assert.Null(panel.IssueToken("admin", ""));
+        Assert.Null(panel.IssueToken("", ""));
     }
 
     [Fact]
     public void IssueToken_NoCredentialsConfigured_ReturnsNull()
     {
-        var auth = new AuthHandler(new Mock<IHttpHandler>().Object);
-        // UserName/Password 默认 null
-        Assert.Null(auth.IssueToken("admin", "123456"));
+        var panel = CreatePanel(null, null);
+
+        Assert.Null(panel.IssueToken("admin", "123456"));
     }
 
     [Fact]
     public void IssueToken_WrongUser_ReturnsNull()
     {
-        var auth = new AuthHandler(new Mock<IHttpHandler>().Object)
-        {
-            UserName = "admin",
-            Password = "123456"
-        };
+        var panel = CreatePanel("admin", "123456");
 
-        Assert.Null(auth.IssueToken("wrong", "123456"));
+        Assert.Null(panel.IssueToken("wrong", "123456"));
     }
 
     [Fact]
     public void IssueToken_WrongPassword_ReturnsNull()
     {
-        var auth = new AuthHandler(new Mock<IHttpHandler>().Object)
-        {
-            UserName = "admin",
-            Password = "123456"
-        };
+        var panel = CreatePanel("admin", "123456");
 
-        Assert.Null(auth.IssueToken("admin", "wrongpass"));
+        Assert.Null(panel.IssueToken("admin", "wrongpass"));
     }
 
     [Fact]
     public void IssueToken_ValidCredentials_ReturnsToken()
     {
-        var auth = new AuthHandler(new Mock<IHttpHandler>().Object)
-        {
-            UserName = "admin",
-            Password = "123456"
-        };
+        var panel = CreatePanel("admin", "123456");
 
-        var token = auth.IssueToken("admin", "123456");
+        var token = panel.IssueToken("admin", "123456");
         Assert.NotNull(token);
         Assert.False(token.IsNullOrEmpty());
         // Token 应该是32位十六进制字符串（Guid无分隔符）
@@ -100,219 +68,151 @@ public class AuthHandlerTests
     [Fact]
     public void IssueToken_DifferentCaseUser_StillSucceeds()
     {
-        var auth = new AuthHandler(new Mock<IHttpHandler>().Object)
-        {
-            UserName = "Admin",
-            Password = "123456"
-        };
+        var panel = CreatePanel("Admin", "123456");
 
         // IssueToken 内部使用 EqualIgnoreCase 比较用户名
-        var token = auth.IssueToken("admin", "123456");
+        var token = panel.IssueToken("admin", "123456");
         Assert.NotNull(token);
     }
-    #endregion
-
-    #region 鉴权级别测试
-    [Fact]
-    public void ProcessRequest_LevelNone_AlwaysPasses()
-    {
-        var inner = new Mock<IHttpHandler>();
-        var auth = new AuthHandler(inner.Object)
-        {
-            Level = AuthLevel.None,
-            UserName = "admin",
-            Password = "123456"
-        };
-
-        // 无 Authorization 头
-        var ctx = CreateMockContext(headers: new Dictionary<String, String>());
-        auth.ProcessRequest(ctx.Object);
-
-        // 应调用内部 handler
-        inner.Verify(x => x.ProcessRequest(ctx.Object), Times.Once);
-        // 不应设置 401
-        Assert.NotEqual(401, (Int32)ctx.Object.Response.StatusCode);
-    }
 
     [Fact]
-    public void ProcessRequest_LevelFull_NoAuth_Rejects()
+    public void ValidateToken_IssuedToken_ReturnsTrue()
     {
-        var inner = new Mock<IHttpHandler>();
-        var auth = new AuthHandler(inner.Object)
-        {
-            Level = AuthLevel.Full,
-            UserName = "admin",
-            Password = "123456"
-        };
+        var panel = CreatePanel("admin", "123456");
 
-        var ctx = CreateMockContext(headers: new Dictionary<String, String>());
-        auth.ProcessRequest(ctx.Object);
-
-        // 不应调用内部 handler
-        inner.Verify(x => x.ProcessRequest(It.IsAny<IHttpContext>()), Times.Never);
-        Assert.Equal(401, (Int32)ctx.Object.Response.StatusCode);
-    }
-
-    [Fact]
-    public void ProcessRequest_LevelFull_ValidToken_Passes()
-    {
-        var inner = new Mock<IHttpHandler>();
-        var auth = new AuthHandler(inner.Object)
-        {
-            Level = AuthLevel.Full,
-            UserName = "admin",
-            Password = "123456"
-        };
-
-        var token = auth.IssueToken("admin", "123456");
+        var token = panel.IssueToken("admin", "123456");
         Assert.NotNull(token);
 
-        var ctx = CreateMockContext(headers: new Dictionary<String, String>
-        {
-            ["Authorization"] = $"Bearer {token}"
-        });
-        auth.ProcessRequest(ctx.Object);
-
-        inner.Verify(x => x.ProcessRequest(ctx.Object), Times.Once);
+        Assert.True(panel.ValidateToken(token));
     }
 
     [Fact]
-    public void ProcessRequest_LevelFull_InvalidToken_Rejects()
+    public void ValidateToken_InvalidToken_ReturnsFalse()
     {
-        var inner = new Mock<IHttpHandler>();
-        var auth = new AuthHandler(inner.Object)
-        {
-            Level = AuthLevel.Full,
-            UserName = "admin",
-            Password = "123456"
-        };
+        var panel = CreatePanel("admin", "123456");
 
-        var ctx = CreateMockContext(headers: new Dictionary<String, String>
-        {
-            ["Authorization"] = "Bearer invalid_token_xxx"
-        });
-        auth.ProcessRequest(ctx.Object);
-
-        inner.Verify(x => x.ProcessRequest(It.IsAny<IHttpContext>()), Times.Never);
-        Assert.Equal(401, (Int32)ctx.Object.Response.StatusCode);
+        Assert.False(panel.ValidateToken("invalid_token"));
     }
 
     [Fact]
-    public void ProcessRequest_LevelFull_ExpiredToken_Rejects()
+    public void ValidateToken_EmptyToken_ReturnsFalse()
     {
-        var inner = new Mock<IHttpHandler>();
-        var auth = new AuthHandler(inner.Object)
-        {
-            Level = AuthLevel.Full,
-            UserName = "admin",
-            Password = "123456"
-        };
+        var panel = CreatePanel("admin", "123456");
 
-        var token = auth.IssueToken("admin", "123456");
-
-        // 验证同一个 token 立即使用能通过
-        var ctx1 = CreateMockContext(headers: new Dictionary<String, String>
-        {
-            ["Authorization"] = $"Bearer {token}"
-        });
-        auth.ProcessRequest(ctx1.Object);
-        inner.Verify(x => x.ProcessRequest(ctx1.Object), Times.Once);
-
-        // 验证第二次使用不同 token（未签发）被拒
-        var inner2 = new Mock<IHttpHandler>();
-        var auth2 = new AuthHandler(inner2.Object)
-        {
-            Level = AuthLevel.Full,
-            UserName = "admin",
-            Password = "123456"
-        };
-
-        var ctx2 = CreateMockContext(headers: new Dictionary<String, String>
-        {
-            ["Authorization"] = "Bearer deadbeefdeadbeefdeadbeefdeadbeef"
-        });
-        auth2.ProcessRequest(ctx2.Object);
-
-        inner2.Verify(x => x.ProcessRequest(It.IsAny<IHttpContext>()), Times.Never);
-        Assert.Equal(401, (Int32)ctx2.Object.Response.StatusCode);
-    }
-
-    [Fact]
-    public void ProcessRequest_LevelFull_WrongScheme_Rejects()
-    {
-        var inner = new Mock<IHttpHandler>();
-        var auth = new AuthHandler(inner.Object)
-        {
-            Level = AuthLevel.Full,
-            UserName = "admin",
-            Password = "123456"
-        };
-
-        // 使用 Basic 而非 Bearer 方案
-        var ctx = CreateMockContext(headers: new Dictionary<String, String>
-        {
-            ["Authorization"] = "Basic dXNlcjpwYXNz"
-        });
-        auth.ProcessRequest(ctx.Object);
-
-        inner.Verify(x => x.ProcessRequest(It.IsAny<IHttpContext>()), Times.Never);
-        Assert.Equal(401, (Int32)ctx.Object.Response.StatusCode);
-    }
-
-    [Fact]
-    public void ProcessRequest_LevelFull_EmptyBearer_Rejects()
-    {
-        var inner = new Mock<IHttpHandler>();
-        var auth = new AuthHandler(inner.Object)
-        {
-            Level = AuthLevel.Full,
-            UserName = "admin",
-            Password = "123456"
-        };
-
-        var ctx = CreateMockContext(headers: new Dictionary<String, String>
-        {
-            ["Authorization"] = "Bearer "
-        });
-        auth.ProcessRequest(ctx.Object);
-
-        inner.Verify(x => x.ProcessRequest(It.IsAny<IHttpContext>()), Times.Never);
-        Assert.Equal(401, (Int32)ctx.Object.Response.StatusCode);
+        Assert.False(panel.ValidateToken(""));
+        Assert.False(panel.ValidateToken(null!));
     }
     #endregion
 
     #region 辅助
-    /// <summary>创建 mock IHttpContext</summary>
-    private Mock<IHttpContext> CreateMockContext(IDictionary<String, String>? headers = null)
+    private static AgentWebPanel CreatePanel(String userName, String password)
     {
-        var request = new HttpRequest();
-        if (headers != null)
+        var mockSvc = new Mock<ServiceBase> { CallBase = true };
+        mockSvc.Object.ServiceName = "TestSvc";
+
+        var set = Setting.Current;
+        var prevPort = set.WebPort;
+        var prevEnable = set.EnableWebPanel;
+        set.WebPort = 0;
+        set.EnableWebPanel = false;
+
+        try
         {
-            foreach (var kv in headers)
-            {
-                request.Headers[kv.Key] = kv.Value;
-            }
+            var panel = new AgentWebPanel(mockSvc.Object);
+            panel.UserName = userName;
+            panel.Password = password;
+            return panel;
         }
-
-        var response = new HttpResponse();
-
-        var context = new Mock<IHttpContext>();
-        context.Setup(x => x.Request).Returns(request);
-        context.Setup(x => x.Response).Returns(response);
-        context.Setup(x => x.Connection).Returns((INetSession?)null);
-        context.Setup(x => x.Socket).Returns((ISocketRemote?)null);
-
-        return context;
+        finally
+        {
+            set.WebPort = prevPort;
+            set.EnableWebPanel = prevEnable;
+        }
     }
     #endregion
 }
 
+/// <summary>LoginRateLimiter 爆破防护单元测试</summary>
+[Collection("WebPanel")]
+public class LoginRateLimiterTests
+{
+    [Fact]
+    public void IsBlocked_FreshIp_ReturnsFalse()
+    {
+        Assert.False(LoginRateLimiter.IsBlocked("192.168.1.1"));
+    }
+
+    [Fact]
+    public void RecordFailure_UnderThreshold_NotBlocked()
+    {
+        var ip = "10.0.0.1";
+        for (var i = 0; i < 4; i++)
+            LoginRateLimiter.RecordFailure(ip);
+
+        Assert.False(LoginRateLimiter.IsBlocked(ip));
+    }
+
+    [Fact]
+    public void RecordFailure_ReachThreshold_Blocked()
+    {
+        var ip = "10.0.0.2";
+        for (var i = 0; i < 5; i++)
+            LoginRateLimiter.RecordFailure(ip);
+
+        Assert.True(LoginRateLimiter.IsBlocked(ip));
+    }
+
+    [Fact]
+    public void RecordSuccess_ClearsBlock()
+    {
+        var ip = "10.0.0.3";
+        for (var i = 0; i < 5; i++)
+            LoginRateLimiter.RecordFailure(ip);
+
+        Assert.True(LoginRateLimiter.IsBlocked(ip));
+
+        LoginRateLimiter.RecordSuccess(ip);
+        Assert.False(LoginRateLimiter.IsBlocked(ip));
+    }
+
+    [Fact]
+    public void IsBlocked_NullOrEmpty_ReturnsFalse()
+    {
+        Assert.False(LoginRateLimiter.IsBlocked(null!));
+        Assert.False(LoginRateLimiter.IsBlocked(""));
+    }
+
+    [Fact]
+    public void RecordFailure_NullOrEmpty_NoException()
+    {
+        // 空IP不应抛异常
+        LoginRateLimiter.RecordFailure(null!);
+        LoginRateLimiter.RecordFailure("");
+    }
+
+    [Fact]
+    public void DifferentIps_IndependentTracking()
+    {
+        var ip1 = "192.168.1.10";
+        var ip2 = "192.168.1.20";
+
+        // ip1 失败5次，ip2 失败1次
+        for (var i = 0; i < 5; i++)
+            LoginRateLimiter.RecordFailure(ip1);
+        LoginRateLimiter.RecordFailure(ip2);
+
+        Assert.True(LoginRateLimiter.IsBlocked(ip1));
+        Assert.False(LoginRateLimiter.IsBlocked(ip2));
+    }
+}
+
 /// <summary>AgentWebPanel 单元测试</summary>
+[Collection("WebPanel")]
 public class AgentWebPanelTests
 {
     #region ParseAuthLevel 测试
     [Fact]
-        public void ParseAuthLevel_None_ReturnsNone()
+    public void ParseAuthLevel_None_ReturnsNone()
     {
         Assert.Equal(AuthLevel.None, AgentWebPanel.ParseAuthLevel("none"));
         Assert.Equal(AuthLevel.None, AgentWebPanel.ParseAuthLevel("None"));
@@ -320,14 +220,14 @@ public class AgentWebPanelTests
     }
 
     [Fact]
-        public void ParseAuthLevel_Full_ReturnsFull()
+    public void ParseAuthLevel_Full_ReturnsFull()
     {
         Assert.Equal(AuthLevel.Full, AgentWebPanel.ParseAuthLevel("full"));
         Assert.Equal(AuthLevel.Full, AgentWebPanel.ParseAuthLevel("Full"));
     }
 
     [Fact]
-        public void ParseAuthLevel_OtherOrNull_ReturnsLocalOnly()
+    public void ParseAuthLevel_OtherOrNull_ReturnsLocalOnly()
     {
         Assert.Equal(AuthLevel.LocalOnly, AgentWebPanel.ParseAuthLevel("localonly"));
         Assert.Equal(AuthLevel.LocalOnly, AgentWebPanel.ParseAuthLevel(""));
@@ -338,7 +238,7 @@ public class AgentWebPanelTests
 
     #region 构造测试
     [Fact]
-        public void Constructor_ValidService_CreatesSuccessfully()
+    public void Constructor_ValidService_CreatesSuccessfully()
     {
         var mockSvc = new Mock<ServiceBase> { CallBase = true };
         mockSvc.Object.ServiceName = "TestSvc";
@@ -355,7 +255,7 @@ public class AgentWebPanelTests
             var panel = new AgentWebPanel(mockSvc.Object);
             Assert.NotNull(panel);
             Assert.NotNull(panel.Server);
-            Assert.NotNull(panel.Auth);
+            Assert.Equal(AuthLevel.LocalOnly, panel.Level);
             Assert.Same(mockSvc.Object, panel.Service);
             Assert.False(panel.Active);
             Assert.Equal(0, panel.Port); // 未启动时端口为0
@@ -367,7 +267,7 @@ public class AgentWebPanelTests
     }
 
     [Fact]
-        public void Constructor_ReadsAuthConfigFromSetting()
+    public void Constructor_ReadsAuthConfigFromSetting()
     {
         var mockSvc = new Mock<ServiceBase> { CallBase = true };
         mockSvc.Object.ServiceName = "AuthSvc";
@@ -388,9 +288,9 @@ public class AgentWebPanelTests
             set.EnableWebPanel = false;
 
             var panel = new AgentWebPanel(mockSvc.Object);
-            Assert.Equal(AuthLevel.Full, panel.Auth.Level);
-            Assert.Equal("testadmin", panel.Auth.UserName);
-            Assert.Equal("secret123", panel.Auth.Password);
+            Assert.Equal(AuthLevel.Full, panel.Level);
+            Assert.Equal("testadmin", panel.UserName);
+            Assert.Equal("secret123", panel.Password);
         }
         finally
         {
@@ -405,7 +305,7 @@ public class AgentWebPanelTests
 
     #region Start/Stop 测试
     [Fact]
-        public void Start_PortZero_AutoAssigns()
+    public void Start_PortZero_AutoAssigns()
     {
         var mockSvc = new Mock<ServiceBase> { CallBase = true };
         mockSvc.Object.ServiceName = "StartSvc1";
@@ -433,7 +333,7 @@ public class AgentWebPanelTests
     }
 
     [Fact]
-        public void Stop_DoubleStop_NoException()
+    public void Stop_DoubleStop_NoException()
     {
         var mockSvc = new Mock<ServiceBase> { CallBase = true };
         mockSvc.Object.ServiceName = "StopSvc1";
@@ -465,8 +365,11 @@ public class AgentWebPanelTests
 }
 
 /// <summary>EmbeddedFileHandler 单元测试</summary>
+[Collection("WebPanel")]
 public class EmbeddedFileHandlerTests
 {
+    private static readonly Assembly _agentAssembly = typeof(AgentWebPanel).Assembly;
+
     private IHttpContext CreateContext(String path)
     {
         var response = new HttpResponse();
@@ -481,11 +384,18 @@ public class EmbeddedFileHandlerTests
         return context.Object;
     }
 
+    private static EmbeddedFileHandler CreateHandler() => new()
+    {
+        Path = "/",
+        ContentPath = "NewLife.Agent.WebPanel.wwwroot",
+        Assembly = _agentAssembly
+    };
+
     #region 路径处理
     [Fact]
-        public void RootPath_ReturnsIndexHtml()
+    public void RootPath_ReturnsIndexHtml()
     {
-        var handler = new EmbeddedFileHandler { Prefix = "/", ContentPath = "NewLife.Agent.WebPanel.wwwroot" };
+        var handler = CreateHandler();
         var ctx = CreateContext("/");
 
         handler.ProcessRequest(ctx);
@@ -495,9 +405,9 @@ public class EmbeddedFileHandlerTests
     }
 
     [Fact]
-        public void PathTraversal_Returns404()
+    public void PathTraversal_Returns404()
     {
-        var handler = new EmbeddedFileHandler { Prefix = "/", ContentPath = "NewLife.Agent.WebPanel.wwwroot" };
+        var handler = CreateHandler();
         var ctx = CreateContext("/../../etc/passwd");
 
         handler.ProcessRequest(ctx);
@@ -506,9 +416,9 @@ public class EmbeddedFileHandlerTests
     }
 
     [Fact]
-        public void NonExistentFile_Returns404()
+    public void NonExistentFile_Returns404()
     {
-        var handler = new EmbeddedFileHandler { Prefix = "/", ContentPath = "NewLife.Agent.WebPanel.wwwroot" };
+        var handler = CreateHandler();
         var ctx = CreateContext("/nonexistent.xyz");
 
         handler.ProcessRequest(ctx);
@@ -519,9 +429,9 @@ public class EmbeddedFileHandlerTests
 
     #region MIME类型
     [Fact]
-        public void HtmlFile_SetsCorrectMimeType()
+    public void HtmlFile_SetsCorrectMimeType()
     {
-        var handler = new EmbeddedFileHandler { Prefix = "/", ContentPath = "NewLife.Agent.WebPanel.wwwroot" };
+        var handler = CreateHandler();
         var ctx = CreateContext("/index.html");
 
         handler.ProcessRequest(ctx);
@@ -531,11 +441,11 @@ public class EmbeddedFileHandlerTests
     }
 
     [Fact]
-        public void UnknownExtension_ReturnsOctetStream()
+    public void UnknownExtension_ReturnsOctetStream()
     {
         // 用一个已知存在的文件但未知扩展名来测试... 
         // 由于只有一个 index.html，我们验证MIME逻辑
-        var handler = new EmbeddedFileHandler { Prefix = "/", ContentPath = "NewLife.Agent.WebPanel.wwwroot" };
+        var handler = CreateHandler();
 
         // JS 文件的 MIME 类型验证
         // 由于我们没有 js 文件嵌入，这里仅验证处理器不会崩溃并且现有逻辑正确
@@ -549,6 +459,7 @@ public class EmbeddedFileHandlerTests
 }
 
 /// <summary>ApiController 启停控制测试</summary>
+[Collection("WebPanel")]
 public class ProcessControlTests
 {
     private static AgentWebPanel CreatePanel(Mock<ServiceBase> mockSvc)
@@ -576,6 +487,8 @@ public class ProcessControlTests
             var panel = CreatePanel(mockSvc);
 
             var controller = new ApiController();
+            controller.Context = CreateAuthContext(panel);
+
             var result = controller.Control("stop");
 
             Assert.NotNull(result);
@@ -605,6 +518,8 @@ public class ProcessControlTests
             var panel = CreatePanel(mockSvc);
 
             var controller = new ApiController();
+            controller.Context = CreateAuthContext(panel);
+
             var result = controller.Control("restart");
 
             Assert.NotNull(result);
@@ -617,6 +532,29 @@ public class ProcessControlTests
         }
     }
 
+    /// <summary>创建测试用的鉴权上下文</summary>
+    /// <param name="panel">Web面板实例</param>
+    /// <returns>模拟的 IHttpContext</returns>
+    private static IHttpContext CreateAuthContext(AgentWebPanel panel)
+    {
+        panel.UserName = "admin";
+        panel.Password = "admin123";
+        var token = panel.IssueToken("admin", "admin123");
+
+        var request = new HttpRequest();
+        request.Headers["Authorization"] = $"Bearer {token}";
+
+        var context = new Mock<IHttpContext>();
+        context.Setup(x => x.Request).Returns(request);
+        context.Setup(x => x.Response).Returns(new HttpResponse());
+        context.Setup(x => x.Connection).Returns((INetSession)null);
+        context.Setup(x => x.Socket).Returns((ISocketRemote)null);
+
+        var ctx = context.Object;
+        DefaultHttpContext.Current = ctx;
+        return ctx;
+    }
+
     private Mock<IHttpContext> CreateMockContext(String body = null)
     {
         var request = new HttpRequest();
@@ -627,10 +565,138 @@ public class ProcessControlTests
         var context = new Mock<IHttpContext>();
         context.Setup(x => x.Request).Returns(request);
         context.Setup(x => x.Response).Returns(response);
-        context.Setup(x => x.Connection).Returns((INetSession?)null);
-        context.Setup(x => x.Socket).Returns((ISocketRemote?)null);
+        context.Setup(x => x.Connection).Returns((INetSession)null);
+        context.Setup(x => x.Socket).Returns((ISocketRemote)null);
 
         return context;
+    }
+}
+
+/// <summary>Web面板 E2E 集成测试</summary>
+[Collection("WebPanel")]
+public class WebPanelE2ETests : IDisposable
+{
+    private AgentWebPanel _panel;
+    private String _baseUrl;
+
+    /// <summary>创建并启动一个独立的面板实例</summary>
+    private void StartPanel()
+    {
+        var mockSvc = new Mock<ServiceBase> { CallBase = true };
+        mockSvc.Object.ServiceName = "E2ETestSvc";
+        mockSvc.Object.Running = true;
+
+        var set = Setting.Current;
+        set.WebPort = 0;
+        set.EnableWebPanel = false;
+
+        _panel = new AgentWebPanel(mockSvc.Object);
+        _panel.UserName = "admin";
+        _panel.Password = "admin123";
+        _panel.Start();
+
+        _baseUrl = $"http://localhost:{_panel.Port}";
+    }
+
+    public void Dispose()
+    {
+        _panel?.Stop("test");
+        LoginRateLimiter.Reset();
+        DefaultHttpContext.Current = null;
+    }
+
+    [Fact(DisplayName = "POST /api/login 正确凭据返回 token")]
+    public async Task Login_ValidCredentials_ReturnsToken()
+    {
+        StartPanel();
+        using var client = new HttpClient();
+        var body = """{"user":"admin","password":"admin123"}""";
+        var content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
+
+        var response = await client.PostAsync($"{_baseUrl}/api/login", content);
+        var json = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(200, (Int32)response.StatusCode);
+        Assert.Contains("\"code\":0", json);
+        Assert.Contains("\"token\"", json);
+    }
+
+    [Fact(DisplayName = "POST /api/login 错误密码返回 401")]
+    public async Task Login_WrongPassword_Returns401()
+    {
+        StartPanel();
+        using var client = new HttpClient();
+        var body = """{"user":"admin","password":"wrong"}""";
+        var content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
+
+        var response = await client.PostAsync($"{_baseUrl}/api/login", content);
+        var json = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(200, (Int32)response.StatusCode);
+        Assert.Contains("\"code\":401", json);
+        Assert.Contains("\"Invalid credentials\"", json);
+    }
+
+    [Fact(DisplayName = "POST /api/login 5次失败后返回 429")]
+    public async Task Login_TooManyFailures_Returns429()
+    {
+        StartPanel();
+        using var client = new HttpClient();
+        var body = """{"user":"admin","password":"wrong"}""";
+        var content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
+
+        for (var i = 0; i < 5; i++)
+        {
+            var resp = await client.PostAsync($"{_baseUrl}/api/login", content);
+            Assert.Equal(200, (Int32)resp.StatusCode);
+        }
+
+        // 第6次应被封锁
+        var response = await client.PostAsync($"{_baseUrl}/api/login", content);
+        var json = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(200, (Int32)response.StatusCode);
+        Assert.Contains("\"code\":429", json);
+    }
+
+    [Fact(DisplayName = "带 token 访问 /api/status 返回 200")]
+    public async Task Status_WithValidToken_Returns200()
+    {
+        StartPanel();
+        using var client = new HttpClient();
+
+        // 先登录获取 token
+        var loginBody = """{"user":"admin","password":"admin123"}""";
+        var loginContent = new StringContent(loginBody, System.Text.Encoding.UTF8, "application/json");
+        var loginResp = await client.PostAsync($"{_baseUrl}/api/login", loginContent);
+        var loginJson = await loginResp.Content.ReadAsStringAsync();
+
+        // 解析 token
+        var jsonObj = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(loginJson);
+        var token = jsonObj.GetProperty("data").GetProperty("token").GetString();
+
+        // 访问 /api/status
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_baseUrl}/api/status");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.SendAsync(request);
+        var statusJson = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(200, (Int32)response.StatusCode);
+        Assert.Contains("\"code\":0", statusJson);
+    }
+
+    [Fact(DisplayName = "无 token 访问 /api/status 返回 401")]
+    public async Task Status_WithoutToken_Returns401()
+    {
+        StartPanel();
+        using var client = new HttpClient();
+
+        var response = await client.GetAsync($"{_baseUrl}/api/status");
+        var json = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(200, (Int32)response.StatusCode);
+        Assert.Contains("\"code\":401", json);
     }
 }
 #endif

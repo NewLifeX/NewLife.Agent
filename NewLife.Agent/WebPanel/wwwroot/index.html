@@ -192,6 +192,11 @@ html.light .stat{background:rgba(0,0,0,0.02)}
 html.light .gc-stat{background:rgba(0,0,0,0.02)}
 html.light nav a.active{color:var(--brand-700)}
 html.light .info-table td{border-bottom-color:rgba(0,0,0,0.06)}
+.info-table{width:100%;border-collapse:collapse}
+.info-table td{padding:10px 14px;border-bottom:1px solid var(--border-subtle);vertical-align:middle}
+.info-table td:first-child{font-size:13px;font-weight:600;color:var(--text-secondary);white-space:nowrap;width:200px;padding-right:20px}
+.info-table td:last-child{font-size:13px;color:var(--text-primary);word-break:break-all}
+.info-table tr:last-child td{border-bottom:none}
 </style>
 </head>
 <body>
@@ -200,9 +205,9 @@ html.light .info-table td{border-bottom-color:rgba(0,0,0,0.06)}
 <h1>🔐 Agent 管理面板</h1>
 <p class="sub">请输入凭据以继续</p>
 <label>用户名</label>
-<input id="luser" placeholder="admin" autocomplete="off">
+<input id="luser" placeholder="请输入用户名" autocomplete="username">
 <label>密码</label>
-<input id="lpass" type="password" placeholder="••••••">
+<input id="lpass" type="password" placeholder="请输入密码" autocomplete="current-password">
 <button class="btn btn-primary btn-lg" style="width:100%;margin-top:8px" onclick="doLogin()">登 录</button>
 <div id="lerr" class="err"></div>
 </div>
@@ -258,12 +263,21 @@ const $=id=>document.getElementById(id);
 async function doLogin(){
  const u=$('luser').value,p=$('lpass').value,e=$('lerr');
  e.classList.remove('show');
+ if(!u&&!p){e.textContent='请输入用户名和密码';e.classList.add('show');return}
+ if(!u){e.textContent='请输入用户名';e.classList.add('show');return}
+ if(!p){e.textContent='请输入密码';e.classList.add('show');return}
  try{
   const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:u,password:p})});
   const j=await r.json();
-  if(j.code!==0){e.textContent=j.message||'登录失败';e.classList.add('show');return}
+  if(j.code===429){e.textContent='登录失败次数过多，请稍后再试';e.classList.add('show');return}
+  if(j.code!==0){
+   if(j.message&&j.message.includes('credentials'))e.textContent='用户名或密码错误';
+   else if(j.message&&j.message.includes('configured'))e.textContent='服务未配置登录凭据';
+   else e.textContent=j.message||'登录失败';
+   e.classList.add('show');return
+  }
   token=j.data.token;sessionStorage.setItem('agent_token',token);showApp();
- }catch(ex){e.textContent='网络错误，请检查服务状态';e.classList.add('show')}
+ }catch(ex){e.textContent='网络错误，请检查服务是否正常运行';e.classList.add('show')}
 }
 
 function logout(){sessionStorage.removeItem('agent_token');token='';clearInterval(timer);$('login').style.display='';$('app').style.display='none'}
@@ -277,8 +291,10 @@ async function api(url,opt={}){
  const h=opt.headers||{};
  if(token)h['Authorization']='Bearer '+token;
  const r=await fetch(url,{...opt,headers:{...h,'Content-Type':'application/json'}});
- if(r.status===401){logout();showToast('登录已过期，请重新登录','error');throw new Error('Unauthorized')}
- return r.json();
+ const j=await r.json();
+ // 检测业务层 401（HTTP 200 + code:401）和 HTTP 401
+ if(j.code===401||r.status===401){logout();showToast('登录已过期，请重新登录','error');throw new Error('Unauthorized')}
+ return j;
 }
 
 function showToast(msg,type='info'){
@@ -308,77 +324,168 @@ document.querySelector('#nav-bar').addEventListener('click',e=>{
  const a=e.target.closest('a[data-panel]');if(!a)return;switchPanel(a.dataset.panel);
 });
 
-/* ── Dashboard (merged with Health) ── */
+/* ── Dashboard — 局部刷新 + 丰富指标 ── */
+let _dashboardBuilt=false;
+
 async function loadDashboard(){
  try{
   const[s,h]=await Promise.all([api('/api/status'),api('/api/health')]);
   if(s.code!==0)return;statusData=s.data;
-  const title=statusData.displayName||statusData.serviceName||'Agent';
+  const d=s.data;
+  const title=d.displayName||d.serviceName||'Agent';
   document.title=title+' 管理面板';
   $('header-title').textContent=title+' 管理面板';
-  $('header-meta').textContent='PID '+statusData.processId;
+  $('header-meta').textContent='PID '+d.processId;
   const dot=$('status-dot-header');
-  dot.className='dot status-dot '+(statusData.running?'on':'off');
-  const running=statusData.running;
-  let html='';
+  dot.className='dot status-dot '+(d.running?'on':'off');
 
-  // 服务状态卡片
-  html+=`<div class="glass-card card"><div class="flex-between mb-16"><h2>📊 服务状态</h2><span class="status-indicator ${running?'running':'stopped'}"><span class="status-dot ${running?'on':'off'}"></span>${running?'运行中':'已停止'}</span></div>`;
-  html+=`<div class="stats-grid">`;
-  html+=statCard('服务名',statusData.displayName||statusData.serviceName);
-  html+=statCard('运行时长',statusData.uptime);
-  html+=statCard('进程 ID',statusData.processId,'font-mono');
-  html+=statCard('监听端口',statusData.port,'font-mono');
-  html+=statCard('内存占用',statusData.memoryMB+' MB',statusData.memoryMB>500?'text-yellow':'');
-  html+=statCard('启动时间',statusData.startTime,'text-secondary');
-  html+=`</div></div>`;
-
-  // 资源监控仪表盘（第二组）
-  if(h.code===0){
-   const d=h.data;
-   const memPct=pct(d.memoryMB,d.memoryLimitMB),thrPct=pct(d.threadCount,d.threadLimit),hndPct=pct(d.handleCount,d.handleLimit);
-   html+=`<div class="glass-card card"><h2>💚 资源监控</h2><div class="gauge-row">`;
-   html+=ringGauge('内存使用',d.memoryMB+' MB',d.memoryLimitMB>0?d.memoryLimitMB+' MB':'∞',memPct);
-   html+=ringGauge('线程数',d.threadCount,d.threadLimit>0?d.threadLimit+'':'∞',thrPct);
-   html+=ringGauge('句柄数',d.handleCount,d.handleLimit>0?d.handleLimit+'':'∞',hndPct);
-   html+=`</div>`;
-   html+=`<div class="mt-16"><div class="collapse-header" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')"><span class="arrow">▶</span> GC 与 CPU 统计</div>`;
-   html+=`<div class="collapse-body"><div class="gc-stats">`;
-   html+=gcStat('Gen 0',d.gcCollections.gen0)+gcStat('Gen 1',d.gcCollections.gen1)+gcStat('Gen 2',d.gcCollections.gen2);
-   html+=gcStat('GC 内存',d.gcTotalMemory+' MB')+gcStat('CPU 时间',d.totalProcessorTime+'s');
-   html+=`</div></div></div></div>`;
+  if(!_dashboardBuilt){
+   _dashboardBuilt=true;
+   buildDashboard(d,h.data);
+  }else{
+   updateDashboard(d,h.data);
   }
-  // 系统信息（最后一组，MachineInfo 丰富字段）
-  html+=`<div class="glass-card card"><h2>🖥 系统信息</h2><table class="info-table">`;
-  html+=infoRow('操作系统',statusData.platform+(statusData.osVersion?'  '+statusData.osVersion:''));
-  html+=infoRow('主机名',statusData.hostMachine);
-  html+=infoRow('CPU',statusData.cpuName||'-',statusData.cpuCount?statusData.cpuCount+' 核':'');
-  if(statusData.cpuRate)html+=infoRow('CPU 使用率',statusData.cpuRate+'%',parseFloat(statusData.cpuRate)>80?'text-yellow':'');
-  if(statusData.totalMemory)html+=infoRow('物理内存',statusData.totalMemory,statusData.availableMemory?'可用 '+statusData.availableMemory+(statusData.freeMemory?' / 空闲 '+statusData.freeMemory:''):'');
-  if(statusData.board)html+=infoRow('主板',statusData.board);
-  if(statusData.machineGuid)html+=infoRow('设备 ID',statusData.machineGuid,'font-mono');
-  if(statusData.hostUptime)html+=infoRow('主机运行',statusData.hostUptime);
-  if(statusData.uplinkSpeed)html+=infoRow('上行速率',statusData.uplinkSpeed);
-  if(statusData.downlinkSpeed)html+=infoRow('下行速率',statusData.downlinkSpeed);
-  html+=`</table></div>`;
-  $('panel-dashboard').innerHTML=html;
  }catch(e){}
 }
 
-function statCard(lbl,val,cls=''){return `<div class="stat"><div class="stat-val ${cls}">${esc(val)}</div><div class="stat-lbl">${lbl}</div></div>`}
-function infoRow(lbl,val,extra=''){return `<tr><td>${esc(lbl)}</td><td>${esc(val)}${extra?` <span class="text-muted" style="font-size:11px">${esc(extra)}</span>`:''}</td></tr>`}
-function gcStat(lbl,val){return `<div class="gc-stat"><div class="gc-val">${esc(val)}</div><div class="gc-lbl">${lbl}</div></div>`}
+function buildDashboard(d,health){
+ const running=d.running;
+ let html='';
+
+ // 服务状态卡片
+ html+=`<div class="glass-card card"><div class="flex-between mb-16"><h2>📊 服务状态</h2><span id="svc-indicator" class="status-indicator ${running?'running':'stopped'}"><span class="status-dot ${running?'on':'off'}"></span>${running?'运行中':'已停止'}</span></div>`;
+ html+=`<div class="stats-grid">`;
+ html+=statCard('服务名',d.displayName||d.serviceName,'','svc-name');
+ html+=statCard('运行时长',d.uptime,'','svc-uptime');
+ html+=statCard('进程 ID',d.processId,'font-mono','svc-pid');
+ html+=statCard('监听端口',d.port,'font-mono','svc-port');
+ html+=statCard('内存占用',d.memoryMB+' MB','','svc-mem',d.memoryMB>500?'text-yellow':'');
+ html+=statCard('启动时间',d.startTime,'text-secondary','svc-start');
+ html+=`</div></div>`;
+
+ // 资源监控仪表盘
+ if(health){
+  const memPct=pct(health.memoryMB,health.memoryLimitMB);
+  const thrPct=pct(health.threadCount,health.threadLimit);
+  const hndPct=pct(health.handleCount,health.handleLimit);
+  const cpuPct=d.cpuRate?Math.min(100,parseFloat(d.cpuRate)):0;
+  html+=`<div class="glass-card card"><h2>💚 资源监控</h2><div class="gauge-row" id="gauge-row1">`;
+  html+=ringGauge('CPU 使用率',cpuPct+'%','100%',cpuPct,'gauge-cpu');
+  html+=ringGauge('内存使用',health.memoryMB+' MB',health.memoryLimitMB>0?health.memoryLimitMB+' MB':'∞',memPct,'gauge-mem');
+  html+=ringGauge('线程数',health.threadCount,health.threadLimit>0?health.threadLimit+'':'∞',thrPct,'gauge-thr');
+  html+=ringGauge('句柄数',health.handleCount,health.handleLimit>0?health.handleLimit+'':'∞',hndPct,'gauge-hnd');
+  html+=`</div>`;
+  // 第二行：网络速率 + 更多指标
+  html+=`<div class="gauge-row" id="gauge-row2" style="margin-top:8px">`;
+  if(d.uplinkSpeed)html+=ringGauge('上行速率',d.uplinkSpeed,'',0,'gauge-up');
+  if(d.downlinkSpeed)html+=ringGauge('下行速率',d.downlinkSpeed,'',0,'gauge-down');
+  html+=numCard('CPU 核数',d.cpuCount||'','font-mono','cpu-cores');
+  html+=numCard('进程数','1','font-mono','proc-count');
+  html+=`</div>`;
+  html+=`<div class="mt-12"><div class="collapse-header" onclick="this.classList.toggle('open');document.getElementById('gc-body').classList.toggle('open')"><span class="arrow">▶</span> GC 与 CPU 统计</div>`;
+  html+=`<div class="collapse-body" id="gc-body"><div class="gc-stats">`;
+  html+=gcStat('Gen 0',health.gcCollections.gen0,'gc-gen0')+gcStat('Gen 1',health.gcCollections.gen1,'gc-gen1')+gcStat('Gen 2',health.gcCollections.gen2,'gc-gen2');
+  html+=gcStat('GC 内存',health.gcTotalMemory+' MB','gc-mem')+gcStat('CPU 时间',health.totalProcessorTime+'s','gc-cpu');
+  html+=`</div></div></div></div>`;
+ }
+
+ // 系统信息
+ html+=`<div class="glass-card card"><h2>🖥 系统信息</h2><table class="info-table">`;
+ html+=infoRow('操作系统',d.platform+(d.osVersion?'  '+d.osVersion:''));
+ html+=infoRow('主机名',d.hostMachine);
+ html+=infoRow('CPU',(d.cpuName||'-')+(d.cpuCount?' — '+d.cpuCount+' 核':''));
+ if(d.cpuRate)html+=infoRow('CPU 使用率',d.cpuRate+'%',parseFloat(d.cpuRate)>80?'text-yellow':'');
+ if(d.totalMemory)html+=infoRow('物理内存',d.totalMemory+(d.availableMemory?' — 可用 '+d.availableMemory+(d.freeMemory?' / 空闲 '+d.freeMemory:''):''));
+ if(d.board)html+=infoRow('主板',d.board);
+ if(d.machineGuid)html+=infoRow('设备 ID',d.machineGuid,'font-mono');
+ if(d.hostUptime)html+=infoRow('主机运行',d.hostUptime);
+ if(d.uplinkSpeed)html+=infoRow('上行速率',d.uplinkSpeed);
+ if(d.downlinkSpeed)html+=infoRow('下行速率',d.downlinkSpeed);
+ html+=`</table></div>`;
+ $('panel-dashboard').innerHTML=html;
+}
+
+function updateDashboard(d,health){
+ // 更新服务状态卡片
+ setText('svc-name',d.displayName||d.serviceName);
+ setText('svc-uptime',d.uptime);
+ setText('svc-pid',d.processId);
+ setText('svc-port',d.port);
+ setText('svc-mem',d.memoryMB+' MB');
+ setText('svc-start',d.startTime);
+ // 运行状态指示
+ const ind=$('svc-indicator');
+ if(ind){
+  ind.className='status-indicator '+(d.running?'running':'stopped');
+  ind.innerHTML=`<span class="status-dot ${d.running?'on':'off'}"></span>${d.running?'运行中':'已停止'}`;
+ }
+
+ // 更新资源监控
+ if(health){
+  const memPct=pct(health.memoryMB,health.memoryLimitMB);
+  const thrPct=pct(health.threadCount,health.threadLimit);
+  const hndPct=pct(health.handleCount,health.handleLimit);
+  const cpuPct=d.cpuRate?Math.min(100,parseFloat(d.cpuRate)):0;
+  updateGauge('gauge-cpu',cpuPct,cpuPct+'%','100%');
+  updateGauge('gauge-mem',memPct,health.memoryMB+' MB',health.memoryLimitMB>0?health.memoryLimitMB+' MB':'∞');
+  updateGauge('gauge-thr',thrPct,health.threadCount,health.threadLimit>0?health.threadLimit+'':'∞');
+  updateGauge('gauge-hnd',hndPct,health.handleCount,health.handleLimit>0?health.handleLimit+'':'∞');
+  if(d.uplinkSpeed)updateGaugeValOnly('gauge-up',d.uplinkSpeed);
+  if(d.downlinkSpeed)updateGaugeValOnly('gauge-down',d.downlinkSpeed);
+  // GC 统计
+  if(health.gcCollections){
+   setText('gc-gen0',health.gcCollections.gen0);
+   setText('gc-gen1',health.gcCollections.gen1);
+   setText('gc-gen2',health.gcCollections.gen2);
+   setText('gc-mem',health.gcTotalMemory+' MB');
+   setText('gc-cpu',health.totalProcessorTime+'s');
+  }
+ }
+}
+
+function setText(id,val){
+ const el=document.getElementById(id);
+ if(el)el.textContent=val;
+}
+
+function updateGauge(id,pctVal,val,max){
+ const pctEl=document.getElementById(id+'-pct');
+ const valEl=document.getElementById(id+'-val');
+ const maxEl=document.getElementById(id+'-max');
+ const fillEl=document.getElementById(id+'-fill');
+ if(pctEl)pctEl.textContent=pctVal+'%';
+ if(valEl)valEl.textContent=val;
+ if(maxEl)maxEl.textContent=max;
+ if(fillEl){
+  const r=48,c=2*Math.PI*r,offset=c-(pctVal/100)*c;
+  fillEl.setAttribute('stroke-dashoffset',offset);
+  fillEl.setAttribute('stroke',pctVal>80?'#ef4444':pctVal>50?'#f59e0b':'url(#gaugeGrad)');
+ }
+}
+function updateGaugeValOnly(id,val){
+ const valEl=document.getElementById(id+'-val');
+ if(valEl)valEl.textContent=val;
+}
+
+function statCard(lbl,val,cls='',id='',valCls=''){
+ return `<div class="stat"${id?` id="${id}-card"`:''}><div class="stat-val ${valCls||cls}"${id?` id="${id}"`:''}>${esc(val)}</div><div class="stat-lbl">${lbl}</div></div>`;
+}
+function infoRow(lbl,val,cls=''){return `<tr><td>${esc(lbl)}</td><td><span${cls?` class="${cls}"`:''}>${esc(val)}</span></td></tr>`}
+function gcStat(lbl,val,id=''){return `<div class="gc-stat"><div class="gc-val"${id?` id="${id}"`:''}>${esc(val)}</div><div class="gc-lbl">${lbl}</div></div>`}
+function numCard(lbl,val,cls='',id=''){
+ return `<div class="stat"${id?` id="${id}-card"`:''}><div class="stat-val ${cls}"${id?` id="${id}"`:''}>${esc(val)}</div><div class="stat-lbl">${lbl}</div></div>`;
+}
 function pct(v,max){return max>0?Math.min(100,Math.round(v/max*100)):0}
 
-function ringGauge(label,val,max,pctVal){
+function ringGauge(label,val,max,pctVal,id){
  const r=48,c=2*Math.PI*r,offset=c-(pctVal/100)*c;
  const cls=pctVal>80?'#ef4444':pctVal>50?'#f59e0b':'url(#gaugeGrad)';
- return `<div class="gauge-card glass-card"><div class="gauge-label">${label}</div>
+ return `<div class="gauge-card glass-card"${id?` id="${id}-card"`:''}><div class="gauge-label">${label}</div>
  <div class="ring-wrap">
  <svg width="120" height="120" viewBox="0 0 120 120"><defs><linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#5b5bff"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient></defs>
- <circle class="ring-bg" cx="60" cy="60" r="${r}"/><circle class="ring-fill" cx="60" cy="60" r="${r}" stroke="${cls}" stroke-dasharray="${c}" stroke-dashoffset="${offset}"/></svg>
- <div class="ring-text"><span class="pct">${pctVal}%</span><span class="unit">已使用</span></div></div>
- <div class="gauge-detail">${esc(val)} / ${esc(max)}</div></div>`;
+ <circle class="ring-bg" cx="60" cy="60" r="${r}"/><circle class="ring-fill" cx="60" cy="60" r="${r}" stroke="${cls}" stroke-dasharray="${c}" stroke-dashoffset="${offset}"${id?` id="${id}-fill"`:''}/></svg>
+ <div class="ring-text"><span class="pct"${id?` id="${id}-pct"`:''}>${pctVal}%</span><span class="unit">已使用</span></div></div>
+ <div class="gauge-detail">${id?`<span id="${id}-val">${esc(val)}</span>`:esc(val)} / ${id?`<span id="${id}-max">${esc(max)}</span>`:esc(max)}</div></div>`;
 }
 
 /* ── Control ── */

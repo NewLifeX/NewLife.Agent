@@ -13,36 +13,69 @@ namespace NewLife.Agent.WebPanel;
 /// <summary>Agent Web管理面板 API 控制器</summary>
 /// <remarks>
 /// 提供 RESTful API 接口，包括服务状态查看、启停控制、配置管理、日志查看等功能。
-/// 路由格式：/api/{MethodName}，由 HttpServer.MapController 自动映射。
+/// 路由格式：/api/{MethodName}，由 HttpServer.ControllerHandler 自动映射。
+/// 控制器自行完成 Bearer Token 鉴权（Login 方法除外）。
 /// </remarks>
-public class ApiController
+public class ApiController : IHttpController
 {
     #region 属性
     /// <summary>所属服务</summary>
     public ServiceBase Service => AgentWebPanel.Current?.Service!;
 
-    /// <summary>鉴权处理器</summary>
-    public AuthHandler Auth => AgentWebPanel.Current?.Auth!;
+    /// <summary>当前Http上下文。由 ControllerHandler 自动注入</summary>
+    public IHttpContext Context { get; set; }
     #endregion
 
     #region 鉴权
     /// <summary>登录鉴权，签发Bearer Token</summary>
-    /// <remarks>参数由 POST body 的 JSON 键值对整体反序列化传入，支持 {user, password}</remarks>
-    /// <param name="credentials">登录凭据字典，含 user 和 password 键</param>
-    /// <returns>Token信息，失败返回 code=401</returns>
-    public Object Login(IDictionary<String, Object> credentials)
+    /// <param name="user">用户名</param>
+    /// <param name="password">密码</param>
+    /// <returns>Token信息，失败返回 code=401，爆破封锁返回 code=429</returns>
+    public Object Login(String user, String password)
     {
-        if (credentials == null)
-            return new { code = 401, message = "Missing credentials" };
+        // 爆破防护：获取客户端IP
+        var ip = GetClientIp();
 
-        var user = credentials.TryGetValue("user", out var u) ? u + "" : "";
-        var password = credentials.TryGetValue("password", out var p) ? p + "" : "";
+        if (LoginRateLimiter.IsBlocked(ip))
+            return new { code = 429, message = "Too many failed attempts. Try again later." };
 
-        var token = Auth.IssueToken(user, password);
+        var token = AgentWebPanel.Current?.IssueToken(user, password);
         if (token == null)
+        {
+            LoginRateLimiter.RecordFailure(ip);
             return new { code = 401, message = "Invalid credentials" };
+        }
 
+        LoginRateLimiter.RecordSuccess(ip);
         return new { code = 0, data = new { token } };
+    }
+
+    /// <summary>检查请求鉴权</summary>
+    /// <returns>是否通过鉴权</returns>
+    protected Boolean CheckAuth()
+    {
+        var ctx = Context;
+        if (ctx == null) return false;
+
+        var auth = ctx.Request.Headers["Authorization"];
+        if (auth.IsNullOrEmpty() || !auth.StartsWithIgnoreCase("Bearer "))
+            return false;
+
+        var token = auth.Substring("Bearer ".Length).Trim();
+        if (token.IsNullOrEmpty()) return false;
+
+        return AgentWebPanel.Current.ValidateToken(token);
+    }
+
+    /// <summary>获取客户端IP地址</summary>
+    /// <returns>IP字符串，无法获取时返回 unknown</returns>
+    protected String GetClientIp()
+    {
+        var ctx = Context;
+        var socket = ctx?.Socket;
+        if (socket?.Remote == null || socket.Remote.Address == null) return "unknown";
+
+        return socket.Remote.Address + "";
     }
     #endregion
 
@@ -51,6 +84,8 @@ public class ApiController
     /// <returns>服务状态信息，包含运行状态、进程信息、系统资源等</returns>
     public Object Status()
     {
+        if (!CheckAuth()) return new { code = 401, message = "Unauthorized" };
+
         var p = Process.GetCurrentProcess();
         var uptime = DateTime.Now - p.StartTime;
         var mi = MachineInfo.Current ?? MachineInfo.GetCurrent();
@@ -97,6 +132,8 @@ public class ApiController
     /// <returns>操作结果</returns>
     public Object Control(String action)
     {
+        if (!CheckAuth()) return new { code = 401, message = "Unauthorized" };
+
         if (action.IsNullOrEmpty())
             return new { code = 400, message = "Missing action" };
 
@@ -128,6 +165,8 @@ public class ApiController
     /// <returns>配置项列表，含显示名、描述、类型和当前值</returns>
     public Object ConfigMetadata()
     {
+        if (!CheckAuth()) return new { code = 401, message = "Unauthorized" };
+
         var set = Setting.Current;
         var items = new List<Object>();
 
@@ -179,6 +218,8 @@ public class ApiController
     /// <returns>更新结果</returns>
     public Object UpdateConfig(IDictionary<String, Object> updates)
     {
+        if (!CheckAuth()) return new { code = 401, message = "Unauthorized" };
+
         if (updates == null || updates.Count == 0)
             return new { code = 400, message = "Missing config" };
 
@@ -220,6 +261,8 @@ public class ApiController
     /// <returns>日志行列表</returns>
     public Object Logs(Int32 count, String file, String level)
     {
+        if (!CheckAuth()) return new { code = 401, message = "Unauthorized" };
+
         if (count <= 0) count = 200;
         count = Math.Min(count, 1000);
 
@@ -232,6 +275,8 @@ public class ApiController
     /// <returns>日志文件列表</returns>
     public Object LogFiles()
     {
+        if (!CheckAuth()) return new { code = 401, message = "Unauthorized" };
+
         var list = new List<Object>();
 
         try
@@ -318,6 +363,8 @@ public class ApiController
     /// <returns>健康指标数据，含内存、线程、句柄、GC等</returns>
     public Object Health()
     {
+        if (!CheckAuth()) return new { code = 401, message = "Unauthorized" };
+
         var p = Process.GetCurrentProcess();
         var set = Setting.Current;
 
@@ -352,6 +399,8 @@ public class ApiController
     /// <returns>看门狗监控的服务状态列表</returns>
     public Object WatchDog()
     {
+        if (!CheckAuth()) return new { code = 401, message = "Unauthorized" };
+
         var set = Setting.Current;
         var dogServices = set.WatchDog?.Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Select(s => s.Trim())
@@ -388,6 +437,8 @@ public class ApiController
     /// <returns>扩展面板配置列表</returns>
     public Object Extensions()
     {
+        if (!CheckAuth()) return new { code = 401, message = "Unauthorized" };
+
         var panel = AgentWebPanel.Current;
         var extensions = panel?.GetExtensions() ?? [];
         return new { code = 0, data = new { panels = extensions } };
