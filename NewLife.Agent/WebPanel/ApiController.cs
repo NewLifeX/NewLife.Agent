@@ -1,5 +1,6 @@
 ﻿#if !NET40
 using System.Diagnostics;
+using System.Net.NetworkInformation;
 using System.Reflection;
 using NewLife.Data;
 using NewLife.Http;
@@ -90,6 +91,28 @@ public class ApiController : IHttpController
         var uptime = DateTime.Now - p.StartTime;
         var mi = MachineInfo.Current ?? MachineInfo.GetCurrent();
 
+        // 刷新 MachineInfo 动态数据（CPU 使用率、网络速度等）
+        mi.Refresh();
+        mi.RefreshSpeed();
+
+        // 收集 TCP 连接数
+        var tcpConnections = 0;
+        var tcpTimeWait = 0;
+        var tcpCloseWait = 0;
+        try
+        {
+            var properties = IPGlobalProperties.GetIPGlobalProperties();
+            var connections = properties.GetActiveTcpConnections();
+
+            tcpConnections = connections.Count(e => e.State == TcpState.Established);
+            tcpTimeWait = connections.Count(e => e.State == TcpState.TimeWait);
+            tcpCloseWait = connections.Count(e => e.State == TcpState.CloseWait);
+        }
+        catch { }
+
+        // 收集磁盘 IOPS
+        var diskIops = DiskMonitor.GetIOPS();
+
         return new
         {
             code = 0,
@@ -103,6 +126,8 @@ public class ApiController : IHttpController
                 uptimeSeconds = (Int64)uptime.TotalSeconds,
                 processId = p.Id,
                 memoryMB = p.WorkingSet64 / 1024 / 1024,
+                // 物理内存总量
+                memoryTotalMB = mi.Memory > 0 ? mi.Memory / 1024 / 1024 : 0,
                 threadCount = p.Threads.Count,
                 handleCount = p.HandleCount,
                 startTime = p.StartTime.ToString("MM-dd HH:mm:ss"),
@@ -111,7 +136,9 @@ public class ApiController : IHttpController
                 osVersion = mi.OSVersion,
                 cpuName = mi.Processor,
                 cpuCount = Environment.ProcessorCount,
+                // CPU 使用率百分比（0~100），保留一位小数
                 cpuRate = mi.CpuRate > 0 ? mi.CpuRate.ToString("F1") : "",
+                cpuRateValue = mi.CpuRate > 0 ? Math.Round(mi.CpuRate, 1) : 0d,
                 totalMemory = mi.Memory > 0 ? $"{mi.Memory / 1024 / 1024 / 1024} GB" : "",
                 availableMemory = mi.AvailableMemory > 0 ? $"{mi.AvailableMemory / 1024 / 1024 / 1024} GB" : "",
                 freeMemory = mi.FreeMemory > 0 ? $"{mi.FreeMemory / 1024 / 1024 / 1024} GB" : "",
@@ -119,6 +146,12 @@ public class ApiController : IHttpController
                 machineGuid = mi.Guid,
                 uplinkSpeed = mi.UplinkSpeed > 0 ? FormatSpeed(mi.UplinkSpeed) : "",
                 downlinkSpeed = mi.DownlinkSpeed > 0 ? FormatSpeed(mi.DownlinkSpeed) : "",
+                // TCP 连接数
+                tcpConnections,
+                tcpTimeWait,
+                tcpCloseWait,
+                // 磁盘 IOPS
+                diskIops,
                 hostUptime = TimeSpan.FromMilliseconds(Runtime.TickCount64).ToString(@"d\.hh\:mm\:ss"),
                 port = AgentWebPanel.Current?.Server.Port ?? 0
             }

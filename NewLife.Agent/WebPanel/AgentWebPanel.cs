@@ -189,8 +189,8 @@ public class AgentWebPanel
         // API 控制器路由（自动处理 /api/* 通配，控制器自行鉴权）
         Server.MapController<ApiController>("/api");
 
-        // 静态文件（根路径，API 路由优先匹配）
-        Server.MapEmbedded<AgentWebPanel>("/*", "NewLife.Agent.WebPanel.wwwroot");
+        // 静态文件（根路径，API 路由优先匹配；传 "/" 让 MapEmbedded 内部转为 "/*" 通配）
+        Server.MapEmbedded<AgentWebPanel>("/", "NewLife.Agent.WebPanel.wwwroot");
     }
     #endregion
 

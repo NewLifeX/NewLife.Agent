@@ -363,31 +363,39 @@ function buildDashboard(d,health){
  html+=statCard('启动时间',d.startTime,'text-secondary','svc-start');
  html+=`</div></div>`;
 
- // 资源监控仪表盘
+ // 资源监控仪表盘 —— 8 项指标，4 列 2 行
+ // 顺序：CPU使用率、内存、线程数、句柄数、连接数、上行速率、下行速率、磁盘IO
+ // 内存：优先使用配置限额，没有则使用物理内存总量
+ const memLimit = health && health.memoryLimitMB > 0 ? health.memoryLimitMB : 0;
+ const memTotal = memLimit > 0 ? memLimit : (d.memoryTotalMB || 0);
+ const memPct = memTotal > 0 ? pct(d.memoryMB, memTotal) : 0;
+ const thrPct = health ? pct(health.threadCount, health.threadLimit) : 0;
+ const hndPct = health ? pct(health.handleCount, health.handleLimit) : 0;
+ const cpuPct = d.cpuRateValue>0 ? Math.min(100, d.cpuRateValue) : (d.cpuRate?Math.min(100, parseFloat(d.cpuRate)):0);
+
+ html+=`<div class="glass-card card"><h2>💚 资源监控</h2><div class="gauge-row">`;
+ // 第 1 行：环形图（CPU、内存、线程数、句柄数）
+ html+=ringGauge('CPU 使用率', cpuPct+'%', '100%', cpuPct, 'gauge-cpu');
+ html+=ringGauge('内存', d.memoryMB+' MB', memTotal>0?memTotal+' MB':'∞', memPct, 'gauge-mem');
+ html+=ringGauge('线程数', d.threadCount, (health&&health.threadLimit>0)?health.threadLimit+'':'∞', thrPct, 'gauge-thr');
+ html+=ringGauge('句柄数', d.handleCount, (health&&health.handleLimit>0)?health.handleLimit+'':'∞', hndPct, 'gauge-hnd');
+ html+=`</div>`;
+ // 第 2 行：数值卡片（连接数、上行速率、下行速率、磁盘IO）
+ html+=`<div class="gauge-row" style="margin-top:8px">`;
+ html+=connCard('连接数', d.tcpConnections||0);
+ html+=numCard('上行速率', d.uplinkSpeed||'0 bps', 'font-mono', 'net-up');
+ html+=numCard('下行速率', d.downlinkSpeed||'0 bps', 'font-mono', 'net-down');
+ html+=numCard('磁盘 IO', d.diskIops!=null?formatIops(d.diskIops):'0 ops/s', 'font-mono', 'disk-iops');
+ html+=`</div>`;
+ // GC 折叠
  if(health){
-  const memPct=pct(health.memoryMB,health.memoryLimitMB);
-  const thrPct=pct(health.threadCount,health.threadLimit);
-  const hndPct=pct(health.handleCount,health.handleLimit);
-  const cpuPct=d.cpuRate?Math.min(100,parseFloat(d.cpuRate)):0;
-  html+=`<div class="glass-card card"><h2>💚 资源监控</h2><div class="gauge-row" id="gauge-row1">`;
-  html+=ringGauge('CPU 使用率',cpuPct+'%','100%',cpuPct,'gauge-cpu');
-  html+=ringGauge('内存使用',health.memoryMB+' MB',health.memoryLimitMB>0?health.memoryLimitMB+' MB':'∞',memPct,'gauge-mem');
-  html+=ringGauge('线程数',health.threadCount,health.threadLimit>0?health.threadLimit+'':'∞',thrPct,'gauge-thr');
-  html+=ringGauge('句柄数',health.handleCount,health.handleLimit>0?health.handleLimit+'':'∞',hndPct,'gauge-hnd');
-  html+=`</div>`;
-  // 第二行：网络速率 + 更多指标
-  html+=`<div class="gauge-row" id="gauge-row2" style="margin-top:8px">`;
-  if(d.uplinkSpeed)html+=ringGauge('上行速率',d.uplinkSpeed,'',0,'gauge-up');
-  if(d.downlinkSpeed)html+=ringGauge('下行速率',d.downlinkSpeed,'',0,'gauge-down');
-  html+=numCard('CPU 核数',d.cpuCount||'','font-mono','cpu-cores');
-  html+=numCard('进程数','1','font-mono','proc-count');
-  html+=`</div>`;
   html+=`<div class="mt-12"><div class="collapse-header" onclick="this.classList.toggle('open');document.getElementById('gc-body').classList.toggle('open')"><span class="arrow">▶</span> GC 与 CPU 统计</div>`;
   html+=`<div class="collapse-body" id="gc-body"><div class="gc-stats">`;
   html+=gcStat('Gen 0',health.gcCollections.gen0,'gc-gen0')+gcStat('Gen 1',health.gcCollections.gen1,'gc-gen1')+gcStat('Gen 2',health.gcCollections.gen2,'gc-gen2');
   html+=gcStat('GC 内存',health.gcTotalMemory+' MB','gc-mem')+gcStat('CPU 时间',health.totalProcessorTime+'s','gc-cpu');
-  html+=`</div></div></div></div>`;
+  html+=`</div></div></div>`;
  }
+ html+=`</div>`;
 
  // 系统信息
  html+=`<div class="glass-card card"><h2>🖥 系统信息</h2><table class="info-table">`;
@@ -401,6 +409,8 @@ function buildDashboard(d,health){
  if(d.hostUptime)html+=infoRow('主机运行',d.hostUptime);
  if(d.uplinkSpeed)html+=infoRow('上行速率',d.uplinkSpeed);
  if(d.downlinkSpeed)html+=infoRow('下行速率',d.downlinkSpeed);
+ if(d.diskIops!=null)html+=infoRow('磁盘 IO',formatIops(d.diskIops));
+ if(d.tcpConnections!=null)html+=infoRow('TCP 连接数',d.tcpConnections+(d.tcpTimeWait?` (TimeWait: ${d.tcpTimeWait}`:'')+(d.tcpCloseWait?` CloseWait: ${d.tcpCloseWait}`:'')+(d.tcpTimeWait||d.tcpCloseWait?')':''));
  html+=`</table></div>`;
  $('panel-dashboard').innerHTML=html;
 }
@@ -420,19 +430,25 @@ function updateDashboard(d,health){
   ind.innerHTML=`<span class="status-dot ${d.running?'on':'off'}"></span>${d.running?'运行中':'已停止'}`;
  }
 
- // 更新资源监控
+ // 更新资源监控（8 项指标）
+ const memLimit = health && health.memoryLimitMB > 0 ? health.memoryLimitMB : 0;
+ const memTotal = memLimit > 0 ? memLimit : (d.memoryTotalMB || 0);
+ const memPct = memTotal > 0 ? pct(d.memoryMB, memTotal) : 0;
+ const thrPct = health ? pct(health.threadCount, health.threadLimit) : 0;
+ const hndPct = health ? pct(health.handleCount, health.handleLimit) : 0;
+ const cpuPct = d.cpuRateValue>0 ? Math.min(100, d.cpuRateValue) : (d.cpuRate?Math.min(100, parseFloat(d.cpuRate)):0);
+ updateGauge('gauge-cpu', cpuPct, cpuPct+'%', '100%');
+ updateGauge('gauge-mem', memPct, d.memoryMB+' MB', memTotal>0?memTotal+' MB':'∞');
+ updateGauge('gauge-thr', thrPct, d.threadCount, (health&&health.threadLimit>0)?health.threadLimit+'':'∞');
+ updateGauge('gauge-hnd', hndPct, d.handleCount, (health&&health.handleLimit>0)?health.handleLimit+'':'∞');
+ // 第 2 行数值卡片
+ setText('conn-val', d.tcpConnections||0);
+ setConnColor('conn-val', d.tcpConnections||0);
+ setText('net-up', d.uplinkSpeed||'0 bps');
+ setText('net-down', d.downlinkSpeed||'0 bps');
+ setText('disk-iops', d.diskIops!=null?formatIops(d.diskIops):'0 ops/s');
+ // GC 统计
  if(health){
-  const memPct=pct(health.memoryMB,health.memoryLimitMB);
-  const thrPct=pct(health.threadCount,health.threadLimit);
-  const hndPct=pct(health.handleCount,health.handleLimit);
-  const cpuPct=d.cpuRate?Math.min(100,parseFloat(d.cpuRate)):0;
-  updateGauge('gauge-cpu',cpuPct,cpuPct+'%','100%');
-  updateGauge('gauge-mem',memPct,health.memoryMB+' MB',health.memoryLimitMB>0?health.memoryLimitMB+' MB':'∞');
-  updateGauge('gauge-thr',thrPct,health.threadCount,health.threadLimit>0?health.threadLimit+'':'∞');
-  updateGauge('gauge-hnd',hndPct,health.handleCount,health.handleLimit>0?health.handleLimit+'':'∞');
-  if(d.uplinkSpeed)updateGaugeValOnly('gauge-up',d.uplinkSpeed);
-  if(d.downlinkSpeed)updateGaugeValOnly('gauge-down',d.downlinkSpeed);
-  // GC 统计
   if(health.gcCollections){
    setText('gc-gen0',health.gcCollections.gen0);
    setText('gc-gen1',health.gcCollections.gen1);
@@ -441,6 +457,22 @@ function updateDashboard(d,health){
    setText('gc-cpu',health.totalProcessorTime+'s');
   }
  }
+}
+
+function formatIops(v){
+ v=parseInt(v)||0;
+ if(v>=1000)return (v/1000).toFixed(1)+' K ops/s';
+ return v+' ops/s';
+}
+
+function connCard(lbl,val){
+ const cls=val>1000?'text-red':val>100?'text-yellow':'text-green';
+ return `<div class="stat"><div class="stat-val ${cls}" id="conn-val">${esc(val)}</div><div class="stat-lbl">${lbl}</div></div>`;
+}
+function setConnColor(id,val){
+ const el=document.getElementById(id);
+ if(!el)return;
+ el.className='stat-val '+(val>1000?'text-red':val>100?'text-yellow':'text-green');
 }
 
 function setText(id,val){
