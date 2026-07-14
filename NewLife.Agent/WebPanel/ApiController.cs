@@ -213,7 +213,7 @@ public class ApiController : IHttpController
     /// <summary>更新配置</summary>
     /// <remarks>
     /// 接收 JSON 对象，key 为属性名，value 为新值。
-    /// 安全字段白名单：不更新密码字段。
+    /// 安全字段白名单：不更新密码字段（请使用 ChangePassword 接口）。
     /// </remarks>
     /// <returns>更新结果</returns>
     public Object UpdateConfig(IDictionary<String, Object> updates)
@@ -232,7 +232,7 @@ public class ApiController : IHttpController
                 var prop = typeof(Setting).GetProperty(kv.Key, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
                 if (prop == null || !prop.CanWrite) continue;
 
-                // 安全字段白名单
+                // 安全字段白名单：密码须走 ChangePassword 接口（校验旧密码）
                 if (kv.Key.EqualIgnoreCase(nameof(set.WebPassword))) continue;
 
                 var value = kv.Value;
@@ -250,6 +250,37 @@ public class ApiController : IHttpController
         {
             return new { code = 500, message = ex.Message };
         }
+    }
+
+    /// <summary>修改密码。校验旧密码后更新为新密码，立即生效无需重启</summary>
+    /// <param name="oldPassword">旧密码</param>
+    /// <param name="newPassword">新密码</param>
+    /// <returns>操作结果</returns>
+    public Object ChangePassword(String oldPassword, String newPassword)
+    {
+        if (!CheckAuth()) return new { code = 401, message = "Unauthorized" };
+
+        if (oldPassword.IsNullOrEmpty()) return new { code = 400, message = "Missing oldPassword" };
+        if (newPassword.IsNullOrEmpty()) return new { code = 400, message = "Missing newPassword" };
+
+        var panel = AgentWebPanel.Current;
+        if (panel == null) return new { code = 500, message = "Panel not available" };
+
+        // 验证旧密码
+        if (oldPassword != panel.Password)
+            return new { code = 403, message = "Old password is incorrect" };
+
+        // 更新配置文件
+        var set = Setting.Current;
+        set.WebPassword = newPassword;
+        set.Save();
+
+        // 更新面板内存中的密码（立即生效，无需重启）
+        panel.UpdateCredentials(null, newPassword);
+
+        XTrace.WriteLine("Web面板密码已修改");
+
+        return new { code = 0, message = "密码已修改，下次登录请使用新密码" };
     }
     #endregion
 

@@ -181,23 +181,16 @@ public class AgentWebPanel
     /// <summary>注册所有路由</summary>
     /// <remarks>
     /// 路由匹配规则：精确匹配优先于通配符。
-    /// /api/login 精确匹配（不走鉴权）→ ApiController.Login()
-    /// /api/* 通配匹配 → ApiController 其他方法（控制器自行鉴权）
+    /// /api/* 通配匹配 → ApiController（控制器自行鉴权，Login 方法不鉴权）
     /// /* 降级匹配 → 静态文件
     /// </remarks>
     protected virtual void RegisterRoutes()
     {
-        // 使用内置 ControllerHandler 替代 AgentControllerHandler
-        var handler = new ControllerHandler { ControllerType = typeof(ApiController) };
-
-        // 登录接口：精确路由，不走鉴权（先注册，精确匹配优先于后面的 /api/* 通配）
-        Server.Map("/api/login", handler);
-
-        // API 控制器路由：控制器自行鉴权
-        Server.Map("/api/*", handler);
+        // API 控制器路由（自动处理 /api/* 通配，控制器自行鉴权）
+        Server.MapController<ApiController>("/api");
 
         // 静态文件（根路径，API 路由优先匹配）
-        Server.Map("/*", new EmbeddedFileHandler { Path = "/", ContentPath = "NewLife.Agent.WebPanel.wwwroot", Assembly = typeof(AgentWebPanel).Assembly });
+        Server.MapEmbedded<AgentWebPanel>("/*", "NewLife.Agent.WebPanel.wwwroot");
     }
     #endregion
 
@@ -205,6 +198,17 @@ public class AgentWebPanel
     /// <summary>获取用户注册的扩展面板列表，子类重写以添加自定义面板</summary>
     /// <returns>扩展面板列表</returns>
     protected internal virtual List<PanelExtension> GetExtensions() => [];
+    #endregion
+
+    #region 运行时凭据更新
+    /// <summary>运行时更新凭据，立即生效无需重启</summary>
+    /// <param name="user">新用户名，null 或空则不更新</param>
+    /// <param name="password">新密码，null 或空则不更新</param>
+    public void UpdateCredentials(String user, String password)
+    {
+        if (!user.IsNullOrEmpty()) UserName = user;
+        if (!password.IsNullOrEmpty()) Password = password;
+    }
     #endregion
 
     #region 辅助
