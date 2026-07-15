@@ -105,6 +105,40 @@ public class RcInit : DefaultHost
         return Install(_path, serviceName, fileName, arguments, displayName, description);
     }
 
+    /// <summary>构建 init.d 脚本</summary>
+    /// <param name="fileName">可执行文件路径</param>
+    /// <param name="arguments">命令行参数</param>
+    /// <param name="displayName">显示名称</param>
+    /// <returns>init 脚本内容</returns>
+    public static String BuildScript(String fileName, String arguments, String displayName)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("#!/bin/bash");
+        sb.AppendLine("# chkconfig: 2345 10 90");
+        sb.AppendLine($"# description: {displayName}");
+
+        sb.AppendLine();
+        sb.AppendLine("case \"$1\" in");
+        sb.AppendLine("  start)");
+        sb.AppendLine($"        nohup {fileName} {arguments} >/dev/null 2>&1 &");
+        sb.AppendLine("        ;;");
+        sb.AppendLine("  stop)");
+        sb.AppendLine($"        {fileName} {TrimArg(arguments)} -stop");
+        sb.AppendLine("        ;;");
+        sb.AppendLine("  restart)");
+        sb.AppendLine($"        $0 stop");
+        sb.AppendLine($"        $0 start");
+        sb.AppendLine("        ;;");
+        sb.AppendLine("  *)");
+        sb.AppendLine("        echo \"Usage: $0 {start|stop|restart}\"");
+        sb.AppendLine("        exit 1");
+        sb.AppendLine("esac");
+        sb.AppendLine();
+        sb.AppendLine("exit $?");
+
+        return sb.ToString();
+    }
+
     /// <summary>安装服务</summary>
     /// <param name="systemPath">system目录</param>
     /// <param name="serviceName">服务名</param>
@@ -123,37 +157,11 @@ public class RcInit : DefaultHost
 
         var des = !displayName.IsNullOrEmpty() ? displayName : description;
 
-        var sb = new StringBuilder();
-        sb.AppendLine("#!/bin/bash");
-        sb.AppendLine("# chkconfig: 2345 10 90");
-        sb.AppendLine($"# description: {des}");
-
-        sb.AppendLine();
-        //sb.AppendLine($"cd {".".GetFullPath()}");
-        sb.AppendLine("case \"$1\" in");
-        sb.AppendLine("  start)");
-        sb.AppendLine($"        nohup {fileName} {arguments} >/dev/null 2>&1 &");
-        sb.AppendLine("        ;;");
-        sb.AppendLine("  stop)");
-        sb.AppendLine($"        {fileName} {TrimArg(arguments)} -stop");
-        sb.AppendLine("        ;;");
-        sb.AppendLine("  restart)");
-        sb.AppendLine($"        $0 stop");
-        sb.AppendLine($"        $0 start");
-        sb.AppendLine("        ;;");
-        sb.AppendLine("  *)");
-        sb.AppendLine("        echo \"Usage: $0 {start|stop|restart}\"");
-        sb.AppendLine("        exit 1");
-        sb.AppendLine("esac");
-        sb.AppendLine();
-        sb.AppendLine($"exit $?");
-
-        //File.WriteAllText(file, sb.ToString());
-        //File.WriteAllBytes(file, sb.ToString().GetBytes());
+        var script = BuildScript(fileName, arguments, des);
 
         //!! init.d目录中的rcS会扫描当前目录所有S开头的文件并执行，刚好StarAgent命中，S50StarAgent也命中，造成重复执行
         // 因此把启动引导脚本放在当前目录，如StarAgent.sh，然后在rc.d目录中创建链接文件
-        File.WriteAllBytes(file, sb.ToString().GetBytes());
+        File.WriteAllBytes(file, script.GetBytes());
 
         // 给予可执行权限
         Process.Start("chmod", $"+x {file}");

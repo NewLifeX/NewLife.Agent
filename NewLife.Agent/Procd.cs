@@ -20,20 +20,27 @@ public class Procd : DefaultHost
     static Procd()
     {
         // 获取1号进程的名字，如果是procd，则表示当前系统是OpenWRT
-        var process = Process.GetProcessById(1);
-        if (process.ProcessName != "procd") return;
-
-        var ps = new[] {
-            "/etc/init.d",
-            "/etc/rc.d/init.d",
-        };
-        foreach (var p in ps)
+        try
         {
-            if (Directory.Exists(p))
+            var process = Process.GetProcessById(1);
+            if (process.ProcessName != "procd") return;
+
+            var ps = new[] {
+                "/etc/init.d",
+                "/etc/rc.d/init.d",
+            };
+            foreach (var p in ps)
             {
-                _path = p;
-                break;
+                if (Directory.Exists(p))
+                {
+                    _path = p;
+                    break;
+                }
             }
+        }
+        catch
+        {
+            // 非 Linux 环境或无权访问 PID 1 时静默降级
         }
     }
     #endregion
@@ -128,17 +135,11 @@ public class Procd : DefaultHost
     /// <param name="arguments">命令参数</param>
     /// <param name="description">描述信息</param>
     /// <returns></returns>
-    public static Boolean Install(String systemPath, String serviceName, String fileName, String arguments, String displayName, String description)
+    
+    public static String BuildScript(String fileName, String arguments, String displayName, Boolean hasRcCommon)
     {
-        XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", typeof(Procd).Name, serviceName, displayName, fileName, arguments, description);
-
-        var file = $"{serviceName}.sh".GetFullPath();
-        XTrace.WriteLine(file);
-
-        var des = !displayName.IsNullOrEmpty() ? displayName : description;
-
         var sb = new StringBuilder();
-        if (File.Exists("/etc/rc.common"))
+        if (hasRcCommon)
             sb.AppendLine("#!/bin/sh /etc/rc.common");
         else
             sb.AppendLine("#!/bin/sh");
@@ -172,9 +173,31 @@ public class Procd : DefaultHost
         sb.AppendLine("  return 0");
         sb.AppendLine("}");
 
+        return sb.ToString();
+    }
+
+    /// <summary>安装服务</summary>
+    /// <param name="systemPath">system目录</param>
+    /// <param name="serviceName">服务名</param>
+    /// <param name="displayName">显示名</param>
+    /// <param name="fileName">文件路径</param>
+    /// <param name="arguments">命令参数</param>
+    /// <param name="description">描述信息</param>
+    /// <returns></returns>
+    public static Boolean Install(String systemPath, String serviceName, String fileName, String arguments, String displayName, String description)
+    {
+        XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", typeof(Procd).Name, serviceName, displayName, fileName, arguments, description);
+
+        var file = $"{serviceName}.sh".GetFullPath();
+        XTrace.WriteLine(file);
+
+        var des = !displayName.IsNullOrEmpty() ? displayName : description;
+
+        var script = BuildScript(fileName, arguments, des, File.Exists("/etc/rc.common"));
+
         //!! init.d目录中的rcS会扫描当前目录所有S开头的文件并执行，刚好StarAgent命中，S50StarAgent也命中，造成重复执行
         // 因此把启动引导脚本放在当前目录，如StarAgent.sh，然后在rc.d目录中创建链接文件
-        File.WriteAllBytes(file, sb.ToString().GetBytes());
+        File.WriteAllBytes(file, script.GetBytes());
 
         // 给予可执行权限
         Process.Start("chmod", $"+x {file}");

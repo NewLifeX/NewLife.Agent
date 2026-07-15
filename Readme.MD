@@ -75,7 +75,7 @@
 - [需求文档](./Doc/需求文档.md)
 - [功能清单](./Doc/功能清单.md)
 - [架构设计](./Doc/架构设计.md)
-- [竞品分析报告](./Doc/竞品分析报告.md)
+- [竞品分析](./Doc/竞品分析.md)
 - [更新日志](./ChangeLog.md)
 - [Changelog (English)](./ChangeLog.en.md)
 

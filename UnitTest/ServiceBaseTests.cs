@@ -10,7 +10,7 @@ public class ServiceBaseTester : ServiceBase
     public new Boolean CheckThread() => base.CheckThread();
     public new Boolean CheckHandle() => base.CheckHandle();
     public new Boolean CheckAutoRestart() => base.CheckAutoRestart();
-    public new void DoCheck() => base.DoCheck(null);
+    public void DoCheck() => base.DoCheck(null);
 }
 
 /// <summary>ServiceBase 核心逻辑单元测试</summary>
