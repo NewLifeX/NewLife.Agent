@@ -359,48 +359,32 @@ public abstract class ServiceBase : DisposeBase
     }
 
     /// <summary>开始循环</summary>
+    /// <remarks>
+    /// 调用 StartWork 启动业务逻辑，等待至多 3 秒。
+    /// StartWork 只执行一次，不允许多次重试，避免业务初始化重入导致的资源冲突。
+    /// 若超时，StartWork 仍在后台运行，调用方应确保 StartWork 为非阻塞设计。
+    /// </remarks>
     protected internal void StartLoop()
     {
         Model.Host.RegisterExit(OnProcessExit);
 
-        var retries = 0;
-        const Int32 maxRetries = 3;
-        while (retries < maxRetries)
+        // StartWork 只执行一次，不允许重入
+        var task = Task.Factory.StartNew(() =>
         {
-            var task = Task.Factory.StartNew(() =>
+            try
             {
-                try
-                {
-                    StartWork("StartLoop");
-                }
-                catch (Exception ex)
-                {
-                    WriteLog("StartWork失败({0}/{1})，{2}", retries + 1, maxRetries, ex.Message);
-                    Log?.Error(ex.ToString());
-                    throw;
-                }
-            });
-            if (task.Wait(3_000))
-            {
-                // StartWork completed successfully
-                if (!task.IsFaulted) return;
-
-                // StartWork threw - retry
-                retries++;
-                if (retries < maxRetries)
-                {
-                    WriteLog("StartWork将在 {0}s 后重试...", retries);
-                    Thread.Sleep(retries * 1_000);
-                }
+                StartWork("StartLoop");
             }
-            else
+            catch (Exception ex)
             {
-                XTrace.WriteLine("服务启动函数StartWork耗时过长，建议优化，StartWork应该避免阻塞操作！");
-                return;
+                WriteLog("StartWork失败，{0}", ex.Message);
+                Log?.Error(ex.ToString());
             }
+        });
+        if (!task.Wait(3_000))
+        {
+            XTrace.WriteLine("服务启动函数StartWork耗时过长，建议优化，StartWork应该避免阻塞操作！");
         }
-
-        WriteLog("StartWork已重试{0}次仍然失败，服务将继续运行但业务可能未正常启动，请检查日志！", maxRetries);
     }
 
     /// <summary>停止循环</summary>
