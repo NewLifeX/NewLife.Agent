@@ -363,23 +363,44 @@ public abstract class ServiceBase : DisposeBase
     {
         Model.Host.RegisterExit(OnProcessExit);
 
-        //GetType().Assembly.WriteVersion();
-
-        //StartWork("StartLoop");
-
-        var task = Task.Factory.StartNew(() =>
+        var retries = 0;
+        const Int32 maxRetries = 3;
+        while (retries < maxRetries)
         {
-            try
+            var task = Task.Factory.StartNew(() =>
             {
-                StartWork("StartLoop");
-            }
-            catch (Exception ex)
+                try
+                {
+                    StartWork("StartLoop");
+                }
+                catch (Exception ex)
+                {
+                    WriteLog("StartWork失败({0}/{1})，{2}", retries + 1, maxRetries, ex.Message);
+                    Log?.Error(ex.ToString());
+                    throw;
+                }
+            });
+            if (task.Wait(3_000))
             {
-                WriteLog("StartWork失败，为保证服务稳定，Agent继续调度管理，请自行确认相关异常！");
-                Log?.Error(ex.ToString());
+                // StartWork completed successfully
+                if (!task.IsFaulted) return;
+
+                // StartWork threw - retry
+                retries++;
+                if (retries < maxRetries)
+                {
+                    WriteLog("StartWork将在 {0}s 后重试...", retries);
+                    Thread.Sleep(retries * 1_000);
+                }
             }
-        });
-        if (!task.Wait(3_000)) XTrace.WriteLine("服务启动函数StartWork耗时过长，建议优化，StartWork应该避免阻塞操作！");
+            else
+            {
+                XTrace.WriteLine("服务启动函数StartWork耗时过长，建议优化，StartWork应该避免阻塞操作！");
+                return;
+            }
+        }
+
+        WriteLog("StartWork已重试{0}次仍然失败，服务将继续运行但业务可能未正常启动，请检查日志！", maxRetries);
     }
 
     /// <summary>停止循环</summary>

@@ -60,7 +60,7 @@ public class WindowsAutorun : DefaultHost
 
     /// <summary>服务是否已启动</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>服务是否已启动</returns>
 #if NET5_0_OR_GREATER
     [SupportedOSPlatform("windows")]
 #endif
@@ -73,7 +73,7 @@ public class WindowsAutorun : DefaultHost
 
     /// <summary>安装服务</summary>
     /// <param name="service">服务</param>
-    /// <returns></returns>
+    /// <returns>是否安装成功</returns>
 #if NET5_0_OR_GREATER
     [SupportedOSPlatform("windows")]
 #endif
@@ -107,7 +107,7 @@ public class WindowsAutorun : DefaultHost
 
     /// <summary>卸载服务</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>是否卸载成功</returns>
 #if NET5_0_OR_GREATER
     [SupportedOSPlatform("windows")]
 #endif
@@ -126,8 +126,9 @@ public class WindowsAutorun : DefaultHost
         return true;
     }
 
-    /// <summary>查询服务配置</summary>
+    /// <summary>查询服务配置，从注册表自启动项中读取</summary>
     /// <param name="serviceName">服务名</param>
+    /// <returns>服务配置，未找到时返回 null</returns>
 #if NET5_0_OR_GREATER
     [SupportedOSPlatform("windows")]
 #endif
@@ -186,7 +187,7 @@ public class WindowsAutorun : DefaultHost
 
     /// <summary>启动服务</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>是否启动成功</returns>
 #if NET5_0_OR_GREATER
     [SupportedOSPlatform("windows")]
 #endif
@@ -215,7 +216,7 @@ public class WindowsAutorun : DefaultHost
 
     /// <summary>停止服务</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>是否停止成功</returns>
 #if NET5_0_OR_GREATER
     [SupportedOSPlatform("windows")]
 #endif

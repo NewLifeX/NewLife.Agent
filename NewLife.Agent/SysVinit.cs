@@ -35,7 +35,7 @@ public class SysVinit : DefaultHost
 
     /// <summary>服务是否已安装</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>服务是否已安装</returns>
     public override Boolean IsInstalled(String serviceName)
     {
         var file = GetServicePath(serviceName);
@@ -44,7 +44,7 @@ public class SysVinit : DefaultHost
 
     /// <summary>服务是否已启动</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>服务是否已启动</returns>
     public override Boolean IsRunning(String serviceName)
     {
         var file = GetServicePath(serviceName);
@@ -56,7 +56,7 @@ public class SysVinit : DefaultHost
 
     /// <summary>安装服务</summary>
     /// <param name="service">服务</param>
-    /// <returns></returns>
+    /// <returns>是否安装成功</returns>
     public override Boolean Install(ServiceModel service)
     {
         //暂不实现SysVinit服务安装
@@ -65,7 +65,7 @@ public class SysVinit : DefaultHost
 
     /// <summary>卸载服务</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>是否卸载成功</returns>
     public override Boolean Remove(String serviceName)
     {
         XTrace.WriteLine("{0}.Remove {1}", Name, serviceName);
@@ -78,7 +78,7 @@ public class SysVinit : DefaultHost
 
     /// <summary>启动服务</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>是否启动成功</returns>
     public override Boolean Start(String serviceName)
     {
         XTrace.WriteLine("{0}.Start {1}", Name, serviceName);
@@ -90,7 +90,7 @@ public class SysVinit : DefaultHost
 
     /// <summary>停止服务</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>是否停止成功</returns>
     public override Boolean Stop(String serviceName)
     {
         XTrace.WriteLine("{0}.Stop {1}", Name, serviceName);

@@ -13,6 +13,7 @@ public class Procd : DefaultHost
     private static readonly String _path;
 
     /// <summary>是否可用</summary>
+    /// <value>是否可用</value>
     public static Boolean Available => !_path.IsNullOrEmpty();
 
     /// <summary>实例化</summary>
@@ -80,7 +81,7 @@ public class Procd : DefaultHost
 
     /// <summary>服务是否已安装</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>服务是否已安装</returns>
     public override Boolean IsInstalled(String serviceName)
     {
         //var file = _path.CombinePath($"{serviceName}");
@@ -91,7 +92,7 @@ public class Procd : DefaultHost
 
     /// <summary>服务是否已启动</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>服务是否已启动</returns>
     public override Boolean IsRunning(String serviceName)
     {
         var file = $"{serviceName}.pid".GetFullPath();
@@ -107,7 +108,7 @@ public class Procd : DefaultHost
 
     /// <summary>安装服务</summary>
     /// <param name="service">服务</param>
-    /// <returns></returns>
+    /// <returns>是否安装成功</returns>
     public override Boolean Install(ServiceModel service)
     {
         var serviceName = service.ServiceName;
@@ -197,7 +198,7 @@ public class Procd : DefaultHost
 
     /// <summary>卸载服务</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>是否卸载成功</returns>
     public override Boolean Remove(String serviceName)
     {
         XTrace.WriteLine("{0}.Remove {1}", Name, serviceName);
@@ -222,7 +223,7 @@ public class Procd : DefaultHost
 
     /// <summary>启动服务</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>是否启动成功</returns>
     public override Boolean Start(String serviceName)
     {
         XTrace.WriteLine("{0}.Start {1}", Name, serviceName);
@@ -249,7 +250,7 @@ public class Procd : DefaultHost
 
     /// <summary>停止服务</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>是否停止成功</returns>
     public override Boolean Stop(String serviceName)
     {
         XTrace.WriteLine("{0}.Stop {1}", Name, serviceName);
