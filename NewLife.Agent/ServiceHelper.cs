@@ -18,6 +18,8 @@ public static class ServiceHelper
     /// <returns>工作目录绝对路径，无法确定时返回 null</returns>
     public static String GetWorkingDirectory(this String fileName, String arguments)
     {
+        if (fileName.IsNullOrEmpty()) return null;
+
         var dll = GetTargetFile(fileName, arguments);
         if (dll.IsNullOrEmpty()) return null;
 
