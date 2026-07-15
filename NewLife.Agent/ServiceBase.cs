@@ -313,13 +313,37 @@ public abstract class ServiceBase : DisposeBase
         {
             try
             {
-                var file = set.AfterStart;
-                var args = "";
-                var p = file.IndexOf(" ");
-                if (p > 0)
+                var cmdLine = set.AfterStart.Trim();
+                String file, args;
+                if (cmdLine.Length > 0 && cmdLine[0] == '"')
                 {
-                    args = file.Substring(p + 1);
-                    file = file.Substring(0, p);
+                    // 引号包裹路径："C:\Program Files\app.exe" --arg
+                    var end = cmdLine.IndexOf('"', 1);
+                    if (end > 0)
+                    {
+                        file = cmdLine.Substring(1, end - 1);
+                        args = cmdLine.Length > end + 1 ? cmdLine.Substring(end + 1).Trim() : "";
+                    }
+                    else
+                    {
+                        file = cmdLine.Trim('"');
+                        args = "";
+                    }
+                }
+                else
+                {
+                    // 普通路径：app.exe --arg
+                    var p = cmdLine.IndexOf(' ');
+                    if (p > 0)
+                    {
+                        file = cmdLine.Substring(0, p);
+                        args = cmdLine.Substring(p + 1).Trim();
+                    }
+                    else
+                    {
+                        file = cmdLine;
+                        args = "";
+                    }
                 }
                 WriteLog("启动后执行：FileName={0} Args={1}", file, args);
 
@@ -369,7 +393,11 @@ public abstract class ServiceBase : DisposeBase
         Model.Host.RegisterExit(OnProcessExit);
 
         // StartWork 只执行一次，不允许重入
+#if NET40
         var task = Task.Factory.StartNew(() =>
+#else
+        var task = Task.Run(() =>
+#endif
         {
             try
             {
@@ -475,8 +503,8 @@ public abstract class ServiceBase : DisposeBase
     #endregion
 
     #region 服务维护
-    /// <summary>服务管理线程封装</summary>
-    /// <param name="data"></param>
+    /// <summary>服务管理线程封装。定期执行健康检查，超标时触发重启</summary>
+    /// <param name="data">传入数据（未使用，保留扩展）</param>
     protected virtual void DoCheck(Object data)
     {
         // 如果某一项检查需要重启服务，则返回true，这里跳出循环，等待服务重启
@@ -541,8 +569,8 @@ public abstract class ServiceBase : DisposeBase
         }
     }
 
-    /// <summary>检查服务进程的总线程数是否超标</summary>
-    /// <returns></returns>
+    /// <summary>检查服务进程的总线程数是否超标。超过 MaxThread 时触发重启</summary>
+    /// <returns>是否触发重启</returns>
     protected virtual Boolean CheckThread()
     {
         var max = Setting.Current.MaxThread;
@@ -558,8 +586,8 @@ public abstract class ServiceBase : DisposeBase
         return true;
     }
 
-    /// <summary>检查服务进程的句柄数是否超标</summary>
-    /// <returns></returns>
+    /// <summary>检查服务进程的句柄数是否超标。超过 MaxHandle 时触发重启（Windows）</summary>
+    /// <returns>是否触发重启</returns>
     protected virtual Boolean CheckHandle()
     {
         var max = Setting.Current.MaxHandle;
@@ -578,8 +606,8 @@ public abstract class ServiceBase : DisposeBase
     /// <summary>服务开始时间</summary>
     private DateTime Start = DateTime.Now;
 
-    /// <summary>检查自动重启</summary>
-    /// <returns></returns>
+    /// <summary>检查自动重启。达到 AutoRestart 分钟数且在 RestartTimeRange 内时触发重启</summary>
+    /// <returns>是否触发重启</returns>
     protected virtual Boolean CheckAutoRestart()
     {
         var auto = Setting.Current.AutoRestart;
@@ -621,8 +649,8 @@ public abstract class ServiceBase : DisposeBase
     public ILog Log { get; set; } = Logger.Null;
 
     /// <summary>写日志</summary>
-    /// <param name="format"></param>
-    /// <param name="args"></param>
+    /// <param name="format">格式化字符串</param>
+    /// <param name="args">格式化参数</param>
     public void WriteLog(String format, params Object[] args) => Log?.Info(format, args);
     #endregion
 }

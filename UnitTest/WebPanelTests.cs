@@ -1,5 +1,6 @@
 ﻿#if !NET40
 #nullable disable
+using System.ComponentModel;
 using System.Reflection;
 using Moq;
 using NewLife;
@@ -354,6 +355,104 @@ public class AgentWebPanelTests
             // 第二次停止不应抛异常
             var ex = Record.Exception(() => panel.Stop("second"));
             Assert.Null(ex);
+        }
+        finally
+        {
+            set.WebPort = prevPort;
+            set.EnableWebPanel = prevEnable;
+        }
+    }
+    #endregion
+
+    #region UpdateCredentials 测试
+    [Fact]
+    [DisplayName("UpdateCredentials_更新密码_即时生效")]
+    public void UpdateCredentials_Password_UpdatesImmediately()
+    {
+        var mockSvc = new Mock<ServiceBase> { CallBase = true };
+        mockSvc.Object.ServiceName = "CredSvc";
+
+        var set = Setting.Current;
+        var prevPort = set.WebPort;
+        var prevEnable = set.EnableWebPanel;
+
+        try
+        {
+            set.WebPort = 0;
+            set.EnableWebPanel = false;
+
+            var panel = new AgentWebPanel(mockSvc.Object);
+            panel.UserName = "admin";
+            panel.Password = "oldpass";
+
+            panel.UpdateCredentials("newadmin", "newpass");
+
+            Assert.Equal("newadmin", panel.UserName);
+            Assert.Equal("newpass", panel.Password);
+        }
+        finally
+        {
+            set.WebPort = prevPort;
+            set.EnableWebPanel = prevEnable;
+        }
+    }
+
+    [Fact]
+    [DisplayName("UpdateCredentials_只更新用户名_密码不变")]
+    public void UpdateCredentials_UserNameOnly_PasswordUnchanged()
+    {
+        var mockSvc = new Mock<ServiceBase> { CallBase = true };
+        mockSvc.Object.ServiceName = "CredSvc2";
+
+        var set = Setting.Current;
+        var prevPort = set.WebPort;
+        var prevEnable = set.EnableWebPanel;
+
+        try
+        {
+            set.WebPort = 0;
+            set.EnableWebPanel = false;
+
+            var panel = new AgentWebPanel(mockSvc.Object);
+            panel.UserName = "admin";
+            panel.Password = "secret";
+
+            panel.UpdateCredentials("newadmin", null);
+
+            Assert.Equal("newadmin", panel.UserName);
+            Assert.Equal("secret", panel.Password);
+        }
+        finally
+        {
+            set.WebPort = prevPort;
+            set.EnableWebPanel = prevEnable;
+        }
+    }
+
+    [Fact]
+    [DisplayName("UpdateCredentials_空用户名_不更新")]
+    public void UpdateCredentials_EmptyUser_NotUpdated()
+    {
+        var mockSvc = new Mock<ServiceBase> { CallBase = true };
+        mockSvc.Object.ServiceName = "CredSvc3";
+
+        var set = Setting.Current;
+        var prevPort = set.WebPort;
+        var prevEnable = set.EnableWebPanel;
+
+        try
+        {
+            set.WebPort = 0;
+            set.EnableWebPanel = false;
+
+            var panel = new AgentWebPanel(mockSvc.Object);
+            panel.UserName = "admin";
+            panel.Password = "secret";
+
+            panel.UpdateCredentials("", "newpass");
+
+            Assert.Equal("admin", panel.UserName);
+            Assert.Equal("newpass", panel.Password);
         }
         finally
         {

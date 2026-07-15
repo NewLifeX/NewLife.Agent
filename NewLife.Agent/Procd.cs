@@ -156,13 +156,13 @@ public class Procd : DefaultHost
 
         sb.AppendLine();
         sb.AppendLine("stop_service() {");
-        sb.AppendLine($"  {fileName} {arguments.TrimEnd("-s")} -stop");
+        sb.AppendLine($"  {fileName} {TrimArg(arguments)} -stop");
         sb.AppendLine("  return 0");
         sb.AppendLine("}");
 
         sb.AppendLine();
         sb.AppendLine("reload_service() {");
-        sb.AppendLine($"  {fileName} {arguments.TrimEnd("-s")} -restart");
+        sb.AppendLine($"  {fileName} {TrimArg(arguments)} -restart");
         sb.AppendLine("  return 0");
         sb.AppendLine("}");
 
@@ -293,5 +293,16 @@ public class Procd : DefaultHost
         Start(serviceName);
 
         return true;
+    }
+
+    /// <summary>移除命令行尾部参数</summary>
+    /// <param name="args">原参数</param>
+    /// <returns>移除尾部 -s 后的参数字符串</returns>
+    private static String TrimArg(String args)
+    {
+        if (args.IsNullOrEmpty()) return args;
+        if (args.EndsWith("-s"))
+            return args.Substring(0, args.Length - 2).TrimEnd();
+        return args;
     }
 }

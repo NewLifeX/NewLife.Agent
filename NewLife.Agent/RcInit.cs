@@ -135,7 +135,7 @@ public class RcInit : DefaultHost
         sb.AppendLine($"        nohup {fileName} {arguments} >/dev/null 2>&1 &");
         sb.AppendLine("        ;;");
         sb.AppendLine("  stop)");
-        sb.AppendLine($"        {fileName} {arguments.TrimEnd("-s")} -stop");
+        sb.AppendLine($"        {fileName} {TrimArg(arguments)} -stop");
         sb.AppendLine("        ;;");
         sb.AppendLine("  restart)");
         sb.AppendLine($"        $0 stop");
@@ -329,5 +329,16 @@ public class RcInit : DefaultHost
         //if (p == null || GetHasExited(p)) return null;
 
         return p;
+    }
+
+    /// <summary>移除命令行尾部参数</summary>
+    /// <param name="args">原参数</param>
+    /// <returns>移除尾部 -s 后的参数字符串</returns>
+    private static String TrimArg(String args)
+    {
+        if (args.IsNullOrEmpty()) return args;
+        if (args.EndsWith("-s"))
+            return args.Substring(0, args.Length - 2).TrimEnd();
+        return args;
     }
 }

@@ -324,6 +324,39 @@ public class CommandHandlerTests
     }
     #endregion
 
+    #region RunService
+    [Fact]
+    [DisplayName("RunService_Cmd_等于-s")]
+    public void RunService_Cmd_IsS()
+    {
+        var mb = new Mock<ServiceBase> { CallBase = true };
+
+        var handler = new RunService(mb.Object);
+        Assert.Equal("-s", handler.Cmd);
+        Assert.Equal("执行服务", handler.Description);
+        Assert.Null(handler.ShortcutKey);
+    }
+
+    [Fact]
+    [DisplayName("RunService_Process_调用Host.Run")]
+    public void RunService_Process_CallsHostRun()
+    {
+        var called = false;
+
+        var svcMb = new Mock<ServiceBase> { CallBase = true };
+        var hostMb = new Mock<DefaultHost> { CallBase = true };
+
+        hostMb.Setup(x => x.Run(It.IsAny<ServiceBase>())).Callback<ServiceBase>(_ => called = true);
+        svcMb.Object.Host = hostMb.Object;
+
+        var handler = new RunService(svcMb.Object);
+        var ex = Record.Exception(() => handler.Process([]));
+
+        Assert.Null(ex);
+        Assert.True(called);
+    }
+    #endregion
+
     #region CommandFactory
     [Fact]
     [DisplayName("CommandFactory_构造_不抛异常")]
@@ -343,6 +376,54 @@ public class CommandHandlerTests
 
         var result = mb.Object.Command.Handle("-unknown", []);
         Assert.False(result);
+    }
+
+    [Fact]
+    [DisplayName("CommandFactory_Handle_按键_存在命令_返回true")]
+    public void CommandFactory_Handle_Key_Found_ReturnsTrue()
+    {
+        var mb = new Mock<ServiceBase> { CallBase = true };
+        mb.Object.ServiceName = "TestSvc";
+        mb.Object.Host = new Mock<DefaultHost> { CallBase = true }.Object;
+
+        // 快捷键 '1' 对应 ShowStatus（始终显示）
+        var result = mb.Object.Command.Handle('1', []);
+        Assert.True(result);
+    }
+
+    [Fact]
+    [DisplayName("CommandFactory_Handle_按键_无对应命令_返回false")]
+    public void CommandFactory_Handle_Key_NotFound_ReturnsFalse()
+    {
+        var mb = new Mock<ServiceBase> { CallBase = true };
+
+        // 快捷键 '9' 没有对应命令
+        var result = mb.Object.Command.Handle('9', []);
+        Assert.False(result);
+    }
+
+    [Fact]
+    [DisplayName("CommandFactory_GetShortcutMenu_返回有序菜单")]
+    public void CommandFactory_GetShortcutMenu_ReturnsSortedMenus()
+    {
+        var mb = new Mock<ServiceBase> { CallBase = true };
+        mb.Object.ServiceName = "TestSvc";
+        mb.Object.Host = new Mock<DefaultHost> { CallBase = true }.Object;
+
+        var menus = mb.Object.Command.GetShortcutMenu();
+        Assert.NotNull(menus);
+        Assert.True(menus.Count > 0);
+    }
+
+    [Fact]
+    [DisplayName("CommandFactory_GetAllCommand_返回所有命令")]
+    public void CommandFactory_GetAllCommand_ReturnsAll()
+    {
+        var mb = new Mock<ServiceBase> { CallBase = true };
+
+        var all = mb.Object.Command.GetAllCommand();
+        Assert.NotNull(all);
+        Assert.True(all.Count > 0);
     }
     #endregion
 }
