@@ -222,6 +222,95 @@ public class CommandHandlerTests
     }
     #endregion
 
+    #region Reinstall
+    [Fact]
+    [DisplayName("Reinstall_Process_调用Host停止卸载安装启动")]
+    public void Reinstall_Process_CallsHostCycle()
+    {
+        var hostMb = new Mock<DefaultHost> { CallBase = true };
+        hostMb.Setup(x => x.Stop(It.IsAny<String>())).Returns(true);
+        hostMb.Setup(x => x.Remove(It.IsAny<String>())).Returns(true);
+        hostMb.Setup(x => x.Install(It.IsAny<ServiceModel>())).Returns(true);
+        hostMb.Setup(x => x.Start(It.IsAny<String>())).Returns(true);
+
+        var svcMb = new Mock<ServiceBase> { CallBase = true };
+        svcMb.Object.Host = hostMb.Object;
+        svcMb.Object.ServiceName = "TestSvc";
+
+        var handler = new Reinstall(svcMb.Object);
+        var ex = Record.Exception(() => handler.Process([]));
+
+        Assert.Null(ex);
+        hostMb.Verify(x => x.Stop("TestSvc"), Times.Once);
+        hostMb.Verify(x => x.Remove("TestSvc"), Times.Once);
+        hostMb.Verify(x => x.Install(It.IsAny<ServiceModel>()), Times.Once);
+        hostMb.Verify(x => x.Start("TestSvc"), Times.Once);
+    }
+    #endregion
+
+    #region Remove
+    [Fact]
+    [DisplayName("Remove_Process_调用Host.Remove")]
+    public void Remove_Process_CallsHostRemove()
+    {
+        var removed = false;
+
+        var hostMb = new Mock<DefaultHost> { CallBase = true };
+        hostMb.Setup(x => x.Remove(It.IsAny<String>())).Callback<String>(_ => removed = true);
+        hostMb.Setup(x => x.IsRunning(It.IsAny<String>())).Returns(false);
+        hostMb.Setup(x => x.Stop(It.IsAny<String>())).Returns(true);
+
+        var svcMb = new Mock<ServiceBase> { CallBase = true };
+        svcMb.Object.Host = hostMb.Object;
+        svcMb.Object.ServiceName = "TestSvc";
+
+        var handler = new Remove(svcMb.Object);
+        var ex = Record.Exception(() => handler.Process([]));
+
+        Assert.Null(ex);
+        Assert.True(removed);
+    }
+
+    [Fact]
+    [DisplayName("Remove_IsShowMenu_服务已安装_显示")]
+    public void Remove_IsShowMenu_Installed_Shows()
+    {
+        var hostMb = new Mock<DefaultHost> { CallBase = true };
+        hostMb.Setup(x => x.IsInstalled(It.IsAny<String>())).Returns(true);
+
+        var svcMb = new Mock<ServiceBase> { CallBase = true };
+        svcMb.Object.Host = hostMb.Object;
+
+        var handler = new Remove(svcMb.Object);
+        Assert.True(handler.IsShowMenu());
+    }
+    #endregion
+
+    #region Uninstall
+    [Fact]
+    [DisplayName("Uninstall_Process_先停止再卸载")]
+    public void Uninstall_Process_StopsThenRemoves()
+    {
+        var steps = new List<String>();
+
+        var hostMb = new Mock<DefaultHost> { CallBase = true };
+        hostMb.Setup(x => x.Stop(It.IsAny<String>())).Callback<String>(_ => steps.Add("stop")).Returns(true);
+        hostMb.Setup(x => x.Remove(It.IsAny<String>())).Callback<String>(_ => steps.Add("remove")).Returns(true);
+
+        var svcMb = new Mock<ServiceBase> { CallBase = true };
+        svcMb.Object.Host = hostMb.Object;
+        svcMb.Object.ServiceName = "TestSvc";
+
+        var handler = new Uninstall(svcMb.Object);
+        var ex = Record.Exception(() => handler.Process([]));
+
+        Assert.Null(ex);
+        Assert.Equal(2, steps.Count);
+        Assert.Equal("stop", steps[0]);
+        Assert.Equal("remove", steps[1]);
+    }
+    #endregion
+
     #region RunSimulation
     [Fact]
     [DisplayName("RunSimulation_Cmd_等于-run")]
