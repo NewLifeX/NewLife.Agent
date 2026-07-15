@@ -52,12 +52,14 @@
 
 常用命令：
 
-- `-install`：安装服务
+- `-i`：安装服务
+- `-install`：安装并启动服务
 - `-start`：启动服务
 - `-stop`：停止服务
 - `-restart`：重启服务
 - `-status`：查看状态
-- `-uninstall`：卸载服务
+- `-u`：卸载服务
+- `-uninstall`：停止并卸载服务
 - `-run`：控制台模拟运行（调试）
 
 > 安装/卸载/启停通常需要管理员（Windows）或 root（Linux）权限。
@@ -71,6 +73,8 @@
 
 - [NewLife.Agent 使用与运维手册](./Doc/Agent-使用与运维手册.md)
 - [需求文档](./Doc/需求文档.md)
+- [功能清单](./Doc/功能清单.md)
+- [架构设计](./Doc/架构设计.md)
 - [竞品分析报告](./Doc/竞品分析报告.md)
 - [更新日志](./ChangeLog.md)
 - [Changelog (English)](./ChangeLog.en.md)
