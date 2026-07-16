@@ -583,8 +583,49 @@ async function loadConfig(){
    html+=`<tr><td>${esc(item.displayName)}</td><td>${renderConfigInput(item)}</td><td>${esc(item.description)}</td></tr>`;
   });
   html+=`</tbody></table><div class="mt-16"><button class="btn btn-primary" onclick="saveConfig()">💾 保存配置</button> <span style="font-size:12px;color:var(--text-muted);margin-left:12px">部分配置需重启服务后生效</span></div></div>`;
+
+  // 修改密码卡片
+  html+=`<div class="glass-card card" style="margin-top:16px"><h2>🔑 修改密码</h2>`;
+  html+=`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:end">`;
+  html+=`<div><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px">旧密码</label><input type="password" id="pwd-old" placeholder="请输入旧密码" autocomplete="off"></div>`;
+  html+=`<div><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px">新密码</label><input type="password" id="pwd-new" placeholder="请输入新密码" autocomplete="new-password"></div>`;
+  html+=`<div><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px">确认新密码</label><input type="password" id="pwd-confirm" placeholder="再次输入新密码" autocomplete="new-password"></div>`;
+  html+=`</div>`;
+  html+=`<div style="margin-top:14px;display:flex;align-items:center;gap:12px">`;
+  html+=`<button class="btn btn-primary" onclick="changePassword()">修改密码</button>`;
+  html+=`<span id="pwd-msg" style="font-size:12px;color:var(--text-muted)"></span></div></div>`;
+
   $('panel-config').innerHTML=html;
  }catch(e){$('panel-config').innerHTML=`<div class="glass-card card"><h2>⚙ 服务配置</h2><p class="text-muted">加载失败</p></div>`}
+}
+
+async function changePassword(){
+ const oldPwd=$('pwd-old').value;
+ const newPwd=$('pwd-new').value;
+ const confirmPwd=$('pwd-confirm').value;
+ const msg=$('pwd-msg');
+
+ if(!oldPwd){msg.textContent='请输入旧密码';msg.style.color='var(--red)';return}
+ if(!newPwd){msg.textContent='请输入新密码';msg.style.color='var(--red)';return}
+ if(newPwd.length<4){msg.textContent='新密码至少 4 位';msg.style.color='var(--red)';return}
+ if(newPwd!==confirmPwd){msg.textContent='两次输入的新密码不一致';msg.style.color='var(--red)';return}
+
+ msg.textContent='修改中...';msg.style.color='var(--text-muted)';
+ try{
+  const j=await api('/api/changePassword',{
+   method:'POST',
+   body:JSON.stringify({oldPassword:oldPwd,newPassword:newPwd})
+  });
+  if(j.code===0){
+   msg.textContent='✅ 密码已修改，下次登录请使用新密码';msg.style.color='var(--green)';
+   $('pwd-old').value='';$('pwd-new').value='';$('pwd-confirm').value='';
+   showToast('密码已修改','success');
+  }else{
+   msg.textContent='❌ '+(j.message||'修改失败');msg.style.color='var(--red)';
+  }
+ }catch(e){
+  msg.textContent='❌ 网络错误';msg.style.color='var(--red)';
+ }
 }
 
 function renderConfigInput(item){
