@@ -8,6 +8,7 @@ using NewLife.Log;
 using NewLife.Net;
 using NewLife.Reflection;
 using NewLife.Serialization;
+using System.Threading;
 
 namespace NewLife.Agent.WebPanel;
 
@@ -400,11 +401,15 @@ public class ApiController : IHttpController
 
             if (logFile == null) return list;
 
-            var allLines = File.ReadAllLines(logFile);
-            var start = Math.Max(0, allLines.Length - count);
-            for (var i = start; i < allLines.Length; i++)
+            // 使用 FileShare.ReadWrite 允许写入进程同时操作，避免文件共享冲突
+            // 读取失败时重试一次，应对瞬态锁冲突
+            var lines = ReadLinesWithRetry(logFile);
+            if (lines == null || lines.Length == 0) return list;
+
+            var start = Math.Max(0, lines.Length - count);
+            for (var i = start; i < lines.Length; i++)
             {
-                var line = allLines[i];
+                var line = lines[i];
                 if (!level.IsNullOrEmpty())
                 {
                     if (!line.Contains(level, StringComparison.OrdinalIgnoreCase))
@@ -419,6 +424,32 @@ public class ApiController : IHttpController
         }
 
         return list;
+    }
+
+    /// <summary>使用 FileShare.ReadWrite 读取文件所有行，写入冲突时自动重试</summary>
+    /// <param name="filePath">文件路径</param>
+    /// <returns>所有行，失败返回空数组</returns>
+    private static String[] ReadLinesWithRetry(String filePath)
+    {
+        for (var retry = 0; retry < 2; retry++)
+        {
+            try
+            {
+                using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                using var sr = new StreamReader(fs);
+                var lines = new List<String>();
+                while (!sr.EndOfStream)
+                {
+                    lines.Add(sr.ReadLine());
+                }
+                return lines.ToArray();
+            }
+            catch (IOException) when (retry == 0)
+            {
+                Thread.Sleep(200);
+            }
+        }
+        return [];
     }
     #endregion
 
