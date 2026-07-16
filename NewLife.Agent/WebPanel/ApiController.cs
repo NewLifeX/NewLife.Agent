@@ -208,6 +208,38 @@ public class ApiController : IHttpController
                 return new { code = 400, message = $"Unknown action: {action}" };
         }
     }
+
+    /// <summary>释放内存。GC回收后再释放工作集</summary>
+    /// <returns>释放前后的内存对比</returns>
+    public Object FreeMemory()
+    {
+        if (!CheckAuth()) return new { code = 401, message = "Unauthorized" };
+
+        var p = Process.GetCurrentProcess();
+        var beforeMB = p.WorkingSet64 / 1024 / 1024;
+
+        XTrace.WriteLine("Web面板触发释放内存，释放前 WorkingSet={0}MB", beforeMB);
+
+        var success = Runtime.FreeMemory();
+
+        p.Refresh();
+        var afterMB = p.WorkingSet64 / 1024 / 1024;
+        var freedMB = beforeMB - afterMB;
+
+        XTrace.WriteLine("释放内存完成，释放后 WorkingSet={0}MB，释放 {1}MB", afterMB, freedMB);
+
+        return new
+        {
+            code = success ? 0 : 500,
+            message = success ? $"释放内存完成：{beforeMB}MB → {afterMB}MB，释放 {freedMB}MB" : "释放内存失败",
+            data = new
+            {
+                beforeMB,
+                afterMB,
+                freedMB
+            }
+        };
+    }
     #endregion
 
     #region 配置

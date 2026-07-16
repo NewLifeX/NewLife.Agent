@@ -406,6 +406,7 @@ function buildDashboard(d,health){
   html+=`<div class="collapse-body" id="gc-body"><div class="gc-stats">`;
   html+=gcStat('Gen 0',health.gcCollections.gen0,'gc-gen0')+gcStat('Gen 1',health.gcCollections.gen1,'gc-gen1')+gcStat('Gen 2',health.gcCollections.gen2,'gc-gen2');
   html+=gcStat('GC 内存',health.gcTotalMemory+' MB','gc-mem')+gcStat('CPU 时间',health.totalProcessorTime+'s','gc-cpu');
+  html+=`<div style="margin-top:12px;text-align:right"><button class="btn btn-ghost btn-sm" onclick="freeMemory()">🗑 释放内存</button></div>`;
   html+=`</div></div></div>`;
  }
  html+=`</div>`;
@@ -541,6 +542,7 @@ function ringGauge(label,val,max,pctVal,id){
  <button class="btn btn-primary btn-lg" onclick="doControl('start')" id="btn-start">▶ 启动服务</button>
  <button class="btn btn-danger btn-lg" onclick="doControl('stop')" id="btn-stop">⏹ 停止服务</button>
  <button class="btn btn-lg" style="background:var(--orange);color:#fff;box-shadow:0 2px 8px rgba(249,115,22,0.3)" onclick="doControl('restart')" id="btn-restart">↻ 重启服务</button>
+ <button class="btn btn-lg" style="background:var(--gradient-brand);color:#fff;box-shadow:0 2px 8px rgba(91,91,255,0.3)" onclick="freeMemory()" id="btn-free-mem">🗑 释放内存</button>
  </div>`;
  html+=`<div class="section-title">操作记录</div><div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">通过本面板发起的启停操作，保存在浏览器本地存储</div><div class="cmd-history" id="cmd-history">`;
  if(cmdHistory.length===0)html+=`<div class="text-muted" style="font-size:12px">暂无操作记录</div>`;
@@ -559,6 +561,22 @@ async function updateControlStatus(){
   el.innerHTML=`当前状态：<span class="status-indicator ${d.running?'running':'stopped'}"><span class="status-dot ${d.running?'on':'off'}"></span>${d.running?'运行中':'已停止'}</span> &nbsp; 运行时长：${esc(d.uptime)}`;
   $('btn-start').disabled=d.running;$('btn-stop').disabled=!d.running;$('btn-restart').disabled=!d.running;
  }catch(e){}
+}
+
+async function freeMemory(){
+ const btn=$('btn-free-mem');if(btn)btn.disabled=true;
+ showToast('正在释放内存...','info');
+ try{
+  const j=await api('/api/freeMemory');
+  if(j.code===0){
+   const d=j.data;
+   showToast(`✅ ${j.message}`,'success');
+  }else{
+   showToast('❌ '+(j.message||'释放失败'),'error');
+  }
+  setTimeout(()=>{loadDashboard();},1000);
+ }catch(e){showToast('❌ 请求失败','error')}
+ finally{if(btn)btn.disabled=false}
 }
 
 async function doControl(action){
