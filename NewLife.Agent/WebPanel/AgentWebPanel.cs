@@ -178,11 +178,20 @@ public class AgentWebPanel
     #endregion
 
     #region 路由注册
+    /// <summary>嵌入式静态文件的资源命名空间前缀。子类重写以使用自己的静态文件</summary>
+    protected virtual String EmbeddedResourcePrefix => "NewLife.Agent.WebPanel.wwwroot";
+
+    /// <summary>嵌入式静态文件所在程序集的标记类型。子类重写以使用自己程序集中的嵌入资源</summary>
+    protected virtual Type EmbeddedResourceAssemblyType => typeof(AgentWebPanel);
+
     /// <summary>注册所有路由</summary>
     /// <remarks>
     /// 路由匹配规则：精确匹配优先于通配符。
     /// /api/* 通配匹配 → ApiController（控制器自行鉴权，Login 方法不鉴权）
     /// /* 降级匹配 → 静态文件
+    /// 
+    /// 子类可重写此方法并在 base.RegisterRoutes() 之后追加自定义控制器路由，
+    /// 例如 Server.MapController&lt;MyController&gt;("/api/my")。
     /// </remarks>
     protected virtual void RegisterRoutes()
     {
@@ -190,7 +199,7 @@ public class AgentWebPanel
         Server.MapController<ApiController>("/api");
 
         // 静态文件（根路径，API 路由优先匹配；传 "/" 让 MapEmbedded 内部转为 "/*" 通配）
-        Server.MapEmbedded<AgentWebPanel>("/", "NewLife.Agent.WebPanel.wwwroot");
+        Server.MapEmbedded("/", EmbeddedResourcePrefix, EmbeddedResourceAssemblyType.Assembly);
     }
     #endregion
 

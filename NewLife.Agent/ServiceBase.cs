@@ -44,6 +44,14 @@ public abstract class ServiceBase : DisposeBase
 #if !NET40
     /// <summary>Web管理面板</summary>
     protected AgentWebPanel _webPanel;
+
+    /// <summary>创建Web管理面板。子类可重写以返回自定义面板实例（如注入扩展了嵌入式资源和路由的子类面板）</summary>
+    /// <param name="service">所属服务</param>
+    /// <returns>Web管理面板实例</returns>
+    protected virtual AgentWebPanel CreateWebPanel(ServiceBase service)
+    {
+        return new AgentWebPanel(service);
+    }
 #endif
     #endregion
 
@@ -449,7 +457,7 @@ public abstract class ServiceBase : DisposeBase
         {
             try
             {
-                _webPanel = new AgentWebPanel(this);
+                _webPanel = CreateWebPanel(this);
                 _webPanel.Start();
             }
             catch (Exception ex)
