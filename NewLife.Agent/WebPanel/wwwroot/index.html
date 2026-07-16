@@ -205,10 +205,19 @@ html.light .info-table td{border-bottom-color:rgba(0,0,0,0.06)}
 <h1>🔐 Agent 管理面板</h1>
 <p class="sub">请输入凭据以继续</p>
 <label>用户名</label>
-<input id="luser" placeholder="请输入用户名" autocomplete="username">
+<input id="luser" placeholder="请输入用户名" autocomplete="username" autofocus>
 <label>密码</label>
 <input id="lpass" type="password" placeholder="请输入密码" autocomplete="current-password">
 <button class="btn btn-primary btn-lg" style="width:100%;margin-top:8px" onclick="doLogin()">登 录</button>
+<script>
+// 回车键交互：用户名→密码框，密码→登录
+document.getElementById('luser').addEventListener('keydown', e => {
+ if (e.key === 'Enter') document.getElementById('lpass').focus();
+});
+document.getElementById('lpass').addEventListener('keydown', e => {
+ if (e.key === 'Enter') doLogin();
+});
+</script>
 <div id="lerr" class="err"></div>
 </div>
 
@@ -280,7 +289,11 @@ async function doLogin(){
  }catch(ex){e.textContent='网络错误，请检查服务是否正常运行';e.classList.add('show')}
 }
 
-function logout(){sessionStorage.removeItem('agent_token');token='';clearInterval(timer);$('login').style.display='';$('app').style.display='none'}
+async function logout(){
+ // 先通知服务端吊销令牌（静默处理，不阻塞退出流程）
+ try{await fetch('/api/logout',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}})}catch(e){}
+ sessionStorage.removeItem('agent_token');token='';clearInterval(timer);$('login').style.display='';$('app').style.display='none';$('luser').focus()
+}
 
 function showApp(){
  $('login').style.display='none';$('app').style.display='block';

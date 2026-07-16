@@ -52,6 +52,22 @@ public class ApiController : IHttpController
         return new { code = 0, data = new { token } };
     }
 
+    /// <summary>注销登录，吊销当前Token</summary>
+    /// <returns>操作结果</returns>
+    public Object Logout()
+    {
+        var ctx = Context;
+        var auth = ctx?.Request.Headers["Authorization"];
+        if (auth.IsNullOrEmpty() || !auth.StartsWithIgnoreCase("Bearer "))
+            return new { code = 0, message = "ok" };
+
+        var token = auth.Substring("Bearer ".Length).Trim();
+        if (!token.IsNullOrEmpty())
+            AgentWebPanel.Current?.RevokeToken(token);
+
+        return new { code = 0, message = "ok" };
+    }
+
     /// <summary>检查请求鉴权</summary>
     /// <returns>是否通过鉴权</returns>
     protected Boolean CheckAuth()

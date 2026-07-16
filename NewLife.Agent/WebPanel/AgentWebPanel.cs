@@ -152,6 +152,18 @@ public class AgentWebPanel
             return true;
         }
     }
+
+    /// <summary>吊销Token（退出登录）</summary>
+    /// <param name="token">Token字符串</param>
+    public void RevokeToken(String token)
+    {
+        if (token.IsNullOrEmpty()) return;
+
+        lock (_lock)
+        {
+            _tokens.Remove(token);
+        }
+    }
     #endregion
 
     #region 启动停止
