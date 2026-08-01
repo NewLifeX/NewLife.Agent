@@ -321,46 +321,21 @@ public abstract class ServiceBase : DisposeBase
         {
             try
             {
-                var cmdLine = set.AfterStart.Trim();
-                String file, args;
-                if (cmdLine.Length > 0 && cmdLine[0] == '"')
+                // 复用 ServiceHelper 解析命令行为程序路径与参数，支持引号包裹路径
+                var parts = ServiceHelper.SplitCommandLine(set.AfterStart);
+                if (parts.Length > 0)
                 {
-                    // 引号包裹路径："C:\Program Files\app.exe" --arg
-                    var end = cmdLine.IndexOf('"', 1);
-                    if (end > 0)
-                    {
-                        file = cmdLine.Substring(1, end - 1);
-                        args = cmdLine.Length > end + 1 ? cmdLine.Substring(end + 1).Trim() : "";
-                    }
-                    else
-                    {
-                        file = cmdLine.Trim('"');
-                        args = "";
-                    }
-                }
-                else
-                {
-                    // 普通路径：app.exe --arg
-                    var p = cmdLine.IndexOf(' ');
-                    if (p > 0)
-                    {
-                        file = cmdLine.Substring(0, p);
-                        args = cmdLine.Substring(p + 1).Trim();
-                    }
-                    else
-                    {
-                        file = cmdLine;
-                        args = "";
-                    }
-                }
-                WriteLog("启动后执行：FileName={0} Args={1}", file, args);
+                    var file = parts[0];
+                    var args = parts.Length > 1 ? parts[1] : "";
+                    WriteLog("启动后执行：FileName={0} Args={1}", file, args);
 
-                var si = new ProcessStartInfo(file.GetFullPath(), args)
-                {
-                    WorkingDirectory = ".".GetFullPath()
-                };
-                _process = Process.Start(si);
-                WriteLog("进程：[{0}]{1}", _process.Id, _process.ProcessName);
+                    var si = new ProcessStartInfo(file.GetFullPath(), args)
+                    {
+                        WorkingDirectory = ".".GetFullPath()
+                    };
+                    _process = Process.Start(si);
+                    WriteLog("进程：[{0}]{1}", _process.Id, _process.ProcessName);
+                }
             }
             catch (Exception ex)
             {
@@ -538,16 +513,10 @@ public abstract class ServiceBase : DisposeBase
             FreeMemory();
         }
 
-        var max = set.MaxMemory;
-        if (max <= 0) return false;
+        var memory = Process.GetCurrentProcess().WorkingSet64 / 1024 / 1024;
+        if (!HealthMonitor.IsMemoryOver(set, memory)) return false;
 
-        //var memory = GC.GetTotalMemory(false);
-        var p = Process.GetCurrentProcess();
-        var memory = p.WorkingSet64;
-        memory = memory / 1024 / 1024;
-        if (memory < max) return false;
-
-        WriteLog("当前进程占用内存 {0:n0}M，超过阀值 {1:n0}M，准备重新启动！", memory, max);
+        WriteLog("当前进程占用内存 {0:n0}M，超过阀值 {1:n0}M，准备重新启动！", memory, set.MaxMemory);
 
         Host.Restart(ServiceName);
 
@@ -581,13 +550,11 @@ public abstract class ServiceBase : DisposeBase
     /// <returns>是否触发重启</returns>
     protected virtual Boolean CheckThread()
     {
-        var max = Setting.Current.MaxThread;
-        if (max <= 0) return false;
+        var set = Setting.Current;
+        var count = Process.GetCurrentProcess().Threads.Count;
+        if (!HealthMonitor.IsThreadOver(set, count)) return false;
 
-        var p = Process.GetCurrentProcess();
-        if (p.Threads.Count < max) return false;
-
-        WriteLog("当前进程总线程 {0:n0}个，超过阀值 {1:n0}个，准备重新启动！", p.Threads.Count, max);
+        WriteLog("当前进程总线程 {0:n0}个，超过阀值 {1:n0}个，准备重新启动！", count, set.MaxThread);
 
         Host.Restart(ServiceName);
 
@@ -598,13 +565,11 @@ public abstract class ServiceBase : DisposeBase
     /// <returns>是否触发重启</returns>
     protected virtual Boolean CheckHandle()
     {
-        var max = Setting.Current.MaxHandle;
-        if (max <= 0) return false;
+        var set = Setting.Current;
+        var count = Process.GetCurrentProcess().HandleCount;
+        if (!HealthMonitor.IsHandleOver(set, count)) return false;
 
-        var p = Process.GetCurrentProcess();
-        if (p.HandleCount < max) return false;
-
-        WriteLog("当前进程句柄 {0:n0}个，超过阀值 {1:n0}个，准备重新启动！", p.HandleCount, max);
+        WriteLog("当前进程句柄 {0:n0}个，超过阀值 {1:n0}个，准备重新启动！", count, set.MaxHandle);
 
         Host.Restart(ServiceName);
 
@@ -618,28 +583,17 @@ public abstract class ServiceBase : DisposeBase
     /// <returns>是否触发重启</returns>
     protected virtual Boolean CheckAutoRestart()
     {
-        var auto = Setting.Current.AutoRestart;
-        if (auto <= 0) return false;
+        var set = Setting.Current;
+        if (!HealthMonitor.IsAutoRestartDue(set, Start, DateTime.Now, out var inTimeRange)) return false;
 
         var ts = DateTime.Now - Start;
-        if (ts.TotalMinutes < auto) return false;
-
-        var timeRange = Setting.Current.RestartTimeRange?.Split('-');
-        if (timeRange?.Length == 2)
+        if (inTimeRange)
         {
-            if (TimeSpan.TryParse(timeRange[0], out var startTime) && startTime <= DateTime.Now.TimeOfDay
-                && TimeSpan.TryParse(timeRange[1], out var endTime) && endTime >= DateTime.Now.TimeOfDay)
-            {
-                WriteLog("服务已运行 {0:n0}分钟，达到预设重启时间（{1:n0}分钟），并且当前时间在预设时间范围之内（{2}），准备重启！", ts.TotalMinutes, auto, Setting.Current.RestartTimeRange);
-            }
-            else
-            {
-                return false;
-            }
+            WriteLog("服务已运行 {0:n0}分钟，达到预设重启时间（{1:n0}分钟），并且当前时间在预设时间范围之内（{2}），准备重启！", ts.TotalMinutes, set.AutoRestart, set.RestartTimeRange);
         }
         else
         {
-            WriteLog("服务已运行 {0:n0}分钟，达到预设重启时间（{1:n0}分钟），准备重启！", ts.TotalMinutes, auto);
+            WriteLog("服务已运行 {0:n0}分钟，达到预设重启时间（{1:n0}分钟），准备重启！", ts.TotalMinutes, set.AutoRestart);
         }
         //重置开始时间，防止检测时间过快，重启时间较长时，导致多次重复重启
         Start = DateTime.Now;

@@ -90,9 +90,14 @@ public static class ServiceHelper
     }
 
     /// <summary>将命令行字符串拆分为程序路径和其余参数</summary>
+    /// <remarks>
+    /// 支持两类格式：
+    /// 1. 引号包裹路径："C:\Program Files\app.exe" --arg
+    /// 2. 普通路径：app.exe --arg
+    /// </remarks>
     /// <param name="commandLine">原始命令行字符串</param>
     /// <returns>[程序路径, 其余参数]，无法解析时长度为0的数组</returns>
-    private static String[] SplitCommandLine(String commandLine)
+    public static String[] SplitCommandLine(String commandLine)
     {
         if (commandLine.IsNullOrEmpty()) return [];
 
