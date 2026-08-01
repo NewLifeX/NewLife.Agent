@@ -243,19 +243,28 @@ public class ApiController : IHttpController
     #endregion
 
     #region 配置
-    /// <summary>获取配置元数据（DisplayName + Description + Type + Value），供前端三列布局渲染</summary>
-    /// <returns>配置项列表，含显示名、描述、类型和当前值</returns>
-    public Object ConfigMetadata()
+    /// <summary>配置属性元数据缓存项</summary>
+    private class ConfigPropertyInfo
     {
-        if (!CheckAuth()) return new { code = 401, message = "Unauthorized" };
+        public String Name;
+        public String DisplayName;
+        public String Description;
+        public String TypeName;
+        public PropertyInfo Property;
+    }
 
-        var set = Setting.Current;
-        var items = new List<Object>();
+    // 配置元数据（属性名/显示名/描述/类型）不随配置值变化，静态缓存避免每次请求全量反射
+    private static readonly ConfigPropertyInfo[] _configProperties = BuildConfigProperties();
 
+    /// <summary>构建配置属性元数据缓存。排除密码字段（走 ChangePassword 接口）</summary>
+    /// <returns>配置属性元数据数组</returns>
+    private static ConfigPropertyInfo[] BuildConfigProperties()
+    {
+        var list = new List<ConfigPropertyInfo>();
         foreach (var prop in typeof(Setting).GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
             if (!prop.CanRead || !prop.CanWrite) continue;
-            if (prop.Name.EqualIgnoreCase(nameof(set.WebPassword))) continue;
+            if (prop.Name.EqualIgnoreCase(nameof(Setting.WebPassword))) continue;
 
             var displayName = prop.GetCustomAttribute<System.ComponentModel.DisplayNameAttribute>()?.DisplayName;
             if (displayName.IsNullOrEmpty())
@@ -279,13 +288,37 @@ public class ApiController : IHttpController
                 _ => prop.PropertyType.Name
             };
 
+            list.Add(new ConfigPropertyInfo
+            {
+                Name = prop.Name,
+                DisplayName = displayName,
+                Description = description,
+                TypeName = typeName,
+                Property = prop
+            });
+        }
+        return list.ToArray();
+    }
+
+    /// <summary>获取配置元数据（DisplayName + Description + Type + Value），供前端三列布局渲染</summary>
+    /// <returns>配置项列表，含显示名、描述、类型和当前值</returns>
+    public Object ConfigMetadata()
+    {
+        if (!CheckAuth()) return new { code = 401, message = "Unauthorized" };
+
+        var set = Setting.Current;
+        var items = new List<Object>();
+
+        // 元数据来自静态缓存，仅值需实时读取
+        foreach (var prop in _configProperties)
+        {
             items.Add(new
             {
                 name = prop.Name,
-                displayName,
-                description,
-                type = typeName,
-                value = prop.GetValue(set, null)
+                displayName = prop.DisplayName,
+                description = prop.Description,
+                type = prop.TypeName,
+                value = prop.Property.GetValue(set, null)
             });
         }
 
