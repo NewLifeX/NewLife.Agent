@@ -29,14 +29,11 @@ public abstract class BaseCommandHandler(ServiceBase service) : ICommandHandler
     /// </summary>
     public Char? ShortcutKey { get; set; }
 
-    /// <summary>
-    /// 是否显示菜单
-    /// </summary>
-    /// <returns></returns>
+    /// <summary>是否显示菜单</summary>
+    /// <returns>是否显示菜单</returns>
     public virtual Boolean IsShowMenu() => ShortcutKey != null;
 
     /// <summary>处理命令</summary>
-    /// <param name="args"></param>
-    /// <returns></returns>
+    /// <param name="args">命令行参数</param>
     public abstract void Process(String[] args);
 }

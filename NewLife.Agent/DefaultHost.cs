@@ -26,32 +26,32 @@ public class DefaultHost : DisposeBase, IHost
 
     /// <summary>服务是否已安装</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>是否已安装</returns>
     public virtual Boolean IsInstalled(String serviceName) => false;
 
     /// <summary>服务是否已启动</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>是否已启动</returns>
     public virtual Boolean IsRunning(String serviceName) => false;
 
     /// <summary>安装服务</summary>
     /// <param name="service">服务</param>
-    /// <returns></returns>
+    /// <returns>是否安装成功</returns>
     public virtual Boolean Install(ServiceModel service) => false;
 
     /// <summary>卸载服务</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>是否卸载成功</returns>
     public virtual Boolean Remove(String serviceName) => false;
 
     /// <summary>启动服务</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>是否启动成功</returns>
     public virtual Boolean Start(String serviceName) => false;
 
     /// <summary>停止服务</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>是否停止成功</returns>
     public virtual Boolean Stop(String serviceName) => false;
 
     /// <summary>重启服务</summary>
@@ -91,11 +91,12 @@ public class DefaultHost : DisposeBase, IHost
 
     /// <summary>查询服务配置</summary>
     /// <param name="serviceName">服务名</param>
+    /// <returns>服务配置</returns>
     public virtual ServiceConfig QueryConfig(String serviceName) => null;
 
     /// <summary>获取进程（捕获异常）</summary>
-    /// <param name="processId"></param>
-    /// <returns></returns>
+    /// <param name="processId">进程ID</param>
+    /// <returns>进程，不存在时返回 null</returns>
     protected static Process GetProcessById(Int32 processId)
     {
         try
@@ -108,8 +109,8 @@ public class DefaultHost : DisposeBase, IHost
     }
 
     /// <summary>进程是否已退出（捕获异常）</summary>
-    /// <param name="process"></param>
-    /// <returns></returns>
+    /// <param name="process">进程</param>
+    /// <returns>是否已退出</returns>
     protected static Boolean GetHasExited(Process process)
     {
         try

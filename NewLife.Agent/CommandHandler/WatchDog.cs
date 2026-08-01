@@ -68,10 +68,10 @@ public class WatchDog : BaseCommandHandler
     }
 
     /// <summary>
-    /// 获取服务配置文件的路径
+    /// 获取服务对应的宿主
     /// </summary>
     /// <param name="serviceName">服务名称</param>
-    /// <returns></returns>
+    /// <returns>宿主实例</returns>
     private IHost GetHost(String serviceName)
     {
         // 优先使用Systemd

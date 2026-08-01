@@ -25,8 +25,8 @@ public class Menu(Char key, String name, String cmd, Action callback) : ICompara
     public Action Callback { get; set; } = callback;
 
     /// <summary>比较</summary>
-    /// <param name="other"></param>
-    /// <returns></returns>
+    /// <param name="other">其他菜单</param>
+    /// <returns>比较结果</returns>
     public Int32 CompareTo(Menu other)
     {
         if (ReferenceEquals(this, other)) return 0;

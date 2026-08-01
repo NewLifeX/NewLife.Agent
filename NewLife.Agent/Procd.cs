@@ -127,15 +127,12 @@ public class Procd : DefaultHost
         return Install(_path, serviceName, fileName, arguments, displayName, description);
     }
 
-    /// <summary>安装服务</summary>
-    /// <param name="systemPath">system目录</param>
-    /// <param name="serviceName">服务名</param>
-    /// <param name="displayName">显示名</param>
-    /// <param name="fileName">文件路径</param>
+    /// <summary>生成 procd 启动脚本</summary>
+    /// <param name="fileName">程序文件路径</param>
     /// <param name="arguments">命令参数</param>
-    /// <param name="description">描述信息</param>
-    /// <returns></returns>
-    
+    /// <param name="displayName">显示名</param>
+    /// <param name="hasRcCommon">是否包含 rc.common 头</param>
+    /// <returns>procd 启动脚本内容</returns>
     public static String BuildScript(String fileName, String arguments, String displayName, Boolean hasRcCommon)
     {
         var sb = new StringBuilder();
@@ -183,7 +180,7 @@ public class Procd : DefaultHost
     /// <param name="fileName">文件路径</param>
     /// <param name="arguments">命令参数</param>
     /// <param name="description">描述信息</param>
-    /// <returns></returns>
+    /// <returns>是否安装成功</returns>
     public static Boolean Install(String systemPath, String serviceName, String fileName, String arguments, String displayName, String description)
     {
         XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", typeof(Procd).Name, serviceName, displayName, fileName, arguments, description);

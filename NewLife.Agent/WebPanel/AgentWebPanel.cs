@@ -134,7 +134,7 @@ public class AgentWebPanel
 
     /// <summary>验证Token</summary>
     /// <param name="token">Token字符串</param>
-    /// <returns></returns>
+    /// <returns>Token是否有效</returns>
     public Boolean ValidateToken(String token)
     {
         if (token.IsNullOrEmpty()) return false;

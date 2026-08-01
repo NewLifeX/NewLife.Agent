@@ -292,7 +292,7 @@ public class WindowsService : DefaultHost
     #region 服务状态和控制
     /// <summary>服务是否已安装</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>是否已安装</returns>
     public override Boolean IsInstalled(String serviceName)
     {
         using var manager = new SafeServiceHandle(OpenSCManager(null, null, ServiceControllerOptions.SC_MANAGER_CONNECT));
@@ -304,7 +304,7 @@ public class WindowsService : DefaultHost
 
     /// <summary>服务是否已启动</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>是否已启动</returns>
     public override unsafe Boolean IsRunning(String serviceName)
     {
         using var manager = new SafeServiceHandle(OpenSCManager(null, null, ServiceControllerOptions.SC_MANAGER_CONNECT));
@@ -321,7 +321,7 @@ public class WindowsService : DefaultHost
 
     /// <summary>安装服务</summary>
     /// <param name="service">服务</param>
-    /// <returns></returns>
+    /// <returns>是否安装成功</returns>
     public override Boolean Install(ServiceModel service)
     {
         XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", GetType().Name, service.ServiceName, service.DisplayName, service.FileName, service.Arguments, service.Description);
@@ -423,7 +423,7 @@ public class WindowsService : DefaultHost
 
     /// <summary>卸载服务</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>是否卸载成功</returns>
     public override unsafe Boolean Remove(String serviceName)
     {
         XTrace.WriteLine("{0}.Remove {1}", GetType().Name, serviceName);
@@ -448,7 +448,7 @@ public class WindowsService : DefaultHost
 
     /// <summary>启动服务</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>是否启动成功</returns>
     public override Boolean Start(String serviceName)
     {
         XTrace.WriteLine("{0}.Start {1}", GetType().Name, serviceName);
@@ -470,7 +470,7 @@ public class WindowsService : DefaultHost
 
     /// <summary>停止服务</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>是否停止成功</returns>
     public override unsafe Boolean Stop(String serviceName)
     {
         XTrace.WriteLine("{0}.Stop {1}", GetType().Name, serviceName);
@@ -581,8 +581,8 @@ public class WindowsService : DefaultHost
     }
 
     /// <summary>以管理员身份运行进程</summary>
-    /// <param name="argument"></param>
-    /// <returns></returns>
+    /// <param name="argument">命令行参数</param>
+    /// <returns>是否已以管理员身份运行</returns>
     public static Boolean RunAsAdministrator(String argument)
     {
         var exe = ExecutablePath;
@@ -663,7 +663,7 @@ public class WindowsService : DefaultHost
     static extern Int32 GetModuleFileName(HandleRef hModule, StringBuilder buffer, Int32 length);
 
     /// <summary>当前进程是否管理员角色</summary>
-    /// <returns></returns>
+    /// <returns>是否管理员角色</returns>
     public static Boolean IsAdministrator()
     {
 #if NETFRAMEWORK

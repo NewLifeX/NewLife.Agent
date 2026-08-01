@@ -100,7 +100,7 @@ public class CommandFactory
     /// <summary>
     /// 获取快捷菜单信息
     /// </summary>
-    /// <returns></returns>
+    /// <returns>快捷菜单集合</returns>
     public SortedSet<Menu> GetShortcutMenu()
     {
         var menus = new SortedSet<Menu>();
@@ -117,6 +117,6 @@ public class CommandFactory
     /// <summary>
     /// 获取所有命令处理程序
     /// </summary>
-    /// <returns></returns>
+    /// <returns>所有命令处理程序列表</returns>
     public List<BaseCommandHandler> GetAllCommand() => _commandHandlerList;
 }

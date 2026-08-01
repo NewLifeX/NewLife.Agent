@@ -128,7 +128,7 @@ public class OSXLaunch : DefaultHost
         """;
 
     /// <summary>安装服务</summary>
-    /// <param name="basePath">systemd目录有</param>
+    /// <param name="basePath">LaunchAgents 目录</param>
     /// <param name="serviceName">服务名</param>
     /// <param name="displayName">显示名</param>
     /// <param name="fileName">文件路径</param>
@@ -136,8 +136,8 @@ public class OSXLaunch : DefaultHost
     /// <param name="description">描述信息</param>
     /// <param name="user">用户</param>
     /// <param name="group">用户组</param>
-    /// <param name="network"></param>
-    /// <returns></returns>
+    /// <param name="network">是否联网</param>
+    /// <returns>是否安装成功</returns>
     public static Boolean Install(String basePath, String serviceName, String displayName, String fileName, String arguments, String description, String user, String group, Boolean network)
     {
         XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", typeof(OSXLaunch).Name, serviceName, displayName, fileName, arguments, description);

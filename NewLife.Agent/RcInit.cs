@@ -146,7 +146,7 @@ public class RcInit : DefaultHost
     /// <param name="fileName">文件路径</param>
     /// <param name="arguments">命令参数</param>
     /// <param name="description">描述信息</param>
-    /// <returns></returns>
+    /// <returns>是否安装成功</returns>
     public static Boolean Install(String systemPath, String serviceName, String fileName, String arguments, String displayName, String description)
     {
         XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", typeof(RcInit).Name, serviceName, displayName, fileName, arguments, description);

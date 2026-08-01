@@ -20,14 +20,11 @@ internal interface ICommandHandler
     /// </summary>
     Char? ShortcutKey { get; set; }
 
-    /// <summary>
-    /// 是否显示菜单
-    /// </summary>
-    /// <returns></returns>
+    /// <summary>是否显示菜单</summary>
+    /// <returns>是否显示菜单</returns>
     Boolean IsShowMenu();
 
     /// <summary>处理命令</summary>
-    /// <param name="args"></param>
-    /// <returns></returns>
+    /// <param name="args">命令行参数</param>
     void Process(String[] args);
 }

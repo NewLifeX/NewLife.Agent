@@ -48,7 +48,7 @@ public class WindowsAutorun : DefaultHost
 
     /// <summary>服务是否已安装</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>是否已安装</returns>
 #if NET5_0_OR_GREATER
     [SupportedOSPlatform("windows")]
 #endif

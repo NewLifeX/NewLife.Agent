@@ -149,7 +149,7 @@ public class SysVinit : DefaultHost
     /// 获取服务配置文件的路径
     /// </summary>
     /// <param name="serviceName">服务名称</param>
-    /// <returns></returns>
+    /// <returns>服务配置文件路径，不存在时返回 null</returns>
     public static String GetServicePath(String serviceName)
     {
         var file = Path.Combine(ServicePath, serviceName);

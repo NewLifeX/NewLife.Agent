@@ -79,7 +79,7 @@ public class Systemd : DefaultHost
 
     /// <summary>服务是否已安装</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>是否已安装</returns>
     public override Boolean IsInstalled(String serviceName)
     {
         var file = GetServicePath(serviceName);
@@ -88,7 +88,7 @@ public class Systemd : DefaultHost
 
     /// <summary>服务是否已启动</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>是否已启动</returns>
     public override Boolean IsRunning(String serviceName)
     {
         if (!IsInstalled(serviceName)) return false;
@@ -109,7 +109,7 @@ public class Systemd : DefaultHost
 
     /// <summary>安装服务</summary>
     /// <param name="service">服务</param>
-    /// <returns></returns>
+    /// <returns>是否安装成功</returns>
     public override Boolean Install(ServiceModel service)
     {
         var set = Setting;
@@ -132,9 +132,9 @@ public class Systemd : DefaultHost
     }
 
     /// <summary>安装服务</summary>
-    /// <param name="systemdPath">systemd目录有</param>
-    /// <param name="set">服务名</param>
-    /// <returns></returns>
+    /// <param name="systemdPath">systemd目录</param>
+    /// <param name="set">Systemd配置</param>
+    /// <returns>是否安装成功</returns>
     public virtual Boolean Install(String systemdPath, SystemdSetting set)
     {
         XTrace.WriteLine("{0}.Install {1}", typeof(Systemd).Name, set.ToJson());
@@ -158,7 +158,7 @@ public class Systemd : DefaultHost
 
     /// <summary>卸载服务</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>是否卸载成功</returns>
     public override Boolean Remove(String serviceName)
     {
         XTrace.WriteLine("{0}.Remove {1}", Name, serviceName);
@@ -172,7 +172,7 @@ public class Systemd : DefaultHost
 
     /// <summary>启动服务</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>是否启动成功</returns>
     public override Boolean Start(String serviceName)
     {
         XTrace.WriteLine("{0}.Start {1}", Name, serviceName);
@@ -181,7 +181,7 @@ public class Systemd : DefaultHost
 
     /// <summary>停止服务</summary>
     /// <param name="serviceName">服务名</param>
-    /// <returns></returns>
+    /// <returns>是否停止成功</returns>
     public override Boolean Stop(String serviceName)
     {
         XTrace.WriteLine("{0}.Stop {1}", Name, serviceName);
@@ -228,7 +228,7 @@ public class Systemd : DefaultHost
     /// 获取服务配置文件的路径
     /// </summary>
     /// <param name="serviceName">服务名称</param>
-    /// <returns></returns>
+    /// <returns>服务配置文件路径，不存在时返回 null</returns>
     public static String GetServicePath(String serviceName)
     {
         foreach (var path in SystemdPaths)

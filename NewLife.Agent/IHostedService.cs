@@ -11,13 +11,13 @@ namespace NewLife.Agent
         String ServiceName { get; }
 
         /// <summary>开始</summary>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
+        /// <param name="cancellationToken">取消令牌</param>
+        /// <returns>异步任务</returns>
         Task StartAsync(CancellationToken cancellationToken);
 
         /// <summary>停止</summary>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
+        /// <param name="cancellationToken">取消令牌</param>
+        /// <returns>异步任务</returns>
         Task StopAsync(CancellationToken cancellationToken);
     }
 }
