@@ -109,4 +109,64 @@ public class ServiceHelperTests
         Assert.False("".IsRuntime());
         Assert.False(((String)null!).IsRuntime());
     }
+
+    #region SplitCommandLine
+    [Fact]
+    [DisplayName("SplitCommandLine_引号包裹路径_正确拆分")]
+    public void SplitCommandLine_QuotedPath_Splits()
+    {
+        var parts = ServiceHelper.SplitCommandLine("\"C:\\Program Files\\app.exe\" --arg");
+        Assert.Equal(2, parts.Length);
+        Assert.Equal("C:\\Program Files\\app.exe", parts[0]);
+        Assert.Equal("--arg", parts[1]);
+    }
+
+    [Fact]
+    [DisplayName("SplitCommandLine_普通路径_正确拆分")]
+    public void SplitCommandLine_PlainPath_Splits()
+    {
+        var parts = ServiceHelper.SplitCommandLine("app.exe --arg");
+        Assert.Equal(2, parts.Length);
+        Assert.Equal("app.exe", parts[0]);
+        Assert.Equal("--arg", parts[1]);
+    }
+
+    [Fact]
+    [DisplayName("SplitCommandLine_仅路径_单元素")]
+    public void SplitCommandLine_OnlyPath_Single()
+    {
+        var parts = ServiceHelper.SplitCommandLine("app.exe");
+        Assert.Single(parts);
+        Assert.Equal("app.exe", parts[0]);
+    }
+
+    [Fact]
+    [DisplayName("SplitCommandLine_带空格无引号路径_按首个空格拆分")]
+    public void SplitCommandLine_PlainPathWithSpaces_Splits()
+    {
+        var parts = ServiceHelper.SplitCommandLine("C:\\Program Files\\app.exe --arg");
+        Assert.Equal(2, parts.Length);
+        Assert.Equal("C:\\Program", parts[0]);
+        Assert.Equal("Files\\app.exe --arg", parts[1]);
+    }
+
+    [Fact]
+    [DisplayName("SplitCommandLine_空或null_返回空数组")]
+    public void SplitCommandLine_Empty_ReturnsEmpty()
+    {
+        Assert.Empty(ServiceHelper.SplitCommandLine(""));
+        Assert.Empty(ServiceHelper.SplitCommandLine(null!));
+    }
+
+    [Fact]
+    [DisplayName("SplitCommandLine_引号路径无参数_返回路径与空参数")]
+    public void SplitCommandLine_QuotedPathOnly_Splits()
+    {
+        // 实现语义：始终返回 [程序路径, 参数]，无参数时第二个元素为空串
+        var parts = ServiceHelper.SplitCommandLine("\"C:\\Program Files\\app.exe\"");
+        Assert.Equal(2, parts.Length);
+        Assert.Equal("C:\\Program Files\\app.exe", parts[0]);
+        Assert.Equal("", parts[1]);
+    }
+    #endregion
 }
