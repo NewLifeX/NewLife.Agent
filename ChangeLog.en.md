@@ -1,5 +1,33 @@
 # NewLife.Agent Changelog
 
+## v10.17.2026.0802 (2026-08-02)
+
+### Health Monitoring
+- **HealthMonitor Component**: New health check component encapsulating memory/thread/handle threshold checks and auto-restart time parsing, callable by ServiceBase and independently testable.
+- **Disk IOPS Collection**: Cross-platform disk IOPS collection enhancing dashboard metrics.
+
+### Web Management Panel
+- **Auth Refactor & Brute-Force Protection**: Refactored authentication with token-based auth and brute-force protection.
+- **Secure Password Change**: New secure password change API with frontend interaction.
+- **Frontend Enhancements**: Logout and Enter-key interactions, plus a release-memory action button.
+- **Extensibility**: Factory methods and resource replacement, optimized ApiController config metadata retrieval.
+- **Log Reading**: Support for log files locked by writing processes.
+
+### CLI & Scripts
+- **CLI Parsing**: Refactored command-line parsing and resource monitoring.
+- **Script Modularization**: Refactored Procd/RcInit scripts with module IDs M1~M8 and extracted BuildScript method.
+
+### Testing & Quality
+- **Unit Test Coverage**: Added comprehensive unit tests covering ServiceHelper, ServiceBase, CommandHandler, WebPanel models, AuthLevel, HealthMonitor and more.
+- **XML Docs**: Unified and improved XML documentation comments.
+
+### Bug Fixes
+- **[fix]** Fixed Procd/RcInit argument trimming by using TrimArg instead of TrimEnd.
+- **[fix]** Removed StartWork retry logic in StartLoop, executing once to avoid duplicate startup.
+- **[fix]** Fixed all gaps found during audit.
+
+---
+
 ## v10.16.2026.0702 (2026-07-02)
 
 ### Web Management Panel

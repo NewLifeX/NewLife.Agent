@@ -7,7 +7,7 @@
     <Description>为ASP.NET Core与Worker提供Agent托管集成，支持服务化部署与运维。</Description>
     <Company>新生命开发团队</Company>
     <Copyright>©2002-2026 NewLife</Copyright>
-    <VersionPrefix>10.16</VersionPrefix>
+    <VersionPrefix>10.17</VersionPrefix>
     <VersionSuffix>$([System.DateTime]::Now.ToString(`yyyy.MMdd`))</VersionSuffix>
     <Version>$(VersionPrefix).$(VersionSuffix)</Version>
     <FileVersion>$(Version)</FileVersion>
@@ -34,7 +34,7 @@
     <RepositoryUrl>https://github.com/NewLifeX/NewLife.Agent</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>新生命团队;X组件;NewLife;$(AssemblyName)</PackageTags>
-    <PackageReleaseNotes>新增轻量级 Web 管理面板，支持浏览器查看服务状态与运维操作；升级 NewLife.Core 至最新版本</PackageReleaseNotes>
+    <PackageReleaseNotes>新增 HealthMonitor 健康监控组件，支持内存/线程/句柄超标判断与自动重启时间解析；新增跨平台磁盘 IOPS 采集，增强仪表盘指标；重构 Web 面板鉴权，支持 Token 与爆破防护；新增安全密码修改与释放内存功能；大幅补全单元测试提升覆盖率</PackageReleaseNotes>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>

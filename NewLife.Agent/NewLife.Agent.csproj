@@ -8,7 +8,7 @@
     <Description>跨平台系统服务与守护进程管理框架，支持安装、监控与自动重启。</Description>
     <Company>新生命开发团队</Company>
     <Copyright>©2002-2026 NewLife</Copyright>
-    <VersionPrefix>10.16</VersionPrefix>
+    <VersionPrefix>10.17</VersionPrefix>
     <VersionSuffix>$([System.DateTime]::Now.ToString(`yyyy.MMdd`))</VersionSuffix>
     <Version>$(VersionPrefix).$(VersionSuffix)</Version>
     <FileVersion>$(Version)</FileVersion>
@@ -34,7 +34,7 @@
     <RepositoryUrl>https://github.com/NewLifeX/NewLife.Agent</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>新生命团队;X组件;NewLife;$(AssemblyName)</PackageTags>
-    <PackageReleaseNotes>新增轻量级 Web 管理面板，支持浏览器查看服务状态与运维操作；支持扩展面板注册与多主题切换；ApiController 统一 API 路由处理；Web 面板内置 Token 鉴权机制；升级 NewLife.Core 至最新版本</PackageReleaseNotes>
+    <PackageReleaseNotes>新增 HealthMonitor 健康监控组件，支持内存/线程/句柄超标判断与自动重启时间解析；新增跨平台磁盘 IOPS 采集，增强仪表盘指标；重构 Web 面板鉴权，支持 Token 与爆破防护；新增安全密码修改与释放内存功能；重构 Procd/RcInit 脚本模块化 M1~M8；大幅补全单元测试提升覆盖率</PackageReleaseNotes>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
@@ -67,7 +67,7 @@
     </None>
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'!='net40'">
-    <PackageReference Include="NewLife.Core" Version="11.17.2026.715-beta1316" />
+    <PackageReference Include="NewLife.Core" Version="11.18.2026.801" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'=='net40'">
     <PackageReference Include="NewLife.Core" Version="10.10.2024.0801-net40" />

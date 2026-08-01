@@ -35,10 +35,10 @@ Tutorial: https://newlifex.com/core/agent
 ## Highlights
 
 - **DevOps in One**: Inherit `ServiceBase` to gain full service governance capabilities.
-- **Built-in Web Dashboard**: Lightweight management panel accessible via browser for status viewing and operations, with extension panels and theme switching.
+- **Built-in Web Dashboard**: Lightweight management panel accessible via browser for status viewing and operations, with extension panels, theme switching, token-based auth and brute-force protection.
 - **Cross-Platform Auto-Adaptation**: Automatically selects the best host implementation per operating system.
 - **Built-in Command System**: Supports `-install/-start/-stop/-restart/-status/-run`.
-- **Health Monitoring & Self-Healing**: Memory/thread/handle thresholds, scheduled restarts, WatchDog.
+- **Health Monitoring & Self-Healing**: HealthMonitor component provides memory/thread/handle thresholds, scheduled restarts and WatchDog health checks.
 - **Multi-Instance Friendly**: Configure different `ServiceName` values for multi-instance deployment.
 - **Host Integration Extension**: Use `NewLife.Extensions.Hosting.AgentService` to unify ASP.NET Core/Worker lifecycles with Agent service governance.
 
