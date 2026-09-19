@@ -123,6 +123,14 @@ public class SettingTests
     }
 
     [Fact]
+    [DisplayName("Setting_WebBind_默认127.0.0.1仅本机")]
+    public void Setting_WebBind_DefaultLoopback()
+    {
+        var set = new Setting();
+        Assert.Equal("127.0.0.1", set.WebBind);
+    }
+
+    [Fact]
     [DisplayName("Setting_WebAuthLevel_默认LocalOnly")]
     public void Setting_WebAuthLevel_DefaultLocalOnly()
     {

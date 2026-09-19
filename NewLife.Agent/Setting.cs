@@ -69,6 +69,10 @@ public class Setting : Config<Setting>
     [Description("Web管理面板端口。默认5580")]
     public Int32 WebPort { get; set; } = 5580;
 
+    /// <summary>Web面板绑定地址。默认127.0.0.1仅本机访问，设为*监听所有网卡，也可指定具体IP</summary>
+    [Description("Web面板绑定地址。默认127.0.0.1仅本机访问，设为*监听所有网卡，也可指定具体IP")]
+    public String WebBind { get; set; } = "127.0.0.1";
+
     /// <summary>Web面板鉴权级别。None不鉴权，LocalOnly本地免鉴权，Full全部鉴权。默认LocalOnly</summary>
     [Description("Web面板鉴权级别。None不鉴权，LocalOnly本地免鉴权，Full全部鉴权。默认LocalOnly")]
     public String WebAuthLevel { get; set; } = "LocalOnly";

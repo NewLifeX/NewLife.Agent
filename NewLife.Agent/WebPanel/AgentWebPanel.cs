@@ -1,4 +1,5 @@
 ﻿#if !NET40
+using System.Net;
 using NewLife.Data;
 using NewLife.Http;
 using NewLife.Log;
@@ -50,6 +51,8 @@ public class AgentWebPanel
     #endregion
 
     #region 构造
+    private readonly Boolean _listenAll;
+
     /// <summary>实例化Web管理面板</summary>
     /// <param name="service">所属服务</param>
     public AgentWebPanel(ServiceBase service)
@@ -66,6 +69,15 @@ public class AgentWebPanel
             ServerName = $"NewLife-Agent/{Service.ServiceName}",
             Log = XTrace.Log
         };
+
+        // 绑定地址：默认仅本机访问；配置为“*”时监听所有网卡；无法识别的值回退本机，宁可连不上也不误开放
+        var bind = set.WebBind;
+        if (!bind.IsNullOrEmpty() && bind != "*" && !IPAddress.TryParse(bind, out _))
+            XTrace.WriteLine("WebBind 配置无效[{0}]，已回退为仅本机监听 127.0.0.1", bind);
+
+        var address = ParseBindAddress(bind);
+        _listenAll = address == null;
+        if (address != null) Server.Local.Address = address;
 
         Level = ParseAuthLevel(set.WebAuthLevel);
         UserName = set.WebUserName;
@@ -85,6 +97,22 @@ public class AgentWebPanel
             "full" => AuthLevel.Full,
             _ => AuthLevel.LocalOnly
         };
+    }
+
+    /// <summary>解析面板绑定地址</summary>
+    /// <remarks>空值或无法识别的值回退 127.0.0.1 环回地址，避免配置笔误把管理面板误开放到局域网</remarks>
+    /// <param name="bind">绑定地址。支持具体IP地址，或 * 表示监听所有网卡</param>
+    /// <returns>要绑定的地址；null 表示监听所有网卡</returns>
+    public static IPAddress ParseBindAddress(String bind)
+    {
+        if (bind.IsNullOrEmpty()) return IPAddress.Loopback;
+
+        bind = bind.Trim();
+        if (bind == "*") return null;
+
+        if (IPAddress.TryParse(bind, out var address)) return address.IsAny() ? null : address;
+
+        return IPAddress.Loopback;
     }
     #endregion
 
@@ -175,6 +203,10 @@ public class AgentWebPanel
         Server.Start();
 
         XTrace.WriteLine("Web管理面板已启动，端口：{0}", Server.Port);
+
+        // 监听所有网卡且仍在使用默认口令时，给出安全提醒
+        if (_listenAll && Password == new Setting().WebPassword)
+            XTrace.WriteLine("安全提醒：Web管理面板已监听所有网卡，且仍在使用默认密码，请尽快修改面板密码！");
     }
 
     /// <summary>停止Web面板</summary>

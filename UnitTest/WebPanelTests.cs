@@ -1,6 +1,7 @@
 ﻿#if !NET40
 #nullable disable
 using System.ComponentModel;
+using System.Net;
 using System.Reflection;
 using Moq;
 using NewLife;
@@ -237,6 +238,42 @@ public class AgentWebPanelTests
     }
     #endregion
 
+    #region ParseBindAddress 测试
+    [Fact]
+    [DisplayName("ParseBindAddress_空值_回退本机环回")]
+    public void ParseBindAddress_Empty_ReturnsLoopback()
+    {
+        Assert.Equal(IPAddress.Loopback, AgentWebPanel.ParseBindAddress(null!));
+        Assert.Equal(IPAddress.Loopback, AgentWebPanel.ParseBindAddress(""));
+        Assert.Equal(IPAddress.Loopback, AgentWebPanel.ParseBindAddress("   "));
+    }
+
+    [Fact]
+    [DisplayName("ParseBindAddress_星号或Any_监听所有网卡")]
+    public void ParseBindAddress_StarOrAny_ReturnsNull()
+    {
+        Assert.Null(AgentWebPanel.ParseBindAddress("*"));
+        Assert.Null(AgentWebPanel.ParseBindAddress("0.0.0.0"));
+        Assert.Null(AgentWebPanel.ParseBindAddress("::"));
+    }
+
+    [Fact]
+    [DisplayName("ParseBindAddress_具体IP_返回该地址")]
+    public void ParseBindAddress_Ip_ReturnsParsed()
+    {
+        Assert.Equal(IPAddress.Parse("192.168.1.10"), AgentWebPanel.ParseBindAddress("192.168.1.10"));
+        Assert.Equal(IPAddress.IPv6Loopback, AgentWebPanel.ParseBindAddress("::1"));
+    }
+
+    [Fact]
+    [DisplayName("ParseBindAddress_非法值_回退本机环回")]
+    public void ParseBindAddress_Invalid_ReturnsLoopback()
+    {
+        Assert.Equal(IPAddress.Loopback, AgentWebPanel.ParseBindAddress("not-an-ip"));
+        Assert.Equal(IPAddress.Loopback, AgentWebPanel.ParseBindAddress("192.168.1.300"));
+    }
+    #endregion
+
     #region 构造测试
     [Fact]
     public void Constructor_ValidService_CreatesSuccessfully()
@@ -302,6 +339,51 @@ public class AgentWebPanelTests
             set.EnableWebPanel = prevEnable;
         }
     }
+
+    [Fact]
+    [DisplayName("构造_WebBind配置_应用到监听地址")]
+    public void Constructor_WebBind_AppliesListenAddress()
+    {
+        var mockSvc = new Mock<ServiceBase> { CallBase = true };
+        mockSvc.Object.ServiceName = "BindSvc";
+
+        var set = Setting.Current;
+        var prevPort = set.WebPort;
+        var prevBind = set.WebBind;
+        var prevEnable = set.EnableWebPanel;
+
+        try
+        {
+            set.WebPort = 0;
+            set.EnableWebPanel = false;
+
+            // 默认配置仅本机监听
+            set.WebBind = "127.0.0.1";
+            var panel = new AgentWebPanel(mockSvc.Object);
+            Assert.Equal(IPAddress.Loopback, panel.Server.Local.Address);
+
+            // 配置为 * 时监听所有网卡
+            set.WebBind = "*";
+            var panel2 = new AgentWebPanel(mockSvc.Object);
+            Assert.True(panel2.Server.Local.Address.IsAny());
+
+            // 指定具体IP时绑定到该地址
+            set.WebBind = "192.168.3.6";
+            var panel3 = new AgentWebPanel(mockSvc.Object);
+            Assert.Equal(IPAddress.Parse("192.168.3.6"), panel3.Server.Local.Address);
+
+            // 非法值回退本机，避免误开放
+            set.WebBind = "not-an-ip";
+            var panel4 = new AgentWebPanel(mockSvc.Object);
+            Assert.Equal(IPAddress.Loopback, panel4.Server.Local.Address);
+        }
+        finally
+        {
+            set.WebPort = prevPort;
+            set.WebBind = prevBind;
+            set.EnableWebPanel = prevEnable;
+        }
+    }
     #endregion
 
     #region Start/Stop 测试
@@ -359,6 +441,89 @@ public class AgentWebPanelTests
         finally
         {
             set.WebPort = prevPort;
+            set.EnableWebPanel = prevEnable;
+        }
+    }
+
+    [Fact]
+    [DisplayName("Start_默认WebBind_实际仅绑定回环地址")]
+    public void Start_DefaultWebBind_BindsLoopbackOnly()
+    {
+        var mockSvc = new Mock<ServiceBase> { CallBase = true };
+        mockSvc.Object.ServiceName = "BindListenSvc";
+
+        var set = Setting.Current;
+        var prevPort = set.WebPort;
+        var prevBind = set.WebBind;
+        var prevEnable = set.EnableWebPanel;
+
+        try
+        {
+            set.WebPort = 0;
+            set.EnableWebPanel = false;
+            set.WebBind = "127.0.0.1";
+
+            var panel = new AgentWebPanel(mockSvc.Object);
+            panel.Start();
+            try
+            {
+                Assert.True(panel.Active);
+
+                // 底层每个监听套接字都必须绑定在环回地址上
+                var servers = panel.Server.Servers;
+                Assert.NotEmpty(servers);
+                foreach (var srv in servers)
+                {
+                    Assert.True(IPAddress.IsLoopback(srv.Local.Address), $"监听地址应为回环：{srv.Local.Address}");
+                }
+            }
+            finally
+            {
+                panel.Stop("test");
+            }
+        }
+        finally
+        {
+            set.WebPort = prevPort;
+            set.WebBind = prevBind;
+            set.EnableWebPanel = prevEnable;
+        }
+    }
+
+    [Fact]
+    [DisplayName("Start_WebBind星号_实际监听所有网卡")]
+    public void Start_WebBindStar_BindsAllInterfaces()
+    {
+        var mockSvc = new Mock<ServiceBase> { CallBase = true };
+        mockSvc.Object.ServiceName = "BindListenSvc2";
+
+        var set = Setting.Current;
+        var prevPort = set.WebPort;
+        var prevBind = set.WebBind;
+        var prevEnable = set.EnableWebPanel;
+
+        try
+        {
+            set.WebPort = 0;
+            set.EnableWebPanel = false;
+            set.WebBind = "*";
+
+            var panel = new AgentWebPanel(mockSvc.Object);
+            panel.Start();
+            try
+            {
+                Assert.True(panel.Active);
+                Assert.Contains(panel.Server.Servers, srv => srv.Local.Address.IsAny());
+            }
+            finally
+            {
+                panel.Stop("test");
+            }
+        }
+        finally
+        {
+            set.WebPort = prevPort;
+            set.WebBind = prevBind;
             set.EnableWebPanel = prevEnable;
         }
     }
