@@ -61,15 +61,43 @@ public class CommandFactory
             }
         }
 
-        // 使用反射获取扩展程序集中实现了BaseCommandHandler的类型；基础程序集的内建处理器已由静态工厂登记，不重复扫描
-        var commandHandlerTypes = assemblies.Values.Where(n => n != baseAssembly).SelectMany(n => n.GetTypes().Where(t => typeof(BaseCommandHandler).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract)).ToList();
-        foreach (var type in commandHandlerTypes)
+        // 使用反射发现并实例化扩展程序集中的自定义命令处理器；基础程序集的内建处理器已由静态工厂登记，不重复扫描
+        foreach (var handler in FindCustomCommandHandlers(assemblies, baseAssembly, service))
         {
-            var handler = (BaseCommandHandler)Activator.CreateInstance(type, service);
             AddCommandHandler(commandHandlers, handler);
         }
 
         _commandHandlerList = commandHandlers.OrderBy(n => n.Cmd).ToList();
+    }
+
+    /// <summary>反射发现并实例化扩展程序集中的自定义命令处理器</summary>
+    /// <remarks>
+    /// 内建命令处理器已由静态工厂登记，NativeAOT 下不受裁剪影响；
+    /// 自定义处理器依赖类型元数据保留，NativeAOT 场景需调用方自行保证（显式保留或改用静态注册）。
+    /// </remarks>
+    /// <param name="assemblies">候选程序集（服务程序集与自定义程序集）</param>
+    /// <param name="baseAssembly">基础程序集（跳过，内建处理器已静态登记）</param>
+    /// <param name="service">服务对象</param>
+    /// <returns>自定义命令处理器列表</returns>
+#if NET5_0_OR_GREATER
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "仅扫描扩展程序集；NativeAOT 下自定义处理器的元数据保留由调用方负责，内建命令已静态登记不受影响")]
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2062", Justification = "实例化的类型来自调用方保留的扩展程序集")]
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2072", Justification = "实例化的类型来自调用方保留的扩展程序集")]
+#endif
+    private static List<BaseCommandHandler> FindCustomCommandHandlers(Dictionary<String, Assembly> assemblies, Assembly baseAssembly, ServiceBase service)
+    {
+        var list = new List<BaseCommandHandler>();
+        foreach (var assembly in assemblies.Values)
+        {
+            if (assembly == baseAssembly) continue;
+            foreach (var type in assembly.GetTypes())
+            {
+                if (!typeof(BaseCommandHandler).IsAssignableFrom(type) || type.IsInterface || type.IsAbstract) continue;
+                list.Add((BaseCommandHandler)Activator.CreateInstance(type, service));
+            }
+        }
+
+        return list;
     }
 
     /// <summary>登记命令处理器，并处理相同命令的冲突</summary>

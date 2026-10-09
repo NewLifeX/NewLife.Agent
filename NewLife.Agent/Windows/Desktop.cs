@@ -48,7 +48,7 @@ public class Desktop
         try
         {
             // 复制令牌
-            var sa = new SecurityAttributes { Length = Marshal.SizeOf(typeof(SecurityAttributes)) };
+            var sa = new SecurityAttributes { Length = MarshalHelper.SizeOf<SecurityAttributes>() };
             if (!DuplicateTokenEx(userToken, MAXIMUM_ALLOWED, ref sa, SecurityImpersonationLevel.SecurityIdentification, TokenType.TokenPrimary, out duplicateToken))
                 throw new ApplicationException("Could not duplicate token.");
 
@@ -66,7 +66,7 @@ public class Desktop
             // 构建启动信息结构
             var startInfo = new StartupInfo
             {
-                cb = Marshal.SizeOf(typeof(StartupInfo)),
+                cb = MarshalHelper.SizeOf<StartupInfo>(),
                 lpDesktop = "winsta0\\default" // 设置为用户的交互式桌面
             };
 
@@ -144,7 +144,7 @@ public class Desktop
         try
         {
             // 复制令牌
-            var sa = new SecurityAttributes { Length = Marshal.SizeOf(typeof(SecurityAttributes)) };
+            var sa = new SecurityAttributes { Length = MarshalHelper.SizeOf<SecurityAttributes>() };
             if (!DuplicateTokenEx(userToken, MAXIMUM_ALLOWED, ref sa, SecurityImpersonationLevel.SecurityImpersonation, TokenType.TokenPrimary, out duplicateToken))
                 throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not duplicate token.");
 
@@ -155,7 +155,7 @@ public class Desktop
             // 加载用户配置文件（确保可以访问USERPROFILE目录和注册表配置）
             if (!userProfilePath.IsNullOrEmpty())
             {
-                profileInfo.dwSize = Marshal.SizeOf(typeof(ProfileInfo));
+                profileInfo.dwSize = MarshalHelper.SizeOf<ProfileInfo>();
                 profileInfo.lpUserName = Path.GetFileName(userProfilePath);
                 profileInfo.dwFlags = 1; // PI_NOUI
 
@@ -180,7 +180,7 @@ public class Desktop
             // 构建启动信息（后台运行，不显示窗口）
             var startInfo = new StartupInfo
             {
-                cb = Marshal.SizeOf(typeof(StartupInfo)),
+                cb = MarshalHelper.SizeOf<StartupInfo>(),
                 dwFlags = STARTF_USESHOWWINDOW,
                 wShowWindow = SW_HIDE
             };
@@ -230,7 +230,7 @@ public class Desktop
         // 构建启动信息
         var startInfo = new StartupInfo
         {
-            cb = Marshal.SizeOf(typeof(StartupInfo)),
+            cb = MarshalHelper.SizeOf<StartupInfo>(),
             dwFlags = STARTF_USESHOWWINDOW,
             wShowWindow = SW_HIDE
         };
@@ -320,12 +320,12 @@ public class Desktop
             var sessionCount = 0;
             if (WTSEnumerateSessions(IntPtr.Zero, 0, 1, ref pSessionInfo, ref sessionCount) != 0)
             {
-                var elementSize = Marshal.SizeOf(typeof(WtsSessionInfo));
+                var elementSize = MarshalHelper.SizeOf<WtsSessionInfo>();
                 var current = pSessionInfo;
 
                 for (var i = 0; i < sessionCount; i++)
                 {
-                    var si = (WtsSessionInfo)Marshal.PtrToStructure(current, typeof(WtsSessionInfo));
+                    var si = MarshalHelper.PtrToStructure<WtsSessionInfo>(current);
                     current += elementSize;
 
                     // 仅从活动会话获取（throwOnFailure=true）或同时包括断开的会话

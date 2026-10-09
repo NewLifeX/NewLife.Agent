@@ -37,7 +37,7 @@ public class WindowsService : DefaultHost
         // 以服务运行
         InService = true;
 
-        var num = Marshal.SizeOf(typeof(SERVICE_TABLE_ENTRY));
+        var num = MarshalHelper.SizeOf<SERVICE_TABLE_ENTRY>();
         var table = Marshal.AllocHGlobal((IntPtr)((1 + 1) * num));
         var handleName = Marshal.StringToHGlobalUni(service.ServiceName);
         try
@@ -393,7 +393,7 @@ public class WindowsService : DefaultHost
         actions[2].Type = SC_ACTION_RESTART;
         actions[2].Delay = 60_000;
 
-        var size = Marshal.SizeOf(typeof(SC_ACTION));
+        var size = MarshalHelper.SizeOf<SC_ACTION>();
         var actionsPtr = Marshal.AllocHGlobal(size * actions.Length);
         for (var i = 0; i < actions.Length; i++)
         {
@@ -561,7 +561,7 @@ public class WindowsService : DefaultHost
                 throw new Win32Exception(Marshal.GetLastWin32Error());
 
             //SERVICE_CONFIG config = default;
-            var config = (SERVICE_CONFIG)Marshal.PtrToStructure(ptr, typeof(SERVICE_CONFIG));
+            var config = MarshalHelper.PtrToStructure<SERVICE_CONFIG>(ptr);
 
             var cfg = new ServiceConfig
             {
@@ -622,13 +622,22 @@ public class WindowsService : DefaultHost
             if (_executablePath == null)
             {
                 var entryAssembly = Assembly.GetEntryAssembly();
+                var codeBase = "";
                 if (entryAssembly != null)
                 {
 #if NETFRAMEWORK
-                    var codeBase = entryAssembly.CodeBase;
+                    codeBase = entryAssembly.CodeBase;
 #else
-                    var codeBase = entryAssembly.Location;
+                    codeBase = GetEntryLocation(entryAssembly);
+#if NET5_0_OR_GREATER
+                    // 单文件/AOT 下 Location 返回空串，退回进程可执行文件路径
+                    if (codeBase.IsNullOrEmpty()) codeBase = Environment.ProcessPath;
 #endif
+#endif
+                }
+
+                if (!codeBase.IsNullOrEmpty())
+                {
                     var uri = new Uri(codeBase);
                     _executablePath = uri.IsFile ? uri.LocalPath + Uri.UnescapeDataString(uri.Fragment) : uri.ToString();
                 }
@@ -642,6 +651,14 @@ public class WindowsService : DefaultHost
             return _executablePath;
         }
     }
+
+    /// <summary>获取入口程序集路径。单文件/AOT 下返回空串，由调用处兜底</summary>
+    /// <param name="entryAssembly">入口程序集</param>
+    /// <returns>程序集文件路径</returns>
+#if NET5_0_OR_GREATER
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("SingleFile", "IL3000", Justification = "单文件/AOT 下返回空串，调用处已用 Environment.ProcessPath 兜底")]
+#endif
+    static String GetEntryLocation(Assembly entryAssembly) => entryAssembly.Location;
 
     static StringBuilder GetModuleFileNameLongPath(HandleRef hModule)
     {
