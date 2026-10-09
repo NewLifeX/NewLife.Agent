@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using Moq;
 using NewLife.Agent;
+using NewLife.Agent.Command;
 using NewLife.Agent.CommandHandler;
 using NewLife.Agent.Models;
 
@@ -424,6 +425,26 @@ public class CommandHandlerTests
         var all = mb.Object.Command.GetAllCommand();
         Assert.NotNull(all);
         Assert.True(all.Count > 0);
+    }
+
+    [Fact]
+    [DisplayName("CommandFactory_内建命令处理器_全部登记静态工厂")]
+    public void CommandFactory_BuiltinHandlers_AllRegistered()
+    {
+        var mb = new Mock<ServiceBase> { CallBase = true };
+
+        // 反射发现的内建处理器作为期望集（JIT 下完整）；静态工厂表漏登记会导致 NativeAOT 下命令静默丢失
+        var expected = typeof(BaseCommandHandler).Assembly.GetTypes()
+            .Where(t => typeof(BaseCommandHandler).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract)
+            .ToList();
+
+        var actual = mb.Object.Command.GetAllCommand().Select(e => e.GetType()).ToList();
+
+        foreach (var type in expected)
+        {
+            Assert.Contains(type, actual);
+        }
+        Assert.Equal(expected.Count, actual.Count);
     }
     #endregion
 }

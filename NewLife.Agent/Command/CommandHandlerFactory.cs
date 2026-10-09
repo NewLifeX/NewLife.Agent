@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using NewLife.Agent.CommandHandler;
 using NewLife.Agent.Models;
 
 namespace NewLife.Agent.Command;
@@ -11,6 +12,24 @@ public class CommandFactory
     private readonly List<BaseCommandHandler> _commandHandlerList;
     private readonly Dictionary<String, BaseCommandHandler> _commandHandlerDict = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>内建命令处理器工厂表</summary>
+    /// <remarks>内建处理器经静态工厂实例化，避免 Assembly.GetTypes + Activator 在 NativeAOT 裁剪后命令静默丢失；新增内建处理器必须同步登记，UnitTest 有漂移防护测试</remarks>
+    private static readonly Func<ServiceBase, BaseCommandHandler>[] _builtinFactories =
+    [
+        s => new Install(s),
+        s => new InstallAndStart(s),
+        s => new Reinstall(s),
+        s => new Remove(s),
+        s => new Restart(s),
+        s => new RunService(s),
+        s => new RunSimulation(s),
+        s => new ShowStatus(s),
+        s => new Start(s),
+        s => new Stop(s),
+        s => new Uninstall(s),
+        s => new WatchDog(s),
+    ];
+
     /// <summary>
     /// 命令工厂
     /// </summary>
@@ -18,6 +37,14 @@ public class CommandFactory
     /// <param name="customCommandHandlerAssembly">自定义命令处理程序所在程序集</param>
     public CommandFactory(ServiceBase service, params Assembly[] customCommandHandlerAssembly)
     {
+        var commandHandlers = new List<BaseCommandHandler>();
+
+        // 内建命令：静态工厂实例化
+        foreach (var factory in _builtinFactories)
+        {
+            AddCommandHandler(commandHandlers, factory(service));
+        }
+
         var assemblies = new Dictionary<String, Assembly>();
         var baseAssembly = Assembly.GetExecutingAssembly();
         var serviceAssembly = Assembly.GetAssembly(service.GetType());
@@ -34,34 +61,42 @@ public class CommandFactory
             }
         }
 
-        // 使用反射获取所有实现了BaseCommandHandler的类型
-        var commandHandlerTypes = assemblies.Values.SelectMany(n => n.GetTypes().Where(t => typeof(BaseCommandHandler).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract)).ToList();
-        var commandHandlers = new List<BaseCommandHandler>();
+        // 使用反射获取扩展程序集中实现了BaseCommandHandler的类型；基础程序集的内建处理器已由静态工厂登记，不重复扫描
+        var commandHandlerTypes = assemblies.Values.Where(n => n != baseAssembly).SelectMany(n => n.GetTypes().Where(t => typeof(BaseCommandHandler).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract)).ToList();
         foreach (var type in commandHandlerTypes)
         {
             var handler = (BaseCommandHandler)Activator.CreateInstance(type, service);
-            if (String.IsNullOrEmpty(handler.Cmd))
-            {
-                throw new InvalidOperationException($"类型 {type.FullName} 未提供命令 Cmd 值");
-            }
-
-            // 如果已经存在相同命令的处理程序，但基类不同，优先使用继承非基类的处理程序
-            if (_commandHandlerDict.ContainsKey(handler.Cmd))
-            {
-                if (handler.GetType().BaseType != typeof(BaseCommandHandler))
-                {
-                    commandHandlers.Remove(_commandHandlerDict[handler.Cmd]);
-                }
-                else
-                {
-                    var oldHandler = _commandHandlerDict[handler.Cmd] = handler;
-                    throw new InvalidOperationException($"类型 {type.FullName} 与 {oldHandler.GetType().FullName} 提供的命令 Cmd 值 [{handler.Cmd}] 相同");
-                }
-            }
-            _commandHandlerDict[handler.Cmd] = handler;
-            commandHandlers.Add(handler);
+            AddCommandHandler(commandHandlers, handler);
         }
+
         _commandHandlerList = commandHandlers.OrderBy(n => n.Cmd).ToList();
+    }
+
+    /// <summary>登记命令处理器，并处理相同命令的冲突</summary>
+    /// <param name="commandHandlers">处理器列表</param>
+    /// <param name="handler">待登记的处理器</param>
+    private void AddCommandHandler(List<BaseCommandHandler> commandHandlers, BaseCommandHandler handler)
+    {
+        if (String.IsNullOrEmpty(handler.Cmd))
+        {
+            throw new InvalidOperationException($"类型 {handler.GetType().FullName} 未提供命令 Cmd 值");
+        }
+
+        // 如果已经存在相同命令的处理程序，但基类不同，优先使用继承非基类的处理程序
+        if (_commandHandlerDict.ContainsKey(handler.Cmd))
+        {
+            if (handler.GetType().BaseType != typeof(BaseCommandHandler))
+            {
+                commandHandlers.Remove(_commandHandlerDict[handler.Cmd]);
+            }
+            else
+            {
+                var oldHandler = _commandHandlerDict[handler.Cmd] = handler;
+                throw new InvalidOperationException($"类型 {handler.GetType().FullName} 与 {oldHandler.GetType().FullName} 提供的命令 Cmd 值 [{handler.Cmd}] 相同");
+            }
+        }
+        _commandHandlerDict[handler.Cmd] = handler;
+        commandHandlers.Add(handler);
     }
 
     /// <summary>
