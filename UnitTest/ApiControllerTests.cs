@@ -1,12 +1,14 @@
 #if !NET40
 #nullable disable
 using System.ComponentModel;
+using System.Text.Json;
 using Moq;
 using NewLife;
 using NewLife.Agent;
 using NewLife.Agent.WebPanel;
 using NewLife.Data;
 using NewLife.Http;
+using NewLife.Serialization;
 using Setting = NewLife.Agent.Setting;
 
 namespace UnitTest;
@@ -66,11 +68,19 @@ public class ApiControllerTests
         }
     }
 
-    /// <summary>从匿名结果中读取 code</summary>
-    private static Int32 GetCode(Object result) => Convert.ToInt32(result.GetType().GetProperty("code")?.GetValue(result));
+    /// <summary>从响应结果按 JSON 契约读取 code</summary>
+    private static Int32 GetCode(Object result)
+    {
+        using var doc = JsonDocument.Parse(result.ToJson());
+        return doc.RootElement.GetProperty("code").GetInt32();
+    }
 
-    /// <summary>从匿名结果中读取 data</summary>
-    private static Object GetData(Object result) => result.GetType().GetProperty("data")?.GetValue(result);
+    /// <summary>从响应结果按 JSON 契约读取 data 载荷</summary>
+    private static JsonElement GetData(Object result)
+    {
+        using var doc = JsonDocument.Parse(result.ToJson());
+        return doc.RootElement.GetProperty("data").Clone();
+    }
 
     /// <summary>构造指定路径的请求上下文（无鉴权头）</summary>
     private static IHttpContext CreateContext(String path)
@@ -124,7 +134,7 @@ public class ApiControllerTests
         var result = controller.Login("admin", "123456");
 
         Assert.Equal(0, GetCode(result));
-        Assert.NotNull(GetData(result));
+        Assert.True(GetData(result).TryGetProperty("token", out _));
     }
 
     [Fact]
@@ -151,8 +161,8 @@ public class ApiControllerTests
 
         Assert.Equal(0, GetCode(result));
         var data = GetData(result);
-        Assert.NotNull(data);
-        Assert.Equal("ApiTest", data.GetType().GetProperty("serviceName")?.GetValue(data));
+        Assert.NotEqual(JsonValueKind.Undefined, data.ValueKind);
+        Assert.Equal("ApiTest", data.GetProperty("serviceName").GetString());
     }
     #endregion
 
@@ -201,14 +211,12 @@ public class ApiControllerTests
         var result = controller.ConfigMetadata();
 
         Assert.Equal(0, GetCode(result));
-        var data = GetData(result);
-        var items = (System.Collections.IEnumerable)data.GetType().GetProperty("items")?.GetValue(data);
-        var list = items.Cast<Object>().ToList();
+        var items = GetData(result).GetProperty("items").EnumerateArray().ToList();
 
-        Assert.NotEmpty(list);
+        Assert.NotEmpty(items);
         // 应包含 ServiceName，排除 WebPassword
-        Assert.Contains(list, e => (String)e.GetType().GetProperty("name")?.GetValue(e) == "ServiceName");
-        Assert.DoesNotContain(list, e => (String)e.GetType().GetProperty("name")?.GetValue(e) == "WebPassword");
+        Assert.Contains(items, e => e.GetProperty("name").GetString() == "ServiceName");
+        Assert.DoesNotContain(items, e => e.GetProperty("name").GetString() == "WebPassword");
     }
     #endregion
 
@@ -223,9 +231,8 @@ public class ApiControllerTests
 
         Assert.Equal(0, GetCode(result));
         var data = GetData(result);
-        Assert.NotNull(data);
-        Assert.NotNull(data.GetType().GetProperty("memoryMB")?.GetValue(data));
-        Assert.NotNull(data.GetType().GetProperty("threadCount")?.GetValue(data));
+        Assert.True(data.TryGetProperty("memoryMB", out _));
+        Assert.True(data.TryGetProperty("threadCount", out _));
     }
     #endregion
 
@@ -240,7 +247,7 @@ public class ApiControllerTests
 
         Assert.Equal(0, GetCode(result));
         var data = GetData(result);
-        Assert.NotNull(data.GetType().GetProperty("lines")?.GetValue(data));
+        Assert.True(data.TryGetProperty("lines", out _));
     }
 
     [Fact]

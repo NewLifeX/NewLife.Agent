@@ -8,6 +8,7 @@ using NewLife.Log;
 using NewLife.Net;
 using NewLife.Reflection;
 using NewLife.Serialization;
+using NewLife.Agent.WebPanel.Models;
 using System.Threading;
 
 namespace NewLife.Agent.WebPanel;
@@ -39,17 +40,17 @@ public class ApiController : IHttpController
         var ip = GetClientIp();
 
         if (LoginRateLimiter.IsBlocked(ip))
-            return new { code = 429, message = "Too many failed attempts. Try again later." };
+            return new ApiResult { Code = 429, Message = "Too many failed attempts. Try again later." };
 
         var token = AgentWebPanel.Current?.IssueToken(user, password);
         if (token == null)
         {
             LoginRateLimiter.RecordFailure(ip);
-            return new { code = 401, message = "Invalid credentials" };
+            return new ApiResult { Code = 401, Message = "Invalid credentials" };
         }
 
         LoginRateLimiter.RecordSuccess(ip);
-        return new { code = 0, data = new { token } };
+        return new ApiResult<LoginData> { Code = 0, Data = new LoginData { Token = token } };
     }
 
     /// <summary>注销登录，吊销当前Token</summary>
@@ -59,13 +60,13 @@ public class ApiController : IHttpController
         var ctx = Context;
         var auth = ctx?.Request.Headers["Authorization"];
         if (auth.IsNullOrEmpty() || !auth.StartsWithIgnoreCase("Bearer "))
-            return new { code = 0, message = "ok" };
+            return new ApiResult { Code = 0, Message = "ok" };
 
         var token = auth.Substring("Bearer ".Length).Trim();
         if (!token.IsNullOrEmpty())
             AgentWebPanel.Current?.RevokeToken(token);
 
-        return new { code = 0, message = "ok" };
+        return new ApiResult { Code = 0, Message = "ok" };
     }
 
     /// <summary>检查请求鉴权</summary>
@@ -102,7 +103,7 @@ public class ApiController : IHttpController
     /// <returns>服务状态信息，包含运行状态、进程信息、系统资源等</returns>
     public Object Status()
     {
-        if (!CheckAuth()) return new { code = 401, message = "Unauthorized" };
+        if (!CheckAuth()) return new ApiResult { Code = 401, Message = "Unauthorized" };
 
         var p = Process.GetCurrentProcess();
         var uptime = DateTime.Now - p.StartTime;
@@ -130,47 +131,47 @@ public class ApiController : IHttpController
         // 收集磁盘 IOPS
         var diskIops = DiskMonitor.GetIOPS();
 
-        return new
+        return new ApiResult<StatusData>
         {
-            code = 0,
-            data = new
+            Code = 0,
+            Data = new StatusData
             {
-                serviceName = Service.ServiceName,
-                displayName = Service.DisplayName,
-                description = Service.Description,
-                running = Service.Running,
-                uptime = uptime.ToString(@"d\.hh\:mm\:ss"),
-                uptimeSeconds = (Int64)uptime.TotalSeconds,
-                processId = p.Id,
-                memoryMB = p.WorkingSet64 / 1024 / 1024,
+                ServiceName = Service.ServiceName,
+                DisplayName = Service.DisplayName,
+                Description = Service.Description,
+                Running = Service.Running,
+                Uptime = uptime.ToString(@"d\.hh\:mm\:ss"),
+                UptimeSeconds = (Int64)uptime.TotalSeconds,
+                ProcessId = p.Id,
+                MemoryMB = p.WorkingSet64 / 1024 / 1024,
                 // 物理内存总量
-                memoryTotalMB = mi.Memory > 0 ? mi.Memory / 1024 / 1024 : 0,
-                threadCount = p.Threads.Count,
-                handleCount = p.HandleCount,
-                startTime = p.StartTime.ToString("MM-dd HH:mm:ss"),
-                hostMachine = Environment.MachineName,
-                platform = mi.OSName ?? Environment.OSVersion.Platform.ToString(),
-                osVersion = mi.OSVersion,
-                cpuName = mi.Processor,
-                cpuCount = Environment.ProcessorCount,
+                MemoryTotalMB = mi.Memory > 0 ? mi.Memory / 1024 / 1024 : 0,
+                ThreadCount = p.Threads.Count,
+                HandleCount = p.HandleCount,
+                StartTime = p.StartTime.ToString("MM-dd HH:mm:ss"),
+                HostMachine = Environment.MachineName,
+                Platform = mi.OSName ?? Environment.OSVersion.Platform.ToString(),
+                OsVersion = mi.OSVersion,
+                CpuName = mi.Processor,
+                CpuCount = Environment.ProcessorCount,
                 // CPU 使用率百分比（0~100），保留一位小数
-                cpuRate = mi.CpuRate > 0 ? mi.CpuRate.ToString("F1") : "",
-                cpuRateValue = mi.CpuRate > 0 ? Math.Round(mi.CpuRate, 1) : 0d,
-                totalMemory = mi.Memory > 0 ? $"{mi.Memory / 1024 / 1024 / 1024} GB" : "",
-                availableMemory = mi.AvailableMemory > 0 ? $"{mi.AvailableMemory / 1024 / 1024 / 1024} GB" : "",
-                freeMemory = mi.FreeMemory > 0 ? $"{mi.FreeMemory / 1024 / 1024 / 1024} GB" : "",
-                board = mi.Board,
-                machineGuid = mi.Guid,
-                uplinkSpeed = mi.UplinkSpeed > 0 ? FormatSpeed(mi.UplinkSpeed) : "",
-                downlinkSpeed = mi.DownlinkSpeed > 0 ? FormatSpeed(mi.DownlinkSpeed) : "",
+                CpuRate = mi.CpuRate > 0 ? mi.CpuRate.ToString("F1") : "",
+                CpuRateValue = mi.CpuRate > 0 ? Math.Round(mi.CpuRate, 1) : 0d,
+                TotalMemory = mi.Memory > 0 ? $"{mi.Memory / 1024 / 1024 / 1024} GB" : "",
+                AvailableMemory = mi.AvailableMemory > 0 ? $"{mi.AvailableMemory / 1024 / 1024 / 1024} GB" : "",
+                FreeMemory = mi.FreeMemory > 0 ? $"{mi.FreeMemory / 1024 / 1024 / 1024} GB" : "",
+                Board = mi.Board,
+                MachineGuid = mi.Guid,
+                UplinkSpeed = mi.UplinkSpeed > 0 ? FormatSpeed(mi.UplinkSpeed) : "",
+                DownlinkSpeed = mi.DownlinkSpeed > 0 ? FormatSpeed(mi.DownlinkSpeed) : "",
                 // TCP 连接数
-                tcpConnections,
-                tcpTimeWait,
-                tcpCloseWait,
+                TcpConnections = tcpConnections,
+                TcpTimeWait = tcpTimeWait,
+                TcpCloseWait = tcpCloseWait,
                 // 磁盘 IOPS
-                diskIops,
-                hostUptime = TimeSpan.FromMilliseconds(Runtime.TickCount64).ToString(@"d\.hh\:mm\:ss"),
-                port = AgentWebPanel.Current?.Server.Port ?? 0
+                DiskIops = diskIops,
+                HostUptime = TimeSpan.FromMilliseconds(Runtime.TickCount64).ToString(@"d\.hh\:mm\:ss"),
+                Port = AgentWebPanel.Current?.Server.Port ?? 0
             }
         };
     }
@@ -182,30 +183,30 @@ public class ApiController : IHttpController
     /// <returns>操作结果</returns>
     public Object Control(String action)
     {
-        if (!CheckAuth()) return new { code = 401, message = "Unauthorized" };
+        if (!CheckAuth()) return new ApiResult { Code = 401, Message = "Unauthorized" };
 
         if (action.IsNullOrEmpty())
-            return new { code = 400, message = "Missing action" };
+            return new ApiResult { Code = 400, Message = "Missing action" };
 
         switch (action.ToLower())
         {
             case "stop":
                 XTrace.WriteLine("Web面板触发服务停止");
                 Service.Running = false;
-                return new { code = 0, message = "服务正在停止，Web面板仍可用" };
+                return new ApiResult { Code = 0, Message = "服务正在停止，Web面板仍可用" };
 
             case "start":
                 XTrace.WriteLine("Web面板触发服务启动");
                 Service.Host.Restart(Service.ServiceName);
-                return new { code = 0, message = "服务正在重启" };
+                return new ApiResult { Code = 0, Message = "服务正在重启" };
 
             case "restart":
                 XTrace.WriteLine("Web面板触发服务重启");
                 Service.Host.Restart(Service.ServiceName);
-                return new { code = 0, message = "服务正在重启" };
+                return new ApiResult { Code = 0, Message = "服务正在重启" };
 
             default:
-                return new { code = 400, message = $"Unknown action: {action}" };
+                return new ApiResult { Code = 400, Message = $"Unknown action: {action}" };
         }
     }
 
@@ -213,7 +214,7 @@ public class ApiController : IHttpController
     /// <returns>释放前后的内存对比</returns>
     public Object FreeMemory()
     {
-        if (!CheckAuth()) return new { code = 401, message = "Unauthorized" };
+        if (!CheckAuth()) return new ApiResult { Code = 401, Message = "Unauthorized" };
 
         var p = Process.GetCurrentProcess();
         var beforeMB = p.WorkingSet64 / 1024 / 1024;
@@ -228,15 +229,15 @@ public class ApiController : IHttpController
 
         XTrace.WriteLine("释放内存完成，释放后 WorkingSet={0}MB，释放 {1}MB", afterMB, freedMB);
 
-        return new
+        return new FreeMemoryResult
         {
-            code = success ? 0 : 500,
-            message = success ? $"释放内存完成：{beforeMB}MB → {afterMB}MB，释放 {freedMB}MB" : "释放内存失败",
-            data = new
+            Code = success ? 0 : 500,
+            Message = success ? $"释放内存完成：{beforeMB}MB → {afterMB}MB，释放 {freedMB}MB" : "释放内存失败",
+            Data = new FreeMemoryData
             {
-                beforeMB,
-                afterMB,
-                freedMB
+                BeforeMB = beforeMB,
+                AfterMB = afterMB,
+                FreedMB = freedMB
             }
         };
     }
@@ -304,25 +305,25 @@ public class ApiController : IHttpController
     /// <returns>配置项列表，含显示名、描述、类型和当前值</returns>
     public Object ConfigMetadata()
     {
-        if (!CheckAuth()) return new { code = 401, message = "Unauthorized" };
+        if (!CheckAuth()) return new ApiResult { Code = 401, Message = "Unauthorized" };
 
         var set = Setting.Current;
-        var items = new List<Object>();
+        var items = new List<ConfigItem>();
 
         // 元数据来自静态缓存，仅值需实时读取
         foreach (var prop in _configProperties)
         {
-            items.Add(new
+            items.Add(new ConfigItem
             {
-                name = prop.Name,
-                displayName = prop.DisplayName,
-                description = prop.Description,
-                type = prop.TypeName,
-                value = prop.Property.GetValue(set, null)
+                Name = prop.Name,
+                DisplayName = prop.DisplayName,
+                Description = prop.Description,
+                Type = prop.TypeName,
+                Value = prop.Property.GetValue(set, null)
             });
         }
 
-        return new { code = 0, data = new { items } };
+        return new ApiResult<ConfigMetadataData> { Code = 0, Data = new ConfigMetadataData { Items = items } };
     }
 
     /// <summary>更新配置</summary>
@@ -333,10 +334,10 @@ public class ApiController : IHttpController
     /// <returns>更新结果</returns>
     public Object UpdateConfig(IDictionary<String, Object> updates)
     {
-        if (!CheckAuth()) return new { code = 401, message = "Unauthorized" };
+        if (!CheckAuth()) return new ApiResult { Code = 401, Message = "Unauthorized" };
 
         if (updates == null || updates.Count == 0)
-            return new { code = 400, message = "Missing config" };
+            return new ApiResult { Code = 400, Message = "Missing config" };
 
         try
         {
@@ -359,11 +360,11 @@ public class ApiController : IHttpController
 
             set.Save();
 
-            return new { code = 0, message = "配置已更新，部分配置需重启服务后生效" };
+            return new ApiResult { Code = 0, Message = "配置已更新，部分配置需重启服务后生效" };
         }
         catch (Exception ex)
         {
-            return new { code = 500, message = ex.Message };
+            return new ApiResult { Code = 500, Message = ex.Message };
         }
     }
 
@@ -373,17 +374,17 @@ public class ApiController : IHttpController
     /// <returns>操作结果</returns>
     public Object ChangePassword(String oldPassword, String newPassword)
     {
-        if (!CheckAuth()) return new { code = 401, message = "Unauthorized" };
+        if (!CheckAuth()) return new ApiResult { Code = 401, Message = "Unauthorized" };
 
-        if (oldPassword.IsNullOrEmpty()) return new { code = 400, message = "Missing oldPassword" };
-        if (newPassword.IsNullOrEmpty()) return new { code = 400, message = "Missing newPassword" };
+        if (oldPassword.IsNullOrEmpty()) return new ApiResult { Code = 400, Message = "Missing oldPassword" };
+        if (newPassword.IsNullOrEmpty()) return new ApiResult { Code = 400, Message = "Missing newPassword" };
 
         var panel = AgentWebPanel.Current;
-        if (panel == null) return new { code = 500, message = "Panel not available" };
+        if (panel == null) return new ApiResult { Code = 500, Message = "Panel not available" };
 
         // 验证旧密码
         if (oldPassword != panel.Password)
-            return new { code = 403, message = "Old password is incorrect" };
+            return new ApiResult { Code = 403, Message = "Old password is incorrect" };
 
         // 更新配置文件
         var set = Setting.Current;
@@ -395,7 +396,7 @@ public class ApiController : IHttpController
 
         XTrace.WriteLine("Web面板密码已修改");
 
-        return new { code = 0, message = "密码已修改，下次登录请使用新密码" };
+        return new ApiResult { Code = 0, Message = "密码已修改，下次登录请使用新密码" };
     }
     #endregion
 
@@ -407,23 +408,23 @@ public class ApiController : IHttpController
     /// <returns>日志行列表</returns>
     public Object Logs(Int32 count, String file, String level)
     {
-        if (!CheckAuth()) return new { code = 401, message = "Unauthorized" };
+        if (!CheckAuth()) return new ApiResult { Code = 401, Message = "Unauthorized" };
 
         if (count <= 0) count = 200;
         count = Math.Min(count, 1000);
 
         var lines = ReadLogLines(count, file, level);
 
-        return new { code = 0, data = new { fileName = file ?? "latest", count = lines.Count, lines } };
+        return new ApiResult<LogContentData> { Code = 0, Data = new LogContentData { FileName = file ?? "latest", Count = lines.Count, Lines = lines } };
     }
 
     /// <summary>获取日志文件列表</summary>
     /// <returns>日志文件列表</returns>
     public Object LogFiles()
     {
-        if (!CheckAuth()) return new { code = 401, message = "Unauthorized" };
+        if (!CheckAuth()) return new ApiResult { Code = 401, Message = "Unauthorized" };
 
-        var list = new List<Object>();
+        var list = new List<LogFileItem>();
 
         try
         {
@@ -434,12 +435,12 @@ public class ApiController : IHttpController
                 foreach (var filePath in Directory.GetFiles(logDir, "*.log").OrderByDescending(f => f))
                 {
                     var fi = new FileInfo(filePath);
-                    list.Add(new
+                    list.Add(new LogFileItem
                     {
-                        name = fi.Name,
-                        size = fi.Length,
-                        sizeDisplay = fi.Length.ToGMK(),
-                        lastModified = fi.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
+                        Name = fi.Name,
+                        Size = fi.Length,
+                        SizeDisplay = fi.Length.ToGMK(),
+                        LastModified = fi.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
                     });
                 }
             }
@@ -449,7 +450,7 @@ public class ApiController : IHttpController
             XTrace.WriteException(ex);
         }
 
-        return new { code = 0, data = new { files = list } };
+        return new ApiResult<LogFilesData> { Code = 0, Data = new LogFilesData { Files = list } };
     }
 
     /// <summary>读取日志文件末尾行</summary>
@@ -539,31 +540,31 @@ public class ApiController : IHttpController
     /// <returns>健康指标数据，含内存、线程、句柄、GC等</returns>
     public Object Health()
     {
-        if (!CheckAuth()) return new { code = 401, message = "Unauthorized" };
+        if (!CheckAuth()) return new ApiResult { Code = 401, Message = "Unauthorized" };
 
         var p = Process.GetCurrentProcess();
         var set = Setting.Current;
 
-        return new
+        return new ApiResult<HealthData>
         {
-            code = 0,
-            data = new
+            Code = 0,
+            Data = new HealthData
             {
-                memoryMB = p.WorkingSet64 / 1024 / 1024,
-                memoryLimitMB = set.MaxMemory,
-                threadCount = p.Threads.Count,
-                threadLimit = set.MaxThread,
-                handleCount = p.HandleCount,
-                handleLimit = set.MaxHandle,
-                totalProcessorTime = p.TotalProcessorTime.TotalSeconds.ToString("F1"),
-                privilegedProcessorTime = p.PrivilegedProcessorTime.TotalSeconds.ToString("F1"),
-                userProcessorTime = p.UserProcessorTime.TotalSeconds.ToString("F1"),
-                gcTotalMemory = GC.GetTotalMemory(false) / 1024 / 1024,
-                gcCollections = new
+                MemoryMB = p.WorkingSet64 / 1024 / 1024,
+                MemoryLimitMB = set.MaxMemory,
+                ThreadCount = p.Threads.Count,
+                ThreadLimit = set.MaxThread,
+                HandleCount = p.HandleCount,
+                HandleLimit = set.MaxHandle,
+                TotalProcessorTime = p.TotalProcessorTime.TotalSeconds.ToString("F1"),
+                PrivilegedProcessorTime = p.PrivilegedProcessorTime.TotalSeconds.ToString("F1"),
+                UserProcessorTime = p.UserProcessorTime.TotalSeconds.ToString("F1"),
+                GcTotalMemory = GC.GetTotalMemory(false) / 1024 / 1024,
+                GcCollections = new GcCollectionsData
                 {
-                    gen0 = GC.CollectionCount(0),
-                    gen1 = GC.CollectionCount(1),
-                    gen2 = GC.CollectionCount(2)
+                    Gen0 = GC.CollectionCount(0),
+                    Gen1 = GC.CollectionCount(1),
+                    Gen2 = GC.CollectionCount(2)
                 }
             }
         };
@@ -575,7 +576,7 @@ public class ApiController : IHttpController
     /// <returns>看门狗监控的服务状态列表</returns>
     public Object WatchDog()
     {
-        if (!CheckAuth()) return new { code = 401, message = "Unauthorized" };
+        if (!CheckAuth()) return new ApiResult { Code = 401, Message = "Unauthorized" };
 
         var set = Setting.Current;
         var dogServices = set.WatchDog?.Split(',', StringSplitOptions.RemoveEmptyEntries)
@@ -583,14 +584,14 @@ public class ApiController : IHttpController
             .Where(s => !s.IsNullOrEmpty())
             .ToList() ?? [];
 
-        var statuses = new List<Object>();
+        var statuses = new List<WatchServiceItem>();
         foreach (var svc in dogServices)
         {
             var running = CheckServiceStatus(svc);
-            statuses.Add(new { name = svc, running });
+            statuses.Add(new WatchServiceItem { Name = svc, Running = running });
         }
 
-        return new { code = 0, data = new { services = statuses } };
+        return new ApiResult<WatchDogData> { Code = 0, Data = new WatchDogData { Services = statuses } };
     }
 
     /// <summary>检查系统服务状态</summary>
@@ -613,11 +614,11 @@ public class ApiController : IHttpController
     /// <returns>扩展面板配置列表</returns>
     public Object Extensions()
     {
-        if (!CheckAuth()) return new { code = 401, message = "Unauthorized" };
+        if (!CheckAuth()) return new ApiResult { Code = 401, Message = "Unauthorized" };
 
         var panel = AgentWebPanel.Current;
         var extensions = panel?.GetExtensions() ?? [];
-        return new { code = 0, data = new { panels = extensions } };
+        return new ApiResult<ExtensionsData> { Code = 0, Data = new ExtensionsData { Panels = extensions } };
     }
     #endregion
 

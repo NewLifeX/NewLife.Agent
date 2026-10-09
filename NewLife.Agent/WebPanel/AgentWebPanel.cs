@@ -60,6 +60,13 @@ public class AgentWebPanel
         Service = service ?? throw new ArgumentNullException(nameof(service));
         Current = this;
 
+        // AOT：保留响应 DTO 元数据（NativeAOT 下 JSON 序列化依赖属性可枚举性）
+        AotRoots.Ensure();
+
+        // 面板 JSON 键名统一 camelCase：显式固定 JsonOptions 命名策略（主流 Web 约定），
+        // 未标注特性的 DTO（如 PanelExtension）同样按 CamelCase 输出，与前端 index.html 读取一致，防止全局默认策略变化导致契约漂移
+        JsonHelper.Default.Options.PropertyNaming = PropertyNaming.CamelCase;
+
         var set = Setting.Current;
         var port = set.WebPort > 0 ? set.WebPort : 0;
 
