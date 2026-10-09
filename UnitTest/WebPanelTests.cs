@@ -657,35 +657,35 @@ public class EmbeddedFileHandlerTests
 
     #region 路径处理
     [Fact]
-    public void RootPath_ReturnsIndexHtml()
+    public async Task RootPath_ReturnsIndexHtml()
     {
         var handler = CreateHandler();
         var ctx = CreateContext("/");
 
-        handler.ProcessRequest(ctx);
+        await handler.ProcessRequestAsync(ctx);
 
         // index.html 作为嵌入资源应存在，不应返回 404
         Assert.NotEqual(404, (Int32)ctx.Response.StatusCode);
     }
 
     [Fact]
-    public void PathTraversal_Returns404()
+    public async Task PathTraversal_Returns404()
     {
         var handler = CreateHandler();
         var ctx = CreateContext("/../../etc/passwd");
 
-        handler.ProcessRequest(ctx);
+        await handler.ProcessRequestAsync(ctx);
 
         Assert.Equal(404, (Int32)ctx.Response.StatusCode);
     }
 
     [Fact]
-    public void NonExistentFile_Returns404()
+    public async Task NonExistentFile_Returns404()
     {
         var handler = CreateHandler();
         var ctx = CreateContext("/nonexistent.xyz");
 
-        handler.ProcessRequest(ctx);
+        await handler.ProcessRequestAsync(ctx);
 
         Assert.Equal(404, (Int32)ctx.Response.StatusCode);
     }
@@ -693,19 +693,19 @@ public class EmbeddedFileHandlerTests
 
     #region MIME类型
     [Fact]
-    public void HtmlFile_SetsCorrectMimeType()
+    public async Task HtmlFile_SetsCorrectMimeType()
     {
         var handler = CreateHandler();
         var ctx = CreateContext("/index.html");
 
-        handler.ProcessRequest(ctx);
+        await handler.ProcessRequestAsync(ctx);
 
         Assert.NotEqual(404, (Int32)ctx.Response.StatusCode);
         Assert.StartsWith("text/html", ctx.Response.ContentType);
     }
 
     [Fact]
-    public void UnknownExtension_ReturnsOctetStream()
+    public async Task UnknownExtension_ReturnsOctetStream()
     {
         // 用一个已知存在的文件但未知扩展名来测试... 
         // 由于只有一个 index.html，我们验证MIME逻辑
@@ -715,7 +715,7 @@ public class EmbeddedFileHandlerTests
         // 由于我们没有 js 文件嵌入，这里仅验证处理器不会崩溃并且现有逻辑正确
         // 实际验证通过 index.html 的 MIME 类型
         var ctx = CreateContext("/test.unknown");
-        handler.ProcessRequest(ctx);
+        await handler.ProcessRequestAsync(ctx);
         // 不存在的文件会返回404，不会设置 ContentType
         Assert.Equal(404, (Int32)ctx.Response.StatusCode);
     }
