@@ -1,6 +1,7 @@
 namespace NewLife.Agent.WebPanel;
 
 /// <summary>Web面板扩展信息，用户可通过继承AgentWebPanel并重写GetExtensions注册自定义面板</summary>
+/// <remarks>序列化键名由面板 JsonOptions 统一为 camelCase（id/name/icon/apiEndpoint/order/mode），前端 index.html 按 camelCase 读取</remarks>
 public class PanelExtension
 {
     /// <summary>唯一标识</summary>

@@ -25,7 +25,7 @@ public class WebPanelContractTests
 {
     #region 辅助
     /// <summary>创建带鉴权 token 的控制器实例</summary>
-    private static (AgentWebPanel panel, ApiController controller) CreateController()
+    private static (AgentWebPanel panel, ApiController controller) CreateController(Func<ServiceBase, AgentWebPanel> panelFactory = null)
     {
         var mockSvc = new Mock<ServiceBase> { CallBase = true };
         mockSvc.Object.ServiceName = "ApiTest";
@@ -40,7 +40,7 @@ public class WebPanelContractTests
 
         try
         {
-            var panel = new AgentWebPanel(mockSvc.Object);
+            var panel = panelFactory != null ? panelFactory(mockSvc.Object) : new AgentWebPanel(mockSvc.Object);
             panel.UserName = "admin";
             panel.Password = "123456";
             var token = panel.IssueToken("admin", "123456");
@@ -88,6 +88,21 @@ public class WebPanelContractTests
         Assert.Equal(expected.OrderBy(n => n).ToArray(), element.EnumerateObject().Select(p => p.Name).OrderBy(n => n).ToArray());
     }
     #endregion
+
+    /// <summary>测试用扩展面板：注册一个扩展 Tab，验证扩展项键名契约</summary>
+    private sealed class ExtensionTestPanel : AgentWebPanel
+    {
+        /// <summary>实例化</summary>
+        /// <param name="service">服务对象</param>
+        public ExtensionTestPanel(ServiceBase service) : base(service) { }
+
+        /// <summary>注册扩展面板</summary>
+        /// <returns>扩展面板列表</returns>
+        protected override List<PanelExtension> GetExtensions() =>
+        [
+            new() { Id = "apps", Name = "应用管理", Icon = "📦", ApiEndpoint = "/api/ext/apps", Order = 10 }
+        ];
+    }
 
     #region 鉴权契约
     [Fact]
@@ -298,6 +313,25 @@ public class WebPanelContractTests
         var data = root.GetProperty("data");
         AssertExactKeys(data, "panels");
         Assert.Equal(JsonValueKind.Array, data.GetProperty("panels").ValueKind);
+    }
+
+    [Fact]
+    [DisplayName("契约_扩展面板项_camelCase键集合精确")]
+    public void Extensions_PanelItem_CamelCaseKeys()
+    {
+        var (_, controller) = CreateController(svc => new ExtensionTestPanel(svc));
+
+        var root = Parse(controller.Extensions());
+
+        AssertExactKeys(root, "code", "data");
+        var panels = root.GetProperty("data").GetProperty("panels");
+        Assert.Equal(1, panels.GetArrayLength());
+
+        var item = panels[0];
+        AssertExactKeys(item, "id", "name", "icon", "apiEndpoint", "order", "mode");
+        Assert.Equal("apps", item.GetProperty("id").GetString());
+        Assert.Equal("/api/ext/apps", item.GetProperty("apiEndpoint").GetString());
+        Assert.Equal(10, item.GetProperty("order").GetInt32());
     }
     #endregion
 
