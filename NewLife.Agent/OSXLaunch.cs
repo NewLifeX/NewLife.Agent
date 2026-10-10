@@ -127,6 +127,18 @@ public class OSXLaunch : DefaultHost
 
         """;
 
+    /// <summary>生成 LaunchAgent plist 内容</summary>
+    /// <param name="serviceName">服务名</param>
+    /// <param name="fileName">可执行文件路径</param>
+    /// <param name="arguments">命令参数</param>
+    /// <returns>plist XML 文本</returns>
+    public static String BuildPlist(String serviceName, String fileName, String arguments)
+    {
+        return _template.Replace("{$Name}", serviceName)
+            .Replace("{$FileName}", fileName)
+            .Replace("{$Arguments}", arguments);
+    }
+
     /// <summary>安装服务</summary>
     /// <param name="basePath">LaunchAgents 目录</param>
     /// <param name="serviceName">服务名</param>
@@ -147,9 +159,7 @@ public class OSXLaunch : DefaultHost
 
         //var des = !displayName.IsNullOrEmpty() ? displayName : description;
 
-        var str = _template.Replace("{$Name}", serviceName)
-            .Replace("{$FileName}", fileName)
-            .Replace("{$Arguments}", arguments);
+        var str = BuildPlist(serviceName, fileName, arguments);
 
         File.WriteAllText(file, str);
 

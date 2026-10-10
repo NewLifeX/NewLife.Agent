@@ -164,6 +164,20 @@ public class ApiControllerTests
         Assert.NotEqual(JsonValueKind.Undefined, data.ValueKind);
         Assert.Equal("ApiTest", data.GetProperty("serviceName").GetString());
     }
+
+    [Fact]
+    [DisplayName("Status_包含磁盘IOPS指标")]
+    public void Status_ContainsDiskIops()
+    {
+        var (_, controller) = CreateController();
+
+        var result = controller.Status();
+
+        Assert.Equal(0, GetCode(result));
+        var data = GetData(result);
+        Assert.True(data.TryGetProperty("diskIops", out var iops));
+        Assert.True(iops.GetInt32() >= 0);
+    }
     #endregion
 
     #region 控制
@@ -233,6 +247,54 @@ public class ApiControllerTests
         var data = GetData(result);
         Assert.True(data.TryGetProperty("memoryMB", out _));
         Assert.True(data.TryGetProperty("threadCount", out _));
+    }
+    #endregion
+
+    #region 密码修改
+    [Fact]
+    [DisplayName("ChangePassword_旧密码错误_返回403且不生效")]
+    public void ChangePassword_WrongOld_ReturnsForbidden()
+    {
+        var (panel, controller) = CreateController();
+
+        var result = controller.ChangePassword("wrongpass", "newpass123");
+
+        Assert.Equal(403, GetCode(result));
+        Assert.Equal("123456", panel.Password);
+    }
+
+    [Fact]
+    [DisplayName("ChangePassword_参数缺失_返回400")]
+    public void ChangePassword_MissingArgs_Returns400()
+    {
+        var (_, controller) = CreateController();
+
+        Assert.Equal(400, GetCode(controller.ChangePassword("", "newpass123")));
+        Assert.Equal(400, GetCode(controller.ChangePassword("123456", "")));
+    }
+
+    [Fact]
+    [DisplayName("ChangePassword_旧密码正确_修改成功并立即生效")]
+    public void ChangePassword_ValidOld_Succeeds()
+    {
+        var (panel, controller) = CreateController();
+
+        var set = Setting.Current;
+        var prev = set.WebPassword;
+        try
+        {
+            var result = controller.ChangePassword("123456", "newpass123");
+
+            Assert.Equal(0, GetCode(result));
+            // 内存凭据立即生效，无需重启
+            Assert.Equal("newpass123", panel.Password);
+            Assert.Equal("newpass123", set.WebPassword);
+        }
+        finally
+        {
+            set.WebPassword = prev;
+            set.Save();
+        }
     }
     #endregion
 
