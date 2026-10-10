@@ -28,3 +28,24 @@ jobs:
     - name: Test
       run: |
         dotnet test
+
+  aot:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup dotNET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          10.x
+    - name: Publish NativeAOT (win-x64)
+      run: |
+        dotnet publish Test/Test.csproj -c Release -f net10.0 -r win-x64
+    - name: Smoke run
+      shell: pwsh
+      run: |
+        $exe = "./Bin/Test/net10.0/win-x64/publish/Test.exe"
+        $out = & $exe -status 2>&1 | Out-String
+        Write-Host $out
+        if ($out -notmatch "NewLife.Agent") { throw "NativeAOT 冒烟未输出预期内容" }
