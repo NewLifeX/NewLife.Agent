@@ -34,3 +34,4 @@ bld/
 /BinXCodeTest
 /XUnitTest.XCode/TestEntity/Config
 /BinTest
+.tmp/
