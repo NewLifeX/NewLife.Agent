@@ -152,6 +152,9 @@ public class SysVinit : DefaultHost
     /// <returns>服务配置文件路径，不存在时返回 null</returns>
     public static String GetServicePath(String serviceName)
     {
+        // 不存在 /etc/init.d（如非 Linux 环境）时安全返回，避免 Path.Combine 传入空路径抛异常
+        if (ServicePath.IsNullOrEmpty() || serviceName.IsNullOrEmpty()) return null;
+
         var file = Path.Combine(ServicePath, serviceName);
         return File.Exists(file) ? file : null;
     }

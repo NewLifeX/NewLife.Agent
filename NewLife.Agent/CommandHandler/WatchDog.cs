@@ -83,7 +83,6 @@ public class WatchDog : BaseCommandHandler
         }
         // 检测SysVinit服务配置文件
         servicePath = SysVinit.GetServicePath(serviceName);
-        var sysVinitFile = Path.Combine(SysVinit.ServicePath, serviceName);
         if (servicePath != null)
         {
             return new SysVinit() { Service = Service };
