@@ -49,3 +49,28 @@ jobs:
         $out = & $exe -status 2>&1 | Out-String
         Write-Host $out
         if ($out -notmatch "NewLife.Agent") { throw "NativeAOT 冒烟未输出预期内容" }
+
+  aot-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup dotNET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          10.x
+    - name: Install NativeAOT prerequisites
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends clang zlib1g-dev
+    - name: Publish NativeAOT (linux-x64)
+      run: |
+        dotnet publish Test/Test.csproj -c Release -f net10.0 -r linux-x64
+    - name: Smoke run
+      run: |
+        exe="./Bin/Test/net10.0/linux-x64/publish/Test"
+        chmod +x "$exe"
+        out=$("$exe" -status 2>&1)
+        echo "$out"
+        echo "$out" | grep -q "NewLife.Agent" || { echo "NativeAOT 冒烟未输出预期内容"; exit 1; }
