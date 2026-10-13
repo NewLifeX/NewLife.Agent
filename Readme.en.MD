@@ -37,7 +37,7 @@ Tutorial: https://newlifex.com/core/agent
 - **DevOps in One**: Inherit `ServiceBase` to gain full service governance capabilities.
 - **Built-in Web Dashboard**: Lightweight management panel accessible via browser for status viewing and operations, with extension panels, theme switching, token-based auth and brute-force protection.
 - **Cross-Platform Auto-Adaptation**: Automatically selects the best host implementation per operating system.
-- **NativeAOT Publishing**: Built-in commands and the Web dashboard are fully trim/AOT-adapted; `net8.0+` builds carry zero `IsAotCompatible` warnings, with CI smoke runs covering win-x64/linux-x64/linux-arm64, plus linux-arm/osx-x64/osx-arm64 publish verification.
+- **NativeAOT Publishing**: Built-in commands and the Web dashboard are fully trim/AOT-adapted; `net8.0+` builds carry zero `IsAotCompatible` warnings, with CI covering 12 RIDs: 8 natively runnable targets get real smoke runs, while cross targets (linux-arm/linux-musl-arm/linux-musl-arm64/linux-loongarch64) get publish verification.
 - **Built-in Command System**: Supports `-install/-start/-stop/-restart/-status/-run`.
 - **Health Monitoring & Self-Healing**: HealthMonitor component provides memory/thread/handle thresholds, scheduled restarts and WatchDog health checks.
 - **Multi-Instance Friendly**: Configure different `ServiceName` values for multi-instance deployment.

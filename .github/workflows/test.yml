@@ -57,20 +57,23 @@ jobs:
       matrix:
         include:
           # Windows
-          - { rid: win-x64,   os: windows-latest }
-          - { rid: win-x86,   os: windows-latest }
-          - { rid: win-arm64, os: windows-11-arm }
+          - { rid: win-x64,   os: windows-latest, smoke: true }
+          - { rid: win-x86,   os: windows-latest, smoke: true }
+          - { rid: win-arm64, os: windows-11-arm, smoke: true }
           # Linux glibc：x64/arm64 原生，arm 交叉
-          - { rid: linux-x64,   os: ubuntu-latest }
-          - { rid: linux-arm64, os: ubuntu-24.04-arm }
-          - { rid: linux-arm,   os: ubuntu-latest, cross: armhf, args: "-p:LinkerFlavor=lld" }
-          # Linux musl：交叉构建
-          - { rid: linux-musl-x64,   os: ubuntu-latest, cross: musl-x64,   smoke: false, args: "-p:CppLinker=/usr/local/bin/clang-musl" }
+          - { rid: linux-x64,   os: ubuntu-latest,    smoke: true }
+          - { rid: linux-arm64, os: ubuntu-24.04-arm, smoke: true }
+          # 交叉产物为 ARM 架构，ubuntu x64 无法直接运行，仅做发布验证
+          - { rid: linux-arm,   os: ubuntu-latest, cross: armhf, smoke: false, args: "-p:LinkerFlavor=lld" }
+          # Linux musl：交叉构建；x64 产物静态链接可在本机运行，其余仅做发布验证
+          - { rid: linux-musl-x64,   os: ubuntu-latest, cross: musl-x64,   smoke: true,  args: "-p:CppLinker=/usr/local/bin/clang-musl" }
           - { rid: linux-musl-arm64, os: ubuntu-latest, cross: musl-arm64, smoke: false, args: "-p:CppLinker=/usr/local/bin/clang-musl -p:LinkerFlavor=lld" }
           - { rid: linux-musl-arm,   os: ubuntu-latest, cross: musl-arm,   smoke: false, args: "-p:CppLinker=/usr/local/bin/clang-musl -p:LinkerFlavor=lld" }
+          # LoongArch64：官方 nuget.org 无该 RID 运行时/ILCompiler 包，经 loongnix 源做非 AOT 的自包含发布验证
+          - { rid: linux-loongarch64, os: ubuntu-latest, cross: la64, smoke: false, args: "-p:PublishAot=false --self-contained true" }
           # macOS
-          - { rid: osx-x64,   os: macos-15-intel }
-          - { rid: osx-arm64, os: macos-15 }
+          - { rid: osx-x64,   os: macos-15-intel, smoke: true }
+          - { rid: osx-arm64, os: macos-15,       smoke: true }
     steps:
     - uses: actions/checkout@v4
     - name: Setup dotNET
@@ -152,10 +155,34 @@ jobs:
         esac
         sudo chmod +x /usr/local/bin/clang-musl
         cat /usr/local/bin/clang-musl
+    - name: Prepare loongarch64 NuGet source
+      if: matrix.cross == 'la64'
+      run: |
+        # loongnix 源提供 loongarch64 运行时包（资源端点为 http，需显式放行）
+        cat > NuGet.Config <<'EOF'
+        <?xml version="1.0" encoding="utf-8"?>
+        <configuration>
+          <packageSources>
+            <add key="loongnix" value="https://nuget.loongnix.cn/v3/index.json" allowInsecureConnections="true" />
+          </packageSources>
+        </configuration>
+        EOF
+        cat NuGet.Config
     - name: Publish NativeAOT (${{ matrix.rid }})
       run: dotnet publish Test/Test.csproj -c Release -f net10.0 -p:TargetFrameworks=net10.0 -r ${{ matrix.rid }} ${{ matrix.args }}
+    - name: Verify loongarch64 output
+      if: matrix.cross == 'la64'
+      run: |
+        bin="Bin/Test/net10.0/linux-loongarch64/publish/Test"
+        file "$bin"
+        file "$bin" | grep -q "LoongArch" || { echo "产物不是 LoongArch 架构"; exit 1; }
+        test -f Bin/Test/net10.0/linux-loongarch64/publish/Test.dll || { echo "缺少 Test.dll"; exit 1; }
+        test -f Bin/Test/net10.0/linux-loongarch64/publish/Test.runtimeconfig.json || { echo "缺少 runtimeconfig"; exit 1; }
+        count=$(ls Bin/Test/net10.0/linux-loongarch64/publish/ | wc -l)
+        echo "publish 文件数: $count"
+        [ "$count" -gt 100 ] || { echo "自包含产物文件数异常"; exit 1; }
     - name: Smoke run
-      if: matrix.smoke != false
+      if: matrix.smoke
       shell: bash
       run: |
         exe="Bin/Test/net10.0/${{ matrix.rid }}/publish/Test"
