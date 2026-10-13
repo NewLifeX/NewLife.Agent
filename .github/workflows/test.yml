@@ -30,8 +30,27 @@ jobs:
         dotnet test
 
   aot:
-    runs-on: windows-latest
-
+    name: aot-${{ matrix.rid }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows
+          - { rid: win-x64,   os: windows-latest }
+          - { rid: win-x86,   os: windows-latest }
+          - { rid: win-arm64, os: windows-11-arm }
+          # Linux glibc：x64/arm64 原生，arm 交叉
+          - { rid: linux-x64,   os: ubuntu-latest }
+          - { rid: linux-arm64, os: ubuntu-24.04-arm }
+          - { rid: linux-arm,   os: ubuntu-latest, cross: armhf }
+          # Linux musl：交叉构建
+          - { rid: linux-musl-x64,   os: ubuntu-latest, cross: musl-x64,   smoke: false, args: "-p:SysRoot=/tmp/musl-sysroot" }
+          - { rid: linux-musl-arm64, os: ubuntu-latest, cross: musl-arm64, smoke: false, args: "-p:SysRoot=/tmp/musl-sysroot" }
+          - { rid: linux-musl-arm,   os: ubuntu-latest, cross: musl-arm,   smoke: false, args: "-p:SysRoot=/tmp/musl-sysroot" }
+          # macOS
+          - { rid: osx-x64,   os: macos-15-intel }
+          - { rid: osx-arm64, os: macos-15 }
     steps:
     - uses: actions/checkout@v4
     - name: Setup dotNET
@@ -39,38 +58,74 @@ jobs:
       with:
         dotnet-version: |
           10.x
-    - name: Publish NativeAOT (win-x64)
-      run: |
-        dotnet publish Test/Test.csproj -c Release -f net10.0 -r win-x64
-    - name: Smoke run
-      shell: pwsh
-      run: |
-        $exe = "./Bin/Test/net10.0/win-x64/publish/Test.exe"
-        $out = & $exe -status 2>&1 | Out-String
-        Write-Host $out
-        if ($out -notmatch "NewLife.Agent") { throw "NativeAOT 冒烟未输出预期内容" }
-
-  aot-linux:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-    - name: Setup dotNET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: |
-          10.x
-    - name: Install NativeAOT prerequisites
+    - name: Install Linux NativeAOT toolchain
+      if: startsWith(matrix.os, 'ubuntu')
       run: |
         sudo apt-get update
         sudo apt-get install -y --no-install-recommends clang zlib1g-dev
-    - name: Publish NativeAOT (linux-x64)
+    - name: Install Linux armhf cross toolchain
+      if: matrix.cross == 'armhf'
       run: |
-        dotnet publish Test/Test.csproj -c Release -f net10.0 -r linux-x64
+        sudo dpkg --add-architecture armhf
+        sudo sed -i 's/^Types: deb$/Types: deb\nArchitectures: amd64/' /etc/apt/sources.list.d/ubuntu.sources
+        sudo tee /etc/apt/sources.list.d/armhf.sources >/dev/null <<'EOF'
+        Types: deb
+        URIs: http://ports.ubuntu.com/ubuntu-ports
+        Suites: noble noble-updates noble-security
+        Components: main restricted universe multiverse
+        Architectures: armhf
+        EOF
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends clang llvm binutils-arm-linux-gnueabihf gcc-arm-linux-gnueabihf zlib1g-dev:armhf
+    - name: Install Linux musl cross toolchain
+      if: startsWith(matrix.cross, 'musl')
+      run: |
+        case "${{ matrix.cross }}" in
+          musl-x64)
+            sudo apt-get install -y --no-install-recommends musl-tools
+            ;;
+          musl-arm64)
+            sudo dpkg --add-architecture arm64
+            sudo sed -i 's/^Types: deb$/Types: deb\nArchitectures: amd64/' /etc/apt/sources.list.d/ubuntu.sources
+            sudo tee /etc/apt/sources.list.d/arm64.sources >/dev/null <<'EOF'
+        Types: deb
+        URIs: http://archive.ubuntu.com/ubuntu
+        Suites: noble noble-updates noble-security
+        Components: main restricted universe multiverse
+        Architectures: arm64
+        EOF
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends musl-dev:arm64
+            ;;
+          musl-arm)
+            sudo dpkg --add-architecture armhf
+            sudo sed -i 's/^Types: deb$/Types: deb\nArchitectures: amd64/' /etc/apt/sources.list.d/ubuntu.sources
+            sudo tee /etc/apt/sources.list.d/armhf-musl.sources >/dev/null <<'EOF'
+        Types: deb
+        URIs: http://ports.ubuntu.com/ubuntu-ports
+        Suites: noble noble-updates noble-security
+        Components: main restricted universe multiverse
+        Architectures: armhf
+        EOF
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends musl-dev:armhf
+            ;;
+        esac
+        # 组装 musl sysroot：按 multiarch 目录名建立转发链接
+        sudo mkdir -p /tmp/musl-sysroot/usr/lib
+        for d in /usr/lib/*-linux-musl*; do
+          [ -d "$d" ] || continue
+          sudo ln -sfn "$d" "/tmp/musl-sysroot/usr/lib/$(basename "$d")"
+        done
+        ls -l /tmp/musl-sysroot/usr/lib
+    - name: Publish NativeAOT (${{ matrix.rid }})
+      run: dotnet publish Test/Test.csproj -c Release -f net10.0 -r ${{ matrix.rid }} ${{ matrix.args }}
     - name: Smoke run
+      if: matrix.smoke != false
+      shell: bash
       run: |
-        exe="./Bin/Test/net10.0/linux-x64/publish/Test"
-        chmod +x "$exe"
+        exe="Bin/Test/net10.0/${{ matrix.rid }}/publish/Test"
+        if [ ! -f "$exe" ]; then exe="$exe.exe"; fi
         out=$("$exe" -status 2>&1)
         echo "$out"
         echo "$out" | grep -q "NewLife.Agent" || { echo "NativeAOT 冒烟未输出预期内容"; exit 1; }
