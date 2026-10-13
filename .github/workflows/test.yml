@@ -27,7 +27,27 @@ jobs:
         dotnet build -c Release
     - name: Test
       run: |
-        dotnet test
+        dotnet test UnitTest/UnitTest.csproj -c Release --no-build --collect:"XPlat Code Coverage" --results-directory ./TestResults
+    - name: Upload coverage
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage
+        path: TestResults/**/coverage.cobertura.xml
+        if-no-files-found: warn
+
+  test-windows:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup dotNET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          10.x
+    - name: Test
+      run: |
+        dotnet test UnitTest/UnitTest.csproj -c Release
 
   aot:
     name: aot-${{ matrix.rid }}
