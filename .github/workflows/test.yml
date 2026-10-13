@@ -159,7 +159,8 @@ jobs:
       if: matrix.cross == 'la64'
       run: |
         # loongnix 源提供 loongarch64 运行时包；其 BaGet 对缺失包返回 500，
-        # 故用 packageSourceMapping 把 loongnix 限定到 loongarch64 包，其余包走 nuget.org
+        # 故用 packageSourceMapping 把 loongnix 限定到 loongarch64 包（须逐包精确声明，
+        # 通配 *.linux-loongarch64 会被 NuGet 误判为匹配全部包），其余包走 nuget.org
         cat > NuGet.Config <<'EOF'
         <?xml version="1.0" encoding="utf-8"?>
         <configuration>
@@ -173,7 +174,9 @@ jobs:
               <package pattern="*" />
             </packageSource>
             <packageSource key="loongnix">
-              <package pattern="*.linux-loongarch64" />
+              <package pattern="Microsoft.AspNetCore.App.Runtime.linux-loongarch64" />
+              <package pattern="Microsoft.NETCore.App.Host.linux-loongarch64" />
+              <package pattern="Microsoft.NETCore.App.Runtime.linux-loongarch64" />
             </packageSource>
           </packageSourceMapping>
         </configuration>
