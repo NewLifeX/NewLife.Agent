@@ -45,9 +45,9 @@ jobs:
           - { rid: linux-arm64, os: ubuntu-24.04-arm }
           - { rid: linux-arm,   os: ubuntu-latest, cross: armhf, args: "-p:LinkerFlavor=lld" }
           # Linux musl：交叉构建
-          - { rid: linux-musl-x64,   os: ubuntu-latest, cross: musl-x64,   smoke: false, args: "-p:SysRoot=/tmp/musl-sysroot" }
-          - { rid: linux-musl-arm64, os: ubuntu-latest, cross: musl-arm64, smoke: false, args: "-p:SysRoot=/tmp/musl-sysroot -p:LinkerFlavor=lld" }
-          - { rid: linux-musl-arm,   os: ubuntu-latest, cross: musl-arm,   smoke: false, args: "-p:SysRoot=/tmp/musl-sysroot -p:LinkerFlavor=lld" }
+          - { rid: linux-musl-x64,   os: ubuntu-latest, cross: musl-x64,   smoke: false, args: "-p:CppLinker=/usr/local/bin/clang-musl" }
+          - { rid: linux-musl-arm64, os: ubuntu-latest, cross: musl-arm64, smoke: false, args: "-p:CppLinker=/usr/local/bin/clang-musl -p:LinkerFlavor=lld" }
+          - { rid: linux-musl-arm,   os: ubuntu-latest, cross: musl-arm,   smoke: false, args: "-p:CppLinker=/usr/local/bin/clang-musl -p:LinkerFlavor=lld" }
           # macOS
           - { rid: osx-x64,   os: macos-15-intel }
           - { rid: osx-arm64, os: macos-15 }
@@ -89,13 +89,13 @@ jobs:
             sudo sed -i 's/^Types: deb$/Types: deb\nArchitectures: amd64/' /etc/apt/sources.list.d/ubuntu.sources
             sudo tee /etc/apt/sources.list.d/arm64.sources >/dev/null <<'EOF'
         Types: deb
-        URIs: http://archive.ubuntu.com/ubuntu
+        URIs: http://ports.ubuntu.com/ubuntu-ports
         Suites: noble noble-updates noble-security
         Components: main restricted universe multiverse
         Architectures: arm64
         EOF
             sudo apt-get update
-            sudo apt-get install -y --no-install-recommends musl-dev:arm64
+            sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu musl-dev:arm64
             ;;
           musl-arm)
             sudo dpkg --add-architecture armhf
@@ -108,16 +108,18 @@ jobs:
         Architectures: armhf
         EOF
             sudo apt-get update
-            sudo apt-get install -y --no-install-recommends musl-dev:armhf
+            sudo apt-get install -y --no-install-recommends gcc-arm-linux-gnueabihf musl-dev:armhf
             ;;
         esac
-        # 组装 musl sysroot：按 multiarch 目录名建立转发链接
-        sudo mkdir -p /tmp/musl-sysroot/usr/lib
-        for d in /usr/lib/*-linux-musl*; do
-          [ -d "$d" ] || continue
-          sudo ln -sfn "$d" "/tmp/musl-sysroot/usr/lib/$(basename "$d")"
-        done
-        ls -l /tmp/musl-sysroot/usr/lib
+        # 生成 musl 链接包装：注入 musl 库路径与目标 libgcc
+        case "${{ matrix.cross }}" in
+          musl-x64)   musldir=/usr/lib/x86_64-linux-musl; gccdir=$(ls -d /usr/lib/gcc/x86_64-linux-gnu/*/ | head -1) ;;
+          musl-arm64) musldir=/usr/lib/aarch64-linux-musl; gccdir=$(ls -d /usr/lib/gcc-cross/aarch64-linux-gnu/*/ | head -1) ;;
+          musl-arm)   musldir=/usr/lib/arm-linux-musleabihf; gccdir=$(ls -d /usr/lib/gcc-cross/arm-linux-gnueabihf/*/ | head -1) ;;
+        esac
+        printf '#!/bin/sh\nexec clang "$@" -L%s -L%s -static-libgcc\n' "$musldir" "$gccdir" | sudo tee /usr/local/bin/clang-musl >/dev/null
+        sudo chmod +x /usr/local/bin/clang-musl
+        cat /usr/local/bin/clang-musl
     - name: Publish NativeAOT (${{ matrix.rid }})
       run: dotnet publish Test/Test.csproj -c Release -f net10.0 -p:TargetFrameworks=net10.0 -r ${{ matrix.rid }} ${{ matrix.args }}
     - name: Smoke run
