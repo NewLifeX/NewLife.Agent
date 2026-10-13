@@ -115,7 +115,7 @@ jobs:
         Architectures: arm64
         EOF
             sudo apt-get update
-            sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu musl-dev:arm64
+            sudo apt-get install -y gcc-aarch64-linux-gnu musl-dev:arm64
             ;;
           musl-arm)
             sudo dpkg --add-architecture armhf
@@ -128,16 +128,28 @@ jobs:
         Architectures: armhf
         EOF
             sudo apt-get update
-            sudo apt-get install -y --no-install-recommends gcc-arm-linux-gnueabihf musl-dev:armhf
+            sudo apt-get install -y gcc-arm-linux-gnueabihf musl-dev:armhf
             ;;
         esac
         # 生成 musl 链接包装：注入 musl 库路径与目标 libgcc
+        sudo apt-get install -y llvm
         case "${{ matrix.cross }}" in
-          musl-x64)   musldir=/usr/lib/x86_64-linux-musl; gccdir=$(ls -d /usr/lib/gcc/x86_64-linux-gnu/*/ | head -1) ;;
-          musl-arm64) musldir=/usr/lib/aarch64-linux-musl; gccdir=$(ls -d /usr/lib/gcc-cross/aarch64-linux-gnu/*/ | head -1) ;;
-          musl-arm)   musldir=/usr/lib/arm-linux-musleabihf; gccdir=$(ls -d /usr/lib/gcc-cross/arm-linux-gnueabihf/*/ | head -1) ;;
+          musl-x64)
+            gccdir=$(ls -d /usr/lib/gcc/x86_64-linux-gnu/*/ | head -1)
+            printf '#!/bin/sh\nexec clang "$@" -L/usr/lib/x86_64-linux-musl -L%s -static-libgcc\n' "$gccdir" | sudo tee /usr/local/bin/clang-musl >/dev/null
+            ;;
+          musl-arm64)
+            gccdir=$(ls -d /usr/lib/gcc-cross/aarch64-linux-gnu/*/ | head -1)
+            # glibc 版 libgcc 的 lse 探测引用 glibc 私有符号 __getauxval，编译转发 shim 补齐
+            printf '#include <sys/auxv.h>\nunsigned long __getauxval(unsigned long type) { return getauxval(type); }\n' > /tmp/getauxval-shim.c
+            clang --target=aarch64-linux-musl -I/usr/include/aarch64-linux-musl -c /tmp/getauxval-shim.c -o /tmp/getauxval-shim.o
+            printf '#!/bin/sh\nexec clang "$@" /tmp/getauxval-shim.o -L/usr/lib/aarch64-linux-musl -L%s -static-libgcc\n' "$gccdir" | sudo tee /usr/local/bin/clang-musl >/dev/null
+            ;;
+          musl-arm)
+            gccdir=$(ls -d /usr/lib/gcc-cross/arm-linux-gnueabihf/*/ | head -1)
+            printf '#!/bin/sh\nexec clang "$@" -L/usr/lib/arm-linux-musleabihf -L%s -static-libgcc\n' "$gccdir" | sudo tee /usr/local/bin/clang-musl >/dev/null
+            ;;
         esac
-        printf '#!/bin/sh\nexec clang "$@" -L%s -L%s -static-libgcc\n' "$musldir" "$gccdir" | sudo tee /usr/local/bin/clang-musl >/dev/null
         sudo chmod +x /usr/local/bin/clang-musl
         cat /usr/local/bin/clang-musl
     - name: Publish NativeAOT (${{ matrix.rid }})
