@@ -80,7 +80,6 @@ public class CommandFactory
     /// <param name="service">服务对象</param>
     /// <returns>自定义命令处理器列表</returns>
 #if NET5_0_OR_GREATER
-    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "仅扫描扩展程序集；NativeAOT 下自定义处理器的元数据保留由调用方负责，内建命令已静态登记不受影响")]
     [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2062", Justification = "实例化的类型来自调用方保留的扩展程序集")]
     [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2072", Justification = "实例化的类型来自调用方保留的扩展程序集")]
 #endif
@@ -90,7 +89,10 @@ public class CommandFactory
         foreach (var assembly in assemblies.Values)
         {
             if (assembly == baseAssembly) continue;
-            foreach (var type in assembly.GetTypes())
+            // 动态程序集（如单元测试代理程序集）：类型无法枚举，也不可能承载自定义处理器
+            if (assembly.IsDynamic) continue;
+
+            foreach (var type in GetLoadableTypes(assembly))
             {
                 if (!typeof(BaseCommandHandler).IsAssignableFrom(type) || type.IsInterface || type.IsAbstract) continue;
                 list.Add((BaseCommandHandler)Activator.CreateInstance(type, service));
@@ -98,6 +100,24 @@ public class CommandFactory
         }
 
         return list;
+    }
+
+    /// <summary>获取程序集内可加载类型；个别类型加载失败时跳过，不影响其余类型</summary>
+    /// <param name="assembly">目标程序集</param>
+    /// <returns>可加载类型集合</returns>
+#if NET5_0_OR_GREATER
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "仅扫描扩展程序集；NativeAOT 下自定义处理器的元数据保留由调用方负责，内建命令已静态登记不受影响")]
+#endif
+    private static IEnumerable<Type> GetLoadableTypes(Assembly assembly)
+    {
+        try
+        {
+            return assembly.GetTypes();
+        }
+        catch (ReflectionTypeLoadException ex)
+        {
+            return ex.Types.Where(t => t != null).Select(t => t!);
+        }
     }
 
     /// <summary>登记命令处理器，并处理相同命令的冲突</summary>
