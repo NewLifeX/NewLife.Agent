@@ -25,6 +25,11 @@
     <WarningsAsErrors>CA2007</WarningsAsErrors>
   </PropertyGroup>
 
+  <!-- net8.0+ 常驻启用 AOT/裁剪分析器：与主库保持一致，0 告警为构建期硬约束 -->
+  <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
   <PropertyGroup>
     <IsPackable>true</IsPackable>
     <PackageId>$(AssemblyName)</PackageId>
