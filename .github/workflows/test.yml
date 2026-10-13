@@ -43,11 +43,11 @@ jobs:
           # Linux glibc：x64/arm64 原生，arm 交叉
           - { rid: linux-x64,   os: ubuntu-latest }
           - { rid: linux-arm64, os: ubuntu-24.04-arm }
-          - { rid: linux-arm,   os: ubuntu-latest, cross: armhf }
+          - { rid: linux-arm,   os: ubuntu-latest, cross: armhf, args: "-p:LinkerFlavor=lld" }
           # Linux musl：交叉构建
           - { rid: linux-musl-x64,   os: ubuntu-latest, cross: musl-x64,   smoke: false, args: "-p:SysRoot=/tmp/musl-sysroot" }
-          - { rid: linux-musl-arm64, os: ubuntu-latest, cross: musl-arm64, smoke: false, args: "-p:SysRoot=/tmp/musl-sysroot" }
-          - { rid: linux-musl-arm,   os: ubuntu-latest, cross: musl-arm,   smoke: false, args: "-p:SysRoot=/tmp/musl-sysroot" }
+          - { rid: linux-musl-arm64, os: ubuntu-latest, cross: musl-arm64, smoke: false, args: "-p:SysRoot=/tmp/musl-sysroot -p:LinkerFlavor=lld" }
+          - { rid: linux-musl-arm,   os: ubuntu-latest, cross: musl-arm,   smoke: false, args: "-p:SysRoot=/tmp/musl-sysroot -p:LinkerFlavor=lld" }
           # macOS
           - { rid: osx-x64,   os: macos-15-intel }
           - { rid: osx-arm64, os: macos-15 }
@@ -62,7 +62,7 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         sudo apt-get update
-        sudo apt-get install -y --no-install-recommends clang zlib1g-dev
+        sudo apt-get install -y --no-install-recommends clang zlib1g-dev lld
     - name: Install Linux armhf cross toolchain
       if: matrix.cross == 'armhf'
       run: |
