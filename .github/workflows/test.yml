@@ -158,13 +158,24 @@ jobs:
     - name: Prepare loongarch64 NuGet source
       if: matrix.cross == 'la64'
       run: |
-        # loongnix 源提供 loongarch64 运行时包（资源端点为 http，需显式放行）
+        # loongnix 源提供 loongarch64 运行时包；其 BaGet 对缺失包返回 500，
+        # 故用 packageSourceMapping 把 loongnix 限定到 loongarch64 包，其余包走 nuget.org
         cat > NuGet.Config <<'EOF'
         <?xml version="1.0" encoding="utf-8"?>
         <configuration>
           <packageSources>
+            <clear />
+            <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
             <add key="loongnix" value="https://nuget.loongnix.cn/v3/index.json" allowInsecureConnections="true" />
           </packageSources>
+          <packageSourceMapping>
+            <packageSource key="nuget.org">
+              <package pattern="*" />
+            </packageSource>
+            <packageSource key="loongnix">
+              <package pattern="*.linux-loongarch64" />
+            </packageSource>
+          </packageSourceMapping>
         </configuration>
         EOF
         cat NuGet.Config
