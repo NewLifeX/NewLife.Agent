@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.ComponentModel;
 using Moq;
 using NewLife;
@@ -187,7 +187,7 @@ public class SystemdTests
         };
 
         var mb = new Mock<Systemd> { CallBase = true };
-        mb.Setup(x => x.Install(It.IsNotNull<String>(), It.IsNotNull<SystemdSetting>()))
+        mb.Setup(x => x.Install(It.IsAny<String>(), It.IsAny<SystemdSetting>()))
             .Returns(true);
 
         var syd = mb.Object;
@@ -218,7 +218,7 @@ public class SystemdTests
         };
 
         var mb = new Mock<Systemd> { CallBase = true };
-        mb.Setup(x => x.Install(It.IsNotNull<String>(), It.IsNotNull<SystemdSetting>()))
+        mb.Setup(x => x.Install(It.IsAny<String>(), It.IsAny<SystemdSetting>()))
             .Returns(true);
 
         var syd = mb.Object;
@@ -249,7 +249,7 @@ public class SystemdTests
         };
 
         var mb = new Mock<Systemd> { CallBase = true };
-        mb.Setup(x => x.Install(It.IsNotNull<String>(), It.IsNotNull<SystemdSetting>()))
+        mb.Setup(x => x.Install(It.IsAny<String>(), It.IsAny<SystemdSetting>()))
             .Returns(true);
 
         var syd = mb.Object;
@@ -280,7 +280,7 @@ public class SystemdTests
         };
 
         var mb = new Mock<Systemd> { CallBase = true };
-        mb.Setup(x => x.Install(It.IsNotNull<String>(), It.IsNotNull<SystemdSetting>()))
+        mb.Setup(x => x.Install(It.IsAny<String>(), It.IsAny<SystemdSetting>()))
             .Returns(true);
 
         var syd = mb.Object;
