@@ -1,4 +1,5 @@
 ﻿using Moq;
+using NewLife;
 using NewLife.Agent;
 using NewLife.Agent.CommandHandler;
 using NewLife.Agent.Models;
@@ -61,7 +62,10 @@ public class InstallTests
         var cur = ".".GetFullPath();
         Assert.Equal(cur, model.WorkingDirectory);
 
-        var exe = cur.CombinePath("testhost.exe");
+        // Windows 下测试宿主为 testhost.exe；Linux 下为 dotnet 运行时主程序（muxer）。二者都会被识别为运行时主程序并追加主 dll
+        var exe = Runtime.Windows
+            ? cur.CombinePath("testhost.exe")
+            : System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
         //var dll = cur.CombinePath("StarAgent.dll");
         var dll = cur.CombinePath("testhost.dll");
         Assert.Equal($"{exe} {dll}", model.FileName);

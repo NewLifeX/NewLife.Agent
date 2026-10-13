@@ -16,34 +16,40 @@ public class SystemdTests
 
         var serviceName = "testService";
 
-        if (Runtime.Windows)
-        {
-            //Assert.False(Systemd.Available);
-            //Assert.Null(Systemd.ServicePath);
+        //Assert.False(Systemd.Available);
+        //Assert.Null(Systemd.ServicePath);
 
-            //return;
+        //return;
 
-            // Mock the service path
-            Systemd.ServicePath = "/etc/systemd/system";
-        }
-        else
+        // 非 Windows 校验默认探测路径；Windows 下该路径通常不存在，不做断言
+        if (!Runtime.Windows)
         {
             Assert.NotNull(Systemd.ServicePath);
             Assert.Equal("/etc/systemd/system", Systemd.ServicePath);
         }
 
-        var file = Systemd.ServicePath.CombinePath($"{serviceName}.service");
-        file.EnsureDirectory(true);
-        File.WriteAllText(file.GetFullPath(), "dummy content");
+        // GetServicePath 按 SystemdPaths 探测，临时替换首项做读写验证，避免向 /etc/systemd/system 写文件（Linux CI 非 root 无权限）
+        var prevFirst = Systemd.SystemdPaths[0];
+        var dir = Path.Combine(Path.GetTempPath(), $"agent-systemd-{Guid.NewGuid():N}");
+        try
+        {
+            Systemd.SystemdPaths[0] = dir;
 
-        var path = Systemd.GetServicePath(serviceName);
-        Assert.Equal(file, path);
+            var file = dir.CombinePath($"{serviceName}.service");
+            file.EnsureDirectory(true);
+            File.WriteAllText(file.GetFullPath(), "dummy content");
 
-        var result = systemd.IsInstalled(serviceName);
-        Assert.True(result);
+            var path = Systemd.GetServicePath(serviceName);
+            Assert.Equal(file, path);
 
-        // Clean up
-        File.Delete(file);
+            var result = systemd.IsInstalled(serviceName);
+            Assert.True(result);
+        }
+        finally
+        {
+            Systemd.SystemdPaths[0] = prevFirst;
+            try { if (Directory.Exists(dir)) Directory.Delete(dir, true); } catch { }
+        }
     }
 
     [Fact]
