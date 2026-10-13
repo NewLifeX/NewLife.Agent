@@ -1,4 +1,3 @@
-#if !NET40
 using System.ComponentModel;
 using NewLife.Agent.WebPanel;
 
@@ -93,4 +92,3 @@ public class WebPanelModelTests
         Assert.Equal("html", ext.Mode);
     }
 }
-#endif

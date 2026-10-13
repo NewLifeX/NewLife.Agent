@@ -77,13 +77,11 @@ public class ServiceLifecycleTests
         Assert.False(svc.Running);
     }
 
-    [Fact]
+    [WindowsFact]
     [DisplayName("AfterStart_引号包裹路径_成功执行外部命令")]
     public async Task AfterStart_QuotedPath_RunsCommand()
     {
-        // 依赖 cmd.exe 构造外部命令，仅在 Windows 下验证
-        if (!Runtime.Windows) return;
-
+        // 依赖 cmd.exe 构造外部命令，仅 Windows 可运行（非 Windows 显式跳过）
         var set = Setting.Current;
         var prevAfter = set.AfterStart;
         var prevInterval = set.WatchInterval;

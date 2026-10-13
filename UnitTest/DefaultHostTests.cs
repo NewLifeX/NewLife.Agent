@@ -8,6 +8,15 @@ namespace UnitTest;
 public class DefaultHostTests
 {
     [Fact]
+    [DisplayName("DefaultHost_Run_null_抛ArgumentNullException")]
+    public void Run_Null_ThrowsArgumentNullException()
+    {
+        var host = new DefaultHost();
+
+        Assert.Throws<ArgumentNullException>(() => host.Run(null));
+    }
+
+    [Fact]
     [DisplayName("DefaultHost_默认未安装")]
     public void IsInstalled_ReturnsFalse()
     {

@@ -1,4 +1,5 @@
-﻿using Moq;
+﻿using System.ComponentModel;
+using Moq;
 using NewLife;
 using NewLife.Agent;
 using NewLife.Agent.CommandHandler;
@@ -9,6 +10,7 @@ namespace UnitTest;
 public class InstallTests
 {
     [Fact]
+    [DisplayName("安装服务_无额外参数_生成服务模型并调用宿主安装")]
     public void InstallExe()
     {
         ServiceModel model = null;
@@ -35,6 +37,7 @@ public class InstallTests
     }
 
     [Fact]
+    [DisplayName("安装服务_指定Dll参数_拼接运行时与目标程序路径")]
     public void InstallDll()
     {
         ServiceModel model = null;

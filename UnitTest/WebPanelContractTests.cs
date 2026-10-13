@@ -1,6 +1,4 @@
-﻿#if !NET40
-#nullable disable
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.Json;
@@ -98,7 +96,7 @@ public class WebPanelContractTests
 
         /// <summary>注册扩展面板</summary>
         /// <returns>扩展面板列表</returns>
-        protected override List<PanelExtension> GetExtensions() =>
+        protected internal override List<PanelExtension> GetExtensions() =>
         [
             new() { Id = "apps", Name = "应用管理", Icon = "📦", ApiEndpoint = "/api/ext/apps", Order = 10 }
         ];
@@ -382,4 +380,3 @@ public class WebPanelContractTests
     }
     #endregion
 }
-#endif

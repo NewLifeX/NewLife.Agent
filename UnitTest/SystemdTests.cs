@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.ComponentModel;
 using Moq;
 using NewLife;
 using NewLife.Agent;
@@ -6,9 +7,13 @@ using NewLife.Agent.Models;
 
 namespace UnitTest;
 
+/// <summary>Systemd 宿主单元测试</summary>
+/// <remarks>FullTest 会临时替换静态 SystemdPaths[0]，故归入串行集合避免与其它测试并发</remarks>
+[Collection("WebPanel")]
 public class SystemdTests
 {
     [Fact]
+    [DisplayName("Systemd_路径探测与服务文件识别")]
     public void FullTest()
     {
         var systemd = new Systemd();
@@ -53,6 +58,7 @@ public class SystemdTests
     }
 
     [Fact]
+    [DisplayName("SystemdSetting_默认值与属性读写")]
     public void TestSystemdSetting()
     {
         var setting = new SystemdSetting
@@ -79,6 +85,7 @@ public class SystemdTests
     }
 
     [Fact]
+    [DisplayName("Build_标准模型_生成完整service文件")]
     public void Build_StarAgent()
     {
         // Arrange
@@ -122,6 +129,7 @@ public class SystemdTests
     }
 
     [Fact]
+    [DisplayName("Build_File含参数_合并到ExecStart")]
     public void Build_StarAgent2()
     {
         // Arrange
@@ -165,6 +173,7 @@ public class SystemdTests
     }
 
     [Fact]
+    [DisplayName("Install_标准模型_回填SystemdSetting")]
     public void Install_StarAgent()
     {
         var model = new ServiceModel
@@ -195,6 +204,7 @@ public class SystemdTests
     }
 
     [Fact]
+    [DisplayName("Install_File含参数_回填SystemdSetting")]
     public void Install_StarAgent2()
     {
         var model = new ServiceModel
@@ -225,6 +235,7 @@ public class SystemdTests
     }
 
     [Fact]
+    [DisplayName("Install_工作目录缺省_从参数推断")]
     public void Install_StarAgent_NoWorkingDirectory()
     {
         var model = new ServiceModel
@@ -255,6 +266,7 @@ public class SystemdTests
     }
 
     [Fact]
+    [DisplayName("Install_File含参数且无工作目录_从参数推断")]
     public void Install_StarAgent_NoWorkingDirectory2()
     {
         var model = new ServiceModel
@@ -285,6 +297,7 @@ public class SystemdTests
     }
 
     [Fact]
+    [DisplayName("Build_网络与用户配置_生成对应段落")]
     public void Build_Network()
     {
         // Arrange

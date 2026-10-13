@@ -3,16 +3,6 @@ using NewLife.Agent;
 
 namespace UnitTest;
 
-/// <summary>ServiceBase 测试子类，暴露 protected 方法供测试</summary>
-public class ServiceBaseTester : ServiceBase
-{
-    public new Boolean CheckMemory() => base.CheckMemory();
-    public new Boolean CheckThread() => base.CheckThread();
-    public new Boolean CheckHandle() => base.CheckHandle();
-    public new Boolean CheckAutoRestart() => base.CheckAutoRestart();
-    public void DoCheck() => base.DoCheck(null);
-}
-
 /// <summary>ServiceBase 核心逻辑单元测试</summary>
 /// <remarks>验证健康检查方法的行为</remarks>
 public class ServiceBaseTests

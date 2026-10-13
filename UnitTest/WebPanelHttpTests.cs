@@ -1,5 +1,3 @@
-#if !NET40
-#nullable disable
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http;
@@ -191,4 +189,3 @@ public class WebPanelHttpTests
         finally { panel.Stop("TestDone"); }
     }
 }
-#endif

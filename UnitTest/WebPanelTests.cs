@@ -1,5 +1,3 @@
-﻿#if !NET40
-#nullable disable
 using System.ComponentModel;
 using System.Net;
 using System.Reflection;
@@ -22,6 +20,7 @@ public class TokenManagerTests
 {
     #region IssueToken 测试
     [Fact]
+    [DisplayName("IssueToken_空用户名或密码_返回null")]
     public void IssueToken_EmptyUserOrPass_ReturnsNull()
     {
         var panel = CreatePanel("admin", "123456");
@@ -32,6 +31,7 @@ public class TokenManagerTests
     }
 
     [Fact]
+    [DisplayName("IssueToken_未配置凭据_返回null")]
     public void IssueToken_NoCredentialsConfigured_ReturnsNull()
     {
         var panel = CreatePanel(null, null);
@@ -40,6 +40,7 @@ public class TokenManagerTests
     }
 
     [Fact]
+    [DisplayName("IssueToken_用户名错误_返回null")]
     public void IssueToken_WrongUser_ReturnsNull()
     {
         var panel = CreatePanel("admin", "123456");
@@ -48,6 +49,7 @@ public class TokenManagerTests
     }
 
     [Fact]
+    [DisplayName("IssueToken_密码错误_返回null")]
     public void IssueToken_WrongPassword_ReturnsNull()
     {
         var panel = CreatePanel("admin", "123456");
@@ -56,6 +58,7 @@ public class TokenManagerTests
     }
 
     [Fact]
+    [DisplayName("IssueToken_有效凭据_签发32位token")]
     public void IssueToken_ValidCredentials_ReturnsToken()
     {
         var panel = CreatePanel("admin", "123456");
@@ -68,6 +71,7 @@ public class TokenManagerTests
     }
 
     [Fact]
+    [DisplayName("IssueToken_用户名大小写不同_仍签发")]
     public void IssueToken_DifferentCaseUser_StillSucceeds()
     {
         var panel = CreatePanel("Admin", "123456");
@@ -78,6 +82,7 @@ public class TokenManagerTests
     }
 
     [Fact]
+    [DisplayName("ValidateToken_已签发token_验证通过")]
     public void ValidateToken_IssuedToken_ReturnsTrue()
     {
         var panel = CreatePanel("admin", "123456");
@@ -89,6 +94,7 @@ public class TokenManagerTests
     }
 
     [Fact]
+    [DisplayName("ValidateToken_无效token_验证失败")]
     public void ValidateToken_InvalidToken_ReturnsFalse()
     {
         var panel = CreatePanel("admin", "123456");
@@ -97,6 +103,7 @@ public class TokenManagerTests
     }
 
     [Fact]
+    [DisplayName("ValidateToken_空token_验证失败")]
     public void ValidateToken_EmptyToken_ReturnsFalse()
     {
         var panel = CreatePanel("admin", "123456");
@@ -139,12 +146,14 @@ public class TokenManagerTests
 public class LoginRateLimiterTests
 {
     [Fact]
+    [DisplayName("IsBlocked_新IP_未封禁")]
     public void IsBlocked_FreshIp_ReturnsFalse()
     {
         Assert.False(LoginRateLimiter.IsBlocked("192.168.1.1"));
     }
 
     [Fact]
+    [DisplayName("RecordFailure_未达阈值_不封禁")]
     public void RecordFailure_UnderThreshold_NotBlocked()
     {
         var ip = "10.0.0.1";
@@ -155,6 +164,7 @@ public class LoginRateLimiterTests
     }
 
     [Fact]
+    [DisplayName("RecordFailure_达到阈值_封禁")]
     public void RecordFailure_ReachThreshold_Blocked()
     {
         var ip = "10.0.0.2";
@@ -165,6 +175,7 @@ public class LoginRateLimiterTests
     }
 
     [Fact]
+    [DisplayName("RecordSuccess_成功登录_清除封禁")]
     public void RecordSuccess_ClearsBlock()
     {
         var ip = "10.0.0.3";
@@ -178,6 +189,7 @@ public class LoginRateLimiterTests
     }
 
     [Fact]
+    [DisplayName("IsBlocked_空IP_未封禁")]
     public void IsBlocked_NullOrEmpty_ReturnsFalse()
     {
         Assert.False(LoginRateLimiter.IsBlocked(null!));
@@ -185,6 +197,7 @@ public class LoginRateLimiterTests
     }
 
     [Fact]
+    [DisplayName("RecordFailure_空IP_不抛异常")]
     public void RecordFailure_NullOrEmpty_NoException()
     {
         // 空IP不应抛异常
@@ -193,6 +206,7 @@ public class LoginRateLimiterTests
     }
 
     [Fact]
+    [DisplayName("RecordFailure_不同IP_独立计数")]
     public void DifferentIps_IndependentTracking()
     {
         var ip1 = "192.168.1.10";
@@ -212,31 +226,7 @@ public class LoginRateLimiterTests
 [Collection("WebPanel")]
 public class AgentWebPanelTests
 {
-    #region ParseAuthLevel 测试
-    [Fact]
-    public void ParseAuthLevel_None_ReturnsNone()
-    {
-        Assert.Equal(AuthLevel.None, AgentWebPanel.ParseAuthLevel("none"));
-        Assert.Equal(AuthLevel.None, AgentWebPanel.ParseAuthLevel("None"));
-        Assert.Equal(AuthLevel.None, AgentWebPanel.ParseAuthLevel("NONE"));
-    }
-
-    [Fact]
-    public void ParseAuthLevel_Full_ReturnsFull()
-    {
-        Assert.Equal(AuthLevel.Full, AgentWebPanel.ParseAuthLevel("full"));
-        Assert.Equal(AuthLevel.Full, AgentWebPanel.ParseAuthLevel("Full"));
-    }
-
-    [Fact]
-    public void ParseAuthLevel_OtherOrNull_ReturnsLocalOnly()
-    {
-        Assert.Equal(AuthLevel.LocalOnly, AgentWebPanel.ParseAuthLevel("localonly"));
-        Assert.Equal(AuthLevel.LocalOnly, AgentWebPanel.ParseAuthLevel(""));
-        Assert.Equal(AuthLevel.LocalOnly, AgentWebPanel.ParseAuthLevel(null!));
-        Assert.Equal(AuthLevel.LocalOnly, AgentWebPanel.ParseAuthLevel("random"));
-    }
-    #endregion
+    // ParseAuthLevel 的完整用例已集中在 WebPanelModelTests（大小写/空值/未知值），此处不重复
 
     #region ParseBindAddress 测试
     [Fact]
@@ -276,6 +266,7 @@ public class AgentWebPanelTests
 
     #region 构造测试
     [Fact]
+    [DisplayName("构造_有效服务_创建成功")]
     public void Constructor_ValidService_CreatesSuccessfully()
     {
         var mockSvc = new Mock<ServiceBase> { CallBase = true };
@@ -305,6 +296,7 @@ public class AgentWebPanelTests
     }
 
     [Fact]
+    [DisplayName("构造_从配置读取鉴权参数")]
     public void Constructor_ReadsAuthConfigFromSetting()
     {
         var mockSvc = new Mock<ServiceBase> { CallBase = true };
@@ -388,6 +380,7 @@ public class AgentWebPanelTests
 
     #region Start/Stop 测试
     [Fact]
+    [DisplayName("Start_端口0_自动分配端口")]
     public void Start_PortZero_AutoAssigns()
     {
         var mockSvc = new Mock<ServiceBase> { CallBase = true };
@@ -416,6 +409,7 @@ public class AgentWebPanelTests
     }
 
     [Fact]
+    [DisplayName("Stop_重复停止_不抛异常")]
     public void Stop_DoubleStop_NoException()
     {
         var mockSvc = new Mock<ServiceBase> { CallBase = true };
@@ -657,6 +651,7 @@ public class EmbeddedFileHandlerTests
 
     #region 路径处理
     [Fact]
+    [DisplayName("根路径_返回内嵌index.html")]
     public async Task RootPath_ReturnsIndexHtml()
     {
         var handler = CreateHandler();
@@ -669,6 +664,7 @@ public class EmbeddedFileHandlerTests
     }
 
     [Fact]
+    [DisplayName("路径穿越_返回404")]
     public async Task PathTraversal_Returns404()
     {
         var handler = CreateHandler();
@@ -680,6 +676,7 @@ public class EmbeddedFileHandlerTests
     }
 
     [Fact]
+    [DisplayName("不存在文件_返回404")]
     public async Task NonExistentFile_Returns404()
     {
         var handler = CreateHandler();
@@ -693,6 +690,7 @@ public class EmbeddedFileHandlerTests
 
     #region MIME类型
     [Fact]
+    [DisplayName("HTML文件_MIME为text/html")]
     public async Task HtmlFile_SetsCorrectMimeType()
     {
         var handler = CreateHandler();
@@ -705,18 +703,14 @@ public class EmbeddedFileHandlerTests
     }
 
     [Fact]
-    public async Task UnknownExtension_ReturnsOctetStream()
+    [DisplayName("未知扩展名文件不存在_返回404")]
+    public async Task NonExistentUnknownExtension_Returns404()
     {
-        // 用一个已知存在的文件但未知扩展名来测试... 
-        // 由于只有一个 index.html，我们验证MIME逻辑
         var handler = CreateHandler();
-
-        // JS 文件的 MIME 类型验证
-        // 由于我们没有 js 文件嵌入，这里仅验证处理器不会崩溃并且现有逻辑正确
-        // 实际验证通过 index.html 的 MIME 类型
         var ctx = CreateContext("/test.unknown");
+
         await handler.ProcessRequestAsync(ctx);
-        // 不存在的文件会返回404，不会设置 ContentType
+
         Assert.Equal(404, (Int32)ctx.Response.StatusCode);
     }
     #endregion
@@ -736,7 +730,8 @@ public class ProcessControlTests
         return panel;
     }
 
-    [Fact(DisplayName = "停止操作应设置Running为false，不调用StopWork")]
+    [Fact]
+    [DisplayName("停止操作应设置Running为false，不调用StopWork")]
     public void Stop_SetsRunningFalse_NotStopWork()
     {
         var mockSvc = new Mock<ServiceBase> { CallBase = true };
@@ -765,7 +760,8 @@ public class ProcessControlTests
         }
     }
 
-    [Fact(DisplayName = "重启操作应调用Host.Restart")]
+    [Fact]
+    [DisplayName("重启操作应调用Host.Restart")]
     public void Restart_CallsHostRestart()
     {
         var mockHost = new Mock<IHost>();
@@ -869,7 +865,8 @@ public class WebPanelE2ETests : IDisposable
         DefaultHttpContext.Current = null;
     }
 
-    [Fact(DisplayName = "POST /api/login 正确凭据返回 token")]
+    [Fact]
+    [DisplayName("POST /api/login 正确凭据返回 token")]
     public async Task Login_ValidCredentials_ReturnsToken()
     {
         StartPanel();
@@ -885,7 +882,8 @@ public class WebPanelE2ETests : IDisposable
         Assert.Contains("\"token\"", json);
     }
 
-    [Fact(DisplayName = "POST /api/login 错误密码返回 401")]
+    [Fact]
+    [DisplayName("POST /api/login 错误密码返回 401")]
     public async Task Login_WrongPassword_Returns401()
     {
         StartPanel();
@@ -901,7 +899,8 @@ public class WebPanelE2ETests : IDisposable
         Assert.Contains("\"Invalid credentials\"", json);
     }
 
-    [Fact(DisplayName = "POST /api/login 5次失败后返回 429")]
+    [Fact]
+    [DisplayName("POST /api/login 5次失败后返回 429")]
     public async Task Login_TooManyFailures_Returns429()
     {
         StartPanel();
@@ -923,7 +922,8 @@ public class WebPanelE2ETests : IDisposable
         Assert.Contains("\"code\":429", json);
     }
 
-    [Fact(DisplayName = "带 token 访问 /api/status 返回 200")]
+    [Fact]
+    [DisplayName("带 token 访问 /api/status 返回 200")]
     public async Task Status_WithValidToken_Returns200()
     {
         StartPanel();
@@ -950,7 +950,8 @@ public class WebPanelE2ETests : IDisposable
         Assert.Contains("\"code\":0", statusJson);
     }
 
-    [Fact(DisplayName = "无 token 访问 /api/status 返回 401")]
+    [Fact]
+    [DisplayName("无 token 访问 /api/status 返回 401")]
     public async Task Status_WithoutToken_Returns401()
     {
         StartPanel();
@@ -963,4 +964,3 @@ public class WebPanelE2ETests : IDisposable
         Assert.Contains("\"code\":401", json);
     }
 }
-#endif

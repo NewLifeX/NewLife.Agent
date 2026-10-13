@@ -9,6 +9,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <IsPackable>false</IsPackable>
+    <!-- 强命名：与 NewLife.Agent 的 InternalsVisibleTo 友元声明匹配（复用仓库同一密钥 Doc/newlife.snk） -->
+    <SignAssembly>True</SignAssembly>
+    <AssemblyOriginatorKeyFile>..\Doc\newlife.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -32,6 +35,7 @@
   <ItemGroup>
     <ProjectReference Include="..\NewLife.Agent\NewLife.Agent.csproj" />
     <ProjectReference Include="..\NewLife.Extensions.Hosting.AgentService\NewLife.Extensions.Hosting.AgentService.csproj" />
+    <EmbeddedResource Include="TestData\sample.xyz" />
   </ItemGroup>
 
   <ItemGroup>

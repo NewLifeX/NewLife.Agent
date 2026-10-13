@@ -123,7 +123,7 @@ public class CommandFactory
     /// <summary>登记命令处理器，并处理相同命令的冲突</summary>
     /// <param name="commandHandlers">处理器列表</param>
     /// <param name="handler">待登记的处理器</param>
-    private void AddCommandHandler(List<BaseCommandHandler> commandHandlers, BaseCommandHandler handler)
+    internal void AddCommandHandler(List<BaseCommandHandler> commandHandlers, BaseCommandHandler handler)
     {
         if (String.IsNullOrEmpty(handler.Cmd))
         {
@@ -133,13 +133,13 @@ public class CommandFactory
         // 如果已经存在相同命令的处理程序，但基类不同，优先使用继承非基类的处理程序
         if (_commandHandlerDict.ContainsKey(handler.Cmd))
         {
+            var oldHandler = _commandHandlerDict[handler.Cmd];
             if (handler.GetType().BaseType != typeof(BaseCommandHandler))
             {
-                commandHandlers.Remove(_commandHandlerDict[handler.Cmd]);
+                commandHandlers.Remove(oldHandler);
             }
             else
             {
-                var oldHandler = _commandHandlerDict[handler.Cmd] = handler;
                 throw new InvalidOperationException($"类型 {handler.GetType().FullName} 与 {oldHandler.GetType().FullName} 提供的命令 Cmd 值 [{handler.Cmd}] 相同");
             }
         }

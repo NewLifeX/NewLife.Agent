@@ -1,5 +1,3 @@
-#if !NET40
-#nullable disable
 using System.ComponentModel;
 using System.Text.Json;
 using Moq;
@@ -175,6 +173,7 @@ public class ApiControllerTests
 
         Assert.Equal(0, GetCode(result));
         var data = GetData(result);
+        // 冒烟断言：跨平台采集不可用时返回 0，这里验证指标存在且值域合法
         Assert.True(data.TryGetProperty("diskIops", out var iops));
         Assert.True(iops.GetInt32() >= 0);
     }
@@ -300,8 +299,8 @@ public class ApiControllerTests
 
     #region 日志
     [Fact]
-    [DisplayName("Logs_无日志文件_返回空列表不抛异常")]
-    public void Logs_NoLogFile_ReturnsEmpty()
+    [DisplayName("Logs_读取最新日志_返回行数组且不超过请求行数")]
+    public void Logs_DefaultFile_ReturnsLineArray()
     {
         var (_, controller) = CreateController();
 
@@ -309,7 +308,11 @@ public class ApiControllerTests
 
         Assert.Equal(0, GetCode(result));
         var data = GetData(result);
-        Assert.True(data.TryGetProperty("lines", out _));
+        // fileName 固定为 latest（未指定文件名），lines 为数组且不超过请求行数
+        Assert.Equal("latest", data.GetProperty("fileName").GetString());
+        var lines = data.GetProperty("lines");
+        Assert.Equal(JsonValueKind.Array, lines.ValueKind);
+        Assert.True(lines.GetArrayLength() <= 10);
     }
 
     [Fact]
@@ -337,4 +340,3 @@ public class ApiControllerTests
     }
     #endregion
 }
-#endif

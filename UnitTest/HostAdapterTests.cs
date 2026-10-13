@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Runtime.Versioning;
 using NewLife;
 using NewLife.Agent;
 using NewLife.Agent.Models;
@@ -85,23 +86,19 @@ public class HostAdapterTests
     #endregion
 
     #region Windows 宿主
-    [Fact]
+    [WindowsFact]
     [DisplayName("WindowsService_未安装的服务_返回未安装")]
     public void WindowsService_NotInstalled_ReturnsFalse()
     {
-        if (!Runtime.Windows) return;
-
         var host = new WindowsService();
         Assert.False(host.IsInstalled("NewLifeAgentUnitTestNotExist"));
     }
 
-    [Fact]
+    [WindowsFact]
+    [SupportedOSPlatform("windows")]
     [DisplayName("WindowsAutorun_未安装的服务_返回未安装")]
     public void WindowsAutorun_NotInstalled_ReturnsFalse()
     {
-        // 使用操作系统判定以便平台兼容性分析器识别，避免 CA1416
-        if (!OperatingSystem.IsWindows()) return;
-
         var host = new WindowsAutorun();
         Assert.False(host.IsInstalled("NewLifeAgentUnitTestNotExist"));
         Assert.Null(host.QueryConfig("NewLifeAgentUnitTestNotExist"));
