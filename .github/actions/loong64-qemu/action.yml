@@ -80,6 +80,19 @@ runs:
       set -euo pipefail
       sudo chroot "$ROOTFS" /bin/bash -c "export DEBIAN_FRONTEND=noninteractive; apt-get install -y --no-install-recommends ${PACKAGES//,/ }"
 
+  - name: Adjust loong64 runtime loader
+    shell: bash
+    env:
+      ROOTFS: ${{ inputs.rootfs }}
+    run: |
+      set -euo pipefail
+      # loongnix 系运行时包（自包含发布的 apphost）把动态加载器写成 /lib64/ld.so.1，
+      # Debian loong64 使用 /lib64/ld-linux-loongarch-lp64d.so.1，补兼容链接供其加载
+      if [ ! -e "$ROOTFS/lib64/ld.so.1" ] && [ -e "$ROOTFS/lib64/ld-linux-loongarch-lp64d.so.1" ]; then
+        sudo ln -sf ld-linux-loongarch-lp64d.so.1 "$ROOTFS/lib64/ld.so.1"
+      fi
+      ls -l "$ROOTFS/lib64/"
+
   - name: Install Loongson .NET SDK
     if: ${{ inputs.dotnet-sdk != '' }}
     shell: bash
@@ -129,4 +142,4 @@ runs:
       sudo cp /etc/resolv.conf "$ROOTFS/etc/resolv.conf"
       echo "LOONG64_ROOTFS=$ROOTFS" >> "$GITHUB_ENV"
       echo "挂载完成："
-      sudo chroot "$ROOTFS" /bin/bash -c "cd $GITHUB_WORKSPACE && pwd && ls -d Bin"
+      sudo chroot "$ROOTFS" /bin/bash -c "cd $GITHUB_WORKSPACE && pwd && ls -d UnitTest"

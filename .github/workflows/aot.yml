@@ -201,7 +201,8 @@ jobs:
     - name: Smoke run under QEMU
       shell: bash
       run: |
-        set -euo pipefail
-        out=$(sudo chroot "$LOONG64_ROOTFS" /bin/bash -c "cd '$GITHUB_WORKSPACE' && ./Bin/Test/net10.0/linux-loongarch64/publish/Test -status" 2>&1)
+        set -uo pipefail
+        out=$(sudo chroot "$LOONG64_ROOTFS" /bin/bash -c "cd '$GITHUB_WORKSPACE' && ./Bin/Test/net10.0/linux-loongarch64/publish/Test -status" 2>&1) && rc=0 || rc=$?
         echo "$out"
+        [ "$rc" = "0" ] || { echo "LA64 冒烟运行失败（exit=$rc）"; exit 1; }
         echo "$out" | grep -q "NewLife.Agent" || { echo "LA64 冒烟未输出预期内容"; exit 1; }
