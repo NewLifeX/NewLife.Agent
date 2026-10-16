@@ -21,7 +21,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Doc\newlife.snk</AssemblyOriginatorKeyFile>
-    <!-- CS8600 为 NewLife.Core 源生成器控制器分发产物（net6.0+ 目标）引入，非本仓库代码告警；2026-10-16 用 Core 12.0.2026.1013-beta0732 复测仍复现，待上游修复后随升级移除 -->
+    <!-- CS8600 为 NewLife.Core 源生成器控制器分发产物（net6.0+ 目标）引入，非本仓库代码告警；2026-10-16 用 Core 12.0.2026.1016-beta0317 复测仍复现，待上游修复后随升级移除 -->
     <NoWarn>1701;1702;NU5104;NETSDK1138;CS7035;NU1903;CS8600</NoWarn>
     <AnalysisLevel>latest</AnalysisLevel>
     <WarningsAsErrors>CA2007</WarningsAsErrors>
@@ -73,7 +73,7 @@
     </None>
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'!='net40'">
-    <PackageReference Include="NewLife.Core" Version="12.0.2026.1013-beta0732" />
+    <PackageReference Include="NewLife.Core" Version="12.0.2026.1016-beta0317" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'=='net40'">
     <PackageReference Include="NewLife.Core" Version="10.10.2024.0801-net40" />
