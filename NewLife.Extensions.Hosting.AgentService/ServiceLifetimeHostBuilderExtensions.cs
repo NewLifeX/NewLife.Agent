@@ -22,7 +22,9 @@ public static class ServiceLifetimeHostBuilderExtensions
         {
             services.AddSingleton<IHostLifetime, ServiceLifetime>();
             services.TryAddSingleton(XTrace.Log);
-            services.Configure(configure);
+
+            // 允许无参调用：configure 为空时跳过选项配置（Options.Configure 不接受空委托）
+            if (configure != null) services.Configure(configure);
         });
 
         return hostBuilder;
