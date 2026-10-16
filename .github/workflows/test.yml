@@ -81,7 +81,9 @@ jobs:
         cat > /tmp/run-tests.sh <<'SCRIPT'
         #!/bin/bash
         set -euo pipefail
-        export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
+        # 宿主 runner 的 XDG_RUNTIME_DIR/DOTNET_CLI_HOME 在 chroot 内不适用，重置为 root 家目录
+        unset XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
+        export DOTNET_CLI_HOME=/root DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
         export DOTNET_ROOT=/usr/share/dotnet
         export PATH=/usr/share/dotnet:$PATH
         cd "$WORKSPACE"

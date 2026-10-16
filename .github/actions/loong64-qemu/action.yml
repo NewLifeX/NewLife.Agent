@@ -87,11 +87,15 @@ runs:
     run: |
       set -euo pipefail
       # loongnix 系运行时包（自包含发布的 apphost）把动态加载器写成 /lib64/ld.so.1，
-      # Debian loong64 使用 /lib64/ld-linux-loongarch-lp64d.so.1，补兼容链接供其加载
+      # Debian loong64 使用 /lib64/ld-linux-loongarch-lp64d.so.1，补兼容链接；
+      # 注意该系产物还要求 Loongnix 的 glibc 版本节点（GLIBC_2.0/2.2/2.27），只能在 Loongnix 上运行
       if [ ! -e "$ROOTFS/lib64/ld.so.1" ] && [ -e "$ROOTFS/lib64/ld-linux-loongarch-lp64d.so.1" ]; then
         sudo ln -sf ld-linux-loongarch-lp64d.so.1 "$ROOTFS/lib64/ld.so.1"
       fi
       ls -l "$ROOTFS/lib64/"
+      # 宿主 runner 的 XDG_RUNTIME_DIR 指向 /run/user/1001，chroot 内不存在会让 .NET 命名互斥体初始化失败
+      sudo mkdir -p "$ROOTFS/run/user/1001"
+      sudo chmod 700 "$ROOTFS/run/user/1001"
 
   - name: Install Loongson .NET SDK
     if: ${{ inputs.dotnet-sdk != '' }}

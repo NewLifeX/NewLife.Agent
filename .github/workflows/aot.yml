@@ -145,8 +145,9 @@ jobs:
         echo "$out" | grep -q "NewLife.Agent" || { echo "NativeAOT 冒烟未输出预期内容"; exit 1; }
 
   # LoongArch64：官方无该 RID 的 NativeAOT 目标包（loongnix 源仅有 net9 的 ILCompiler），
-  # 采用经 loongnix 源的非 AOT 自包含发布，并在 qemu-loongarch64 用户态仿真下真实运行冒烟，
-  # 验证产物在 LA64 上可加载运行；SDK 更新后如需接 NativeAOT 另行立项。
+  # 分两层验证：① x64 宿主经 loongnix 源交叉发布自包含包（产物要求 Loongnix 的 glibc 版本节点，
+  # 仅验证交叉打包可行）；② QEMU 用户态仿真下用龙芯 SDK 原生构建并真实运行 -status 冒烟，
+  # 验证应用在 LA64 上可加载运行。
   aot-loongarch64:
     name: aot (linux-loongarch64)
     runs-on: ubuntu-latest
@@ -184,7 +185,7 @@ jobs:
         </configuration>
         EOF
         cat NuGet.Config
-    - name: Publish self-contained (linux-loongarch64)
+    - name: Cross publish self-contained (linux-loongarch64)
       run: dotnet publish Test/Test.csproj -c Release -f net10.0 -p:TargetFrameworks=net10.0 -r linux-loongarch64 -p:PublishAot=false --self-contained true
     - name: Verify loongarch64 output
       run: |
@@ -198,11 +199,26 @@ jobs:
         [ "$count" -gt 100 ] || { echo "自包含产物文件数异常"; exit 1; }
     - name: Setup loong64 QEMU environment
       uses: ./.github/actions/loong64-qemu
-    - name: Smoke run under QEMU
+      with:
+        dotnet-sdk: 10.0.113
+    - name: Build and smoke run under QEMU
       shell: bash
       run: |
-        set -uo pipefail
-        out=$(sudo chroot "$LOONG64_ROOTFS" /bin/bash -c "cd '$GITHUB_WORKSPACE' && ./Bin/Test/net10.0/linux-loongarch64/publish/Test -status" 2>&1) && rc=0 || rc=$?
+        set -euo pipefail
+        cat > /tmp/run-aot-smoke.sh <<'SCRIPT'
+        #!/bin/bash
+        set -euo pipefail
+        unset XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
+        export DOTNET_CLI_HOME=/root DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
+        export DOTNET_ROOT=/usr/share/dotnet
+        export PATH=/usr/share/dotnet:$PATH
+        cd "$WORKSPACE"
+        dotnet --info
+        dotnet build Test/Test.csproj -c Release -f net10.0 -p:TargetFrameworks=net10.0 -p:PublishAot=false
+        out=$(dotnet Bin/Test/net10.0/Test.dll -status 2>&1) && rc=0 || rc=$?
         echo "$out"
         [ "$rc" = "0" ] || { echo "LA64 冒烟运行失败（exit=$rc）"; exit 1; }
         echo "$out" | grep -q "NewLife.Agent" || { echo "LA64 冒烟未输出预期内容"; exit 1; }
+        SCRIPT
+        sudo cp /tmp/run-aot-smoke.sh "$LOONG64_ROOTFS/tmp/run-aot-smoke.sh"
+        sudo chroot "$LOONG64_ROOTFS" /usr/bin/env WORKSPACE="$GITHUB_WORKSPACE" /bin/bash /tmp/run-aot-smoke.sh
