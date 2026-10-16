@@ -104,6 +104,9 @@ jobs:
         export DOTNET_CLI_HOME=/root DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
         export DOTNET_ROOT=/usr/share/dotnet
         export PATH=/usr/share/dotnet:$PATH
+        # LA64 运行时在 QEMU 仿真下使用 W^X 双映射代码页会随机崩溃（testhost SIGSEGV / FailFast），
+        # 关闭后全量用例稳定通过；已在 QEMU 8.2 与 10.0.13、LA64 运行时 10.0.12 与 10.0.13 上交叉验证
+        export DOTNET_EnableWriteXorExecute=0
         cd "$WORKSPACE"
         dotnet --info
         # 宿主构建产物中的 testhost 为宿主 RID 的原生宿主，移除后 VSTest 退回 dotnet exec testhost.dll

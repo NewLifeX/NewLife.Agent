@@ -216,6 +216,8 @@ jobs:
         export DOTNET_CLI_HOME=/root DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
         export DOTNET_ROOT=/usr/share/dotnet
         export PATH=/usr/share/dotnet:$PATH
+        # 与单测作业一致：QEMU 仿真下 LA64 运行时的 W^X 双映射代码页会随机崩溃，关闭以确保冒烟稳定
+        export DOTNET_EnableWriteXorExecute=0
         cd "$WORKSPACE"
         dotnet --info
         out=$(dotnet Bin/Test/net10.0/Test.dll -status 2>&1) && rc=0 || rc=$?
