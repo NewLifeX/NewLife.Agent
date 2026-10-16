@@ -201,6 +201,10 @@ jobs:
       uses: ./.github/actions/loong64-qemu
       with:
         dotnet-sdk: 10.0.113
+    - name: Restore packages (host)
+      # 龙芯 SDK 在仿真下执行还原会命中其 AOT/反射缺陷（MSBuild 任务 SkipNonexistentProjects 参数 NRE），
+      # 改为宿主原生还原（重新生成非 RID 的 assets），chroot 内以 --no-restore 构建
+      run: dotnet restore Test/Test.csproj -p:TargetFrameworks=net10.0 -p:PublishAot=false
     - name: Build and smoke run under QEMU
       shell: bash
       run: |
@@ -214,7 +218,7 @@ jobs:
         export PATH=/usr/share/dotnet:$PATH
         cd "$WORKSPACE"
         dotnet --info
-        dotnet build Test/Test.csproj -c Release -f net10.0 -p:TargetFrameworks=net10.0 -p:PublishAot=false
+        dotnet build Test/Test.csproj -c Release -f net10.0 -p:TargetFrameworks=net10.0 -p:PublishAot=false --no-restore
         out=$(dotnet Bin/Test/net10.0/Test.dll -status 2>&1) && rc=0 || rc=$?
         echo "$out"
         [ "$rc" = "0" ] || { echo "LA64 冒烟运行失败（exit=$rc）"; exit 1; }

@@ -74,6 +74,10 @@ jobs:
       uses: ./.github/actions/loong64-qemu
       with:
         dotnet-sdk: 10.0.113
+    - name: Restore packages (host)
+      # 龙芯 SDK 在仿真下执行还原会命中其 AOT/反射缺陷（MSBuild 任务 SkipNonexistentProjects 参数 NRE），
+      # 改为宿主原生还原，chroot 内以 --no-restore 构建复用同一份 assets 与包缓存
+      run: dotnet restore UnitTest/UnitTest.csproj
     - name: Unit tests under QEMU
       shell: bash
       run: |
@@ -88,7 +92,7 @@ jobs:
         export PATH=/usr/share/dotnet:$PATH
         cd "$WORKSPACE"
         dotnet --info
-        dotnet test UnitTest/UnitTest.csproj -c Release --logger "trx;LogFileName=loongarch64.trx" --results-directory TestResults
+        dotnet test UnitTest/UnitTest.csproj -c Release --no-restore --logger "trx;LogFileName=loongarch64.trx" --results-directory TestResults
         SCRIPT
         sudo cp /tmp/run-tests.sh "$LOONG64_ROOTFS/tmp/run-tests.sh"
         sudo chroot "$LOONG64_ROOTFS" /usr/bin/env WORKSPACE="$GITHUB_WORKSPACE" /bin/bash /tmp/run-tests.sh

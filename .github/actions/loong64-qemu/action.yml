@@ -138,6 +138,9 @@ runs:
       # 工作区按宿主同名绝对路径挂载进 rootfs，chroot 内可直接用 $GITHUB_WORKSPACE
       sudo mkdir -p "$ROOTFS$GITHUB_WORKSPACE"
       sudo mount --bind "$GITHUB_WORKSPACE" "$ROOTFS$GITHUB_WORKSPACE"
+      # NuGet 包缓存同样按宿主路径挂载，chroot 内 --no-restore 构建可复用宿主还原的 assets
+      sudo mkdir -p "$ROOTFS$HOME/.nuget/packages"
+      sudo mount --bind "$HOME/.nuget/packages" "$ROOTFS$HOME/.nuget/packages"
       sudo mount -t proc proc "$ROOTFS/proc"
       sudo mount --bind /sys "$ROOTFS/sys"
       sudo mount --bind /dev "$ROOTFS/dev"
