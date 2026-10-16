@@ -1,0 +1,132 @@
+name: loong64 QEMU 环境
+description: >-
+  搭建 linux-loongarch64 用户态仿真环境：qemu-user-static（binfmt 注册，F 标志免拷贝解释器）
+  + Debian sid(loong64 已加入官方归档) rootfs，可选安装龙芯 .NET SDK，
+  并把工作区与 /proc、/sys、/dev 挂载进 rootfs，供 chroot 内直接构建与运行。
+
+inputs:
+  rootfs:
+    description: rootfs 安装路径
+    required: false
+    default: /srv/loong64
+  packages:
+    description: rootfs 内附加安装的软件包（逗号分隔，空则跳过）
+    required: false
+    default: 'ca-certificates,openssl,libicu-dev,libstdc++6,zlib1g,procps'
+  dotnet-sdk:
+    description: 龙芯 .NET SDK 版本（如 10.0.113，来源 github.com/loongson/dotnet）；留空跳过安装
+    required: false
+    default: ''
+  suite:
+    description: Debian 套件名。loong64 在 sid/unstable 与 testing(forky) 提供
+    required: false
+    default: unstable
+
+runs:
+  using: composite
+  steps:
+  - name: Install QEMU user emulation
+    shell: bash
+    env:
+      DEBIAN_FRONTEND: noninteractive
+    run: |
+      set -euo pipefail
+      sudo apt-get update
+      # qemu-user-static 自带 /usr/lib/binfmt.d/qemu-loongarch64.conf（OPF 标志，F 使 chroot 内透明执行）
+      sudo apt-get install -y --no-install-recommends qemu-user-static debootstrap
+      if ! dpkg -s debian-archive-keyring >/dev/null 2>&1; then
+        sudo apt-get install -y --no-install-recommends debian-archive-keyring || {
+          # 官方仓库未提供时直接从 Debian 归档取密钥环
+          deb=$(curl -fsSL "https://deb.debian.org/debian/pool/main/d/debian-archive-keyring/" | grep -oE 'debian-archive-keyring_[^"]+_all\.deb' | sort -V | tail -1)
+          curl -fsSL -o /tmp/debian-archive-keyring.deb "https://deb.debian.org/debian/pool/main/d/debian-archive-keyring/$deb"
+          sudo dpkg -i /tmp/debian-archive-keyring.deb
+        }
+      fi
+      sudo systemctl restart systemd-binfmt 2>/dev/null || true
+      if [ ! -e /proc/sys/fs/binfmt_misc/qemu-loongarch64 ]; then
+        echo "loongarch64 binfmt 未注册"; exit 1
+      fi
+      cat /proc/sys/fs/binfmt_misc/qemu-loongarch64
+
+  - name: Build loong64 rootfs
+    shell: bash
+    env:
+      ROOTFS: ${{ inputs.rootfs }}
+      SUITE: ${{ inputs.suite }}
+    run: |
+      set -euo pipefail
+      if [ -e "$ROOTFS/bin/bash" ]; then
+        echo "rootfs 已存在，跳过 debootstrap"
+        exit 0
+      fi
+      sudo mkdir -p "$ROOTFS"
+      # binfmt F 标志下无需 --foreign 与二阶段拷贝，debootstrap 直接跑通
+      # 镜像用 http（Release 签名校验完整性），chroot 内 .NET 走 https 由 ca-certificates 覆盖
+      sudo debootstrap --arch=loong64 --variant=minbase --components=main \
+        --keyring=/usr/share/keyrings/debian-archive-keyring.gpg \
+        "$SUITE" "$ROOTFS" http://deb.debian.org/debian
+      # 后续 chroot 内 apt/NuGet 需要 DNS
+      sudo cp /etc/resolv.conf "$ROOTFS/etc/resolv.conf"
+      # 仿真执行验证：LA64 版 bash 在 x64 宿主上经 qemu 跑出结果
+      sudo chroot "$ROOTFS" /bin/bash -c 'uname -m; echo loong64 rootfs ready'
+
+  - name: Install rootfs packages
+    if: ${{ inputs.packages != '' }}
+    shell: bash
+    env:
+      ROOTFS: ${{ inputs.rootfs }}
+      PACKAGES: ${{ inputs.packages }}
+    run: |
+      set -euo pipefail
+      sudo chroot "$ROOTFS" /bin/bash -c "export DEBIAN_FRONTEND=noninteractive; apt-get install -y --no-install-recommends ${PACKAGES//,/ }"
+
+  - name: Install Loongson .NET SDK
+    if: ${{ inputs.dotnet-sdk != '' }}
+    shell: bash
+    env:
+      ROOTFS: ${{ inputs.rootfs }}
+      SDK: ${{ inputs.dotnet-sdk }}
+    run: |
+      set -euo pipefail
+      url="https://github.com/loongson/dotnet/releases/download/v${SDK}-loongarch64/dotnet-sdk-${SDK}-linux-loongarch64.tar.gz"
+      echo "下载龙芯 SDK：$url"
+      # 宿主原生下载解包，避免仿真开销
+      curl -fL --retry 3 -o /tmp/la64-dotnet-sdk.tar.gz "$url"
+      tmp=/tmp/la64-sdk-unpack
+      rm -rf "$tmp"; mkdir -p "$tmp"
+      tar -xzf /tmp/la64-dotnet-sdk.tar.gz -C "$tmp"
+      # 兼容“顶层即 SDK 内容”与“顶层是包装目录”两种打包形态
+      if [ -x "$tmp/dotnet" ]; then
+        src="$tmp"
+      else
+        src=$(dirname "$(find "$tmp" -maxdepth 2 -type f -name dotnet | head -1)")
+      fi
+      sudo mkdir -p "$ROOTFS/usr/share/dotnet"
+      sudo cp -a "$src/." "$ROOTFS/usr/share/dotnet/"
+      rm -rf "$tmp" /tmp/la64-dotnet-sdk.tar.gz
+      # 仿真下 --info 真实执行 LA64 版 dotnet，是 SDK 通路的第一道验证
+      sudo chroot "$ROOTFS" /bin/bash -lc '
+        export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
+        export PATH=/usr/share/dotnet:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        export DOTNET_ROOT=/usr/share/dotnet
+        dotnet --info | head -30
+      '
+
+  - name: Mount workspace and virtual filesystems
+    shell: bash
+    env:
+      ROOTFS: ${{ inputs.rootfs }}
+    run: |
+      set -euo pipefail
+      # 工作区按宿主同名绝对路径挂载进 rootfs，chroot 内可直接用 $GITHUB_WORKSPACE
+      sudo mkdir -p "$ROOTFS$GITHUB_WORKSPACE"
+      sudo mount --bind "$GITHUB_WORKSPACE" "$ROOTFS$GITHUB_WORKSPACE"
+      sudo mount -t proc proc "$ROOTFS/proc"
+      sudo mount --bind /sys "$ROOTFS/sys"
+      sudo mount --bind /dev "$ROOTFS/dev"
+      sudo mount --bind /dev/pts "$ROOTFS/dev/pts"
+      # DNS 供 chroot 内 NuGet/apt 使用
+      sudo cp /etc/resolv.conf "$ROOTFS/etc/resolv.conf"
+      echo "LOONG64_ROOTFS=$ROOTFS" >> "$GITHUB_ENV"
+      echo "挂载完成："
+      sudo chroot "$ROOTFS" /bin/bash -c "cd $GITHUB_WORKSPACE && pwd && ls -d Bin"

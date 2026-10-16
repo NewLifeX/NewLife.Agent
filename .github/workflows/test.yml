@@ -7,200 +7,93 @@ on:
     branches: [ '*' ]
   workflow_dispatch:
 
+# 单元测试矩阵：覆盖 win-x64 / linux-x64 / linux-arm64 / linux-loongarch64（QEMU 用户态仿真）。
+# 全部在 push/PR 触发，不设夜间计划任务。AOT 与发布冒烟见 aot.yml。
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  # 全解决方案编译校验（含 Samples/Zero.* 等非测试工程），与测试矩阵并行运行
+  build:
+    name: build solution
+    runs-on: windows-latest
+    timeout-minutes: 30
 
     steps:
     - uses: actions/checkout@v4
     - name: Setup dotNET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: |
-          6.x
-          7.x
-          8.x
-          9.x
-          10.x
+        dotnet-version: 10.x
     - name: Build
-      run: |
-        dotnet build -c Release
+      run: dotnet build -c Release
+
+  # 原生架构单元测试矩阵
+  test:
+    name: test (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: win-x64,     os: windows-latest }
+          - { name: linux-x64,   os: ubuntu-latest,    coverage: true }
+          - { name: linux-arm64, os: ubuntu-24.04-arm }
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup dotNET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.x
     - name: Test
+      shell: bash
+      # blame-hang：用例挂起时超时转储，便于定位（正常单 job 约 1 分钟，远小于 10 分钟阈值）
       run: |
-        dotnet test UnitTest/UnitTest.csproj -c Release --no-build --collect:"XPlat Code Coverage" --results-directory ./TestResults
+        args=(UnitTest/UnitTest.csproj -c Release --blame-hang-timeout 10m)
+        if [ "${{ matrix.coverage }}" = "true" ]; then
+          args+=(--collect:"XPlat Code Coverage" --results-directory ./TestResults)
+        fi
+        dotnet test "${args[@]}"
     - name: Upload coverage
+      if: matrix.coverage
       uses: actions/upload-artifact@v4
       with:
         name: coverage
         path: TestResults/**/coverage.cobertura.xml
         if-no-files-found: warn
 
-  test-windows:
-    runs-on: windows-latest
+  # linux-loongarch64 单元测试：GitHub 无 LA64 原生 runner，用 qemu-loongarch64 用户态仿真。
+  # rootfs 取 Debian sid（loong64 已并入官方归档），.NET SDK 用龙芯发行版。
+  test-loongarch64:
+    name: test (linux-loongarch64 qemu)
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
 
     steps:
     - uses: actions/checkout@v4
-    - name: Setup dotNET
-      uses: actions/setup-dotnet@v4
+    - name: Setup loong64 QEMU environment
+      uses: ./.github/actions/loong64-qemu
       with:
-        dotnet-version: |
-          10.x
-    - name: Test
-      run: |
-        dotnet test UnitTest/UnitTest.csproj -c Release
-
-  aot:
-    name: aot-${{ matrix.rid }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # Windows
-          - { rid: win-x64,   os: windows-latest, smoke: true }
-          - { rid: win-x86,   os: windows-latest, smoke: true }
-          - { rid: win-arm64, os: windows-11-arm, smoke: true }
-          # Linux glibc：x64/arm64 原生，arm 交叉
-          - { rid: linux-x64,   os: ubuntu-latest,    smoke: true }
-          - { rid: linux-arm64, os: ubuntu-24.04-arm, smoke: true }
-          # 交叉产物为 ARM 架构，ubuntu x64 无法直接运行，仅做发布验证
-          - { rid: linux-arm,   os: ubuntu-latest, cross: armhf, smoke: false, args: "-p:LinkerFlavor=lld" }
-          # Linux musl：交叉构建；x64 产物静态链接可在本机运行，其余仅做发布验证
-          - { rid: linux-musl-x64,   os: ubuntu-latest, cross: musl-x64,   smoke: true,  args: "-p:CppLinker=/usr/local/bin/clang-musl" }
-          - { rid: linux-musl-arm64, os: ubuntu-latest, cross: musl-arm64, smoke: false, args: "-p:CppLinker=/usr/local/bin/clang-musl -p:LinkerFlavor=lld" }
-          - { rid: linux-musl-arm,   os: ubuntu-latest, cross: musl-arm,   smoke: false, args: "-p:CppLinker=/usr/local/bin/clang-musl -p:LinkerFlavor=lld" }
-          # LoongArch64：官方 nuget.org 无该 RID 运行时/ILCompiler 包，经 loongnix 源做非 AOT 的自包含发布验证
-          - { rid: linux-loongarch64, os: ubuntu-latest, cross: la64, smoke: false, args: "-p:PublishAot=false --self-contained true" }
-          # macOS
-          - { rid: osx-x64,   os: macos-15-intel, smoke: true }
-          - { rid: osx-arm64, os: macos-15,       smoke: true }
-    steps:
-    - uses: actions/checkout@v4
-    - name: Setup dotNET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: |
-          10.x
-    - name: Install Linux NativeAOT toolchain
-      if: startsWith(matrix.os, 'ubuntu')
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends clang zlib1g-dev lld
-    - name: Install Linux armhf cross toolchain
-      if: matrix.cross == 'armhf'
-      run: |
-        sudo dpkg --add-architecture armhf
-        sudo sed -i 's/^Types: deb$/Types: deb\nArchitectures: amd64/' /etc/apt/sources.list.d/ubuntu.sources
-        sudo tee /etc/apt/sources.list.d/armhf.sources >/dev/null <<'EOF'
-        Types: deb
-        URIs: http://ports.ubuntu.com/ubuntu-ports
-        Suites: noble noble-updates noble-security
-        Components: main restricted universe multiverse
-        Architectures: armhf
-        EOF
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends clang llvm binutils-arm-linux-gnueabihf gcc-arm-linux-gnueabihf zlib1g-dev:armhf
-    - name: Install Linux musl cross toolchain
-      if: startsWith(matrix.cross, 'musl')
-      run: |
-        case "${{ matrix.cross }}" in
-          musl-x64)
-            sudo apt-get install -y --no-install-recommends musl-tools
-            ;;
-          musl-arm64)
-            sudo dpkg --add-architecture arm64
-            sudo sed -i 's/^Types: deb$/Types: deb\nArchitectures: amd64/' /etc/apt/sources.list.d/ubuntu.sources
-            sudo tee /etc/apt/sources.list.d/arm64.sources >/dev/null <<'EOF'
-        Types: deb
-        URIs: http://ports.ubuntu.com/ubuntu-ports
-        Suites: noble noble-updates noble-security
-        Components: main restricted universe multiverse
-        Architectures: arm64
-        EOF
-            sudo apt-get update
-            sudo apt-get install -y gcc-aarch64-linux-gnu musl-dev:arm64
-            ;;
-          musl-arm)
-            sudo dpkg --add-architecture armhf
-            sudo sed -i 's/^Types: deb$/Types: deb\nArchitectures: amd64/' /etc/apt/sources.list.d/ubuntu.sources
-            sudo tee /etc/apt/sources.list.d/armhf-musl.sources >/dev/null <<'EOF'
-        Types: deb
-        URIs: http://ports.ubuntu.com/ubuntu-ports
-        Suites: noble noble-updates noble-security
-        Components: main restricted universe multiverse
-        Architectures: armhf
-        EOF
-            sudo apt-get update
-            sudo apt-get install -y gcc-arm-linux-gnueabihf musl-dev:armhf
-            ;;
-        esac
-        # 生成 musl 链接包装：注入 musl 库路径与目标 libgcc
-        sudo apt-get install -y llvm
-        case "${{ matrix.cross }}" in
-          musl-x64)
-            gccdir=$(ls -d /usr/lib/gcc/x86_64-linux-gnu/*/ | head -1)
-            printf '#!/bin/sh\nexec clang "$@" -L/usr/lib/x86_64-linux-musl -L%s -static-libgcc\n' "$gccdir" | sudo tee /usr/local/bin/clang-musl >/dev/null
-            ;;
-          musl-arm64)
-            gccdir=$(ls -d /usr/lib/gcc-cross/aarch64-linux-gnu/*/ | head -1)
-            # glibc 版 libgcc 的 lse 探测引用 glibc 私有符号 __getauxval，编译转发 shim 补齐
-            printf '#include <sys/auxv.h>\nunsigned long __getauxval(unsigned long type) { return getauxval(type); }\n' > /tmp/getauxval-shim.c
-            clang --target=aarch64-linux-musl -I/usr/include/aarch64-linux-musl -c /tmp/getauxval-shim.c -o /tmp/getauxval-shim.o
-            printf '#!/bin/sh\nexec clang "$@" /tmp/getauxval-shim.o -L/usr/lib/aarch64-linux-musl -L%s -static-libgcc\n' "$gccdir" | sudo tee /usr/local/bin/clang-musl >/dev/null
-            ;;
-          musl-arm)
-            gccdir=$(ls -d /usr/lib/gcc-cross/arm-linux-gnueabihf/*/ | head -1)
-            printf '#!/bin/sh\nexec clang "$@" -L/usr/lib/arm-linux-musleabihf -L%s -static-libgcc\n' "$gccdir" | sudo tee /usr/local/bin/clang-musl >/dev/null
-            ;;
-        esac
-        sudo chmod +x /usr/local/bin/clang-musl
-        cat /usr/local/bin/clang-musl
-    - name: Prepare loongarch64 NuGet source
-      if: matrix.cross == 'la64'
-      run: |
-        # loongnix 源提供 loongarch64 运行时包；其 BaGet 对缺失包返回 500，
-        # 故用 packageSourceMapping 把 loongnix 限定到 loongarch64 包（须逐包精确声明，
-        # 通配 *.linux-loongarch64 会被 NuGet 误判为匹配全部包），其余包走 nuget.org
-        cat > NuGet.Config <<'EOF'
-        <?xml version="1.0" encoding="utf-8"?>
-        <configuration>
-          <packageSources>
-            <clear />
-            <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
-            <add key="loongnix" value="https://nuget.loongnix.cn/v3/index.json" allowInsecureConnections="true" />
-          </packageSources>
-          <packageSourceMapping>
-            <packageSource key="nuget.org">
-              <package pattern="*" />
-            </packageSource>
-            <packageSource key="loongnix">
-              <package pattern="Microsoft.AspNetCore.App.Runtime.linux-loongarch64" />
-              <package pattern="Microsoft.NETCore.App.Host.linux-loongarch64" />
-              <package pattern="Microsoft.NETCore.App.Runtime.linux-loongarch64" />
-            </packageSource>
-          </packageSourceMapping>
-        </configuration>
-        EOF
-        cat NuGet.Config
-    - name: Publish NativeAOT (${{ matrix.rid }})
-      run: dotnet publish Test/Test.csproj -c Release -f net10.0 -p:TargetFrameworks=net10.0 -r ${{ matrix.rid }} ${{ matrix.args }}
-    - name: Verify loongarch64 output
-      if: matrix.cross == 'la64'
-      run: |
-        bin="Bin/Test/net10.0/linux-loongarch64/publish/Test"
-        file "$bin"
-        file "$bin" | grep -q "LoongArch" || { echo "产物不是 LoongArch 架构"; exit 1; }
-        test -f Bin/Test/net10.0/linux-loongarch64/publish/Test.dll || { echo "缺少 Test.dll"; exit 1; }
-        test -f Bin/Test/net10.0/linux-loongarch64/publish/Test.runtimeconfig.json || { echo "缺少 runtimeconfig"; exit 1; }
-        count=$(ls Bin/Test/net10.0/linux-loongarch64/publish/ | wc -l)
-        echo "publish 文件数: $count"
-        [ "$count" -gt 100 ] || { echo "自包含产物文件数异常"; exit 1; }
-    - name: Smoke run
-      if: matrix.smoke
+        dotnet-sdk: 10.0.113
+    - name: Unit tests under QEMU
       shell: bash
       run: |
-        exe="Bin/Test/net10.0/${{ matrix.rid }}/publish/Test"
-        if [ ! -f "$exe" ]; then exe="$exe.exe"; fi
-        out=$("$exe" -status 2>&1)
-        echo "$out"
-        echo "$out" | grep -q "NewLife.Agent" || { echo "NativeAOT 冒烟未输出预期内容"; exit 1; }
+        set -euo pipefail
+        cat > /tmp/run-tests.sh <<'SCRIPT'
+        #!/bin/bash
+        set -euo pipefail
+        export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
+        export DOTNET_ROOT=/usr/share/dotnet
+        export PATH=/usr/share/dotnet:$PATH
+        cd "$WORKSPACE"
+        dotnet --info
+        dotnet test UnitTest/UnitTest.csproj -c Release --logger "trx;LogFileName=loongarch64.trx" --results-directory TestResults
+        SCRIPT
+        sudo cp /tmp/run-tests.sh "$LOONG64_ROOTFS/tmp/run-tests.sh"
+        sudo chroot "$LOONG64_ROOTFS" /usr/bin/env WORKSPACE="$GITHUB_WORKSPACE" /bin/bash /tmp/run-tests.sh
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-linux-loongarch64
+        path: TestResults/*.trx
+        if-no-files-found: ignore
