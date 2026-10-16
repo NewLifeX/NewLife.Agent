@@ -197,11 +197,15 @@ jobs:
         count=$(ls Bin/Test/net10.0/linux-loongarch64/publish/ | wc -l)
         echo "publish 文件数: $count"
         [ "$count" -gt 100 ] || { echo "自包含产物文件数异常"; exit 1; }
+    - name: Build app (host)
+      # 与单测作业一致：仿真内不跑 MSBuild（龙芯 SDK 的 NativeAOT MSBuild 在 QEMU 下偶发反射桩缺陷），
+      # 宿主原生构建框架依赖产物，chroot 内用 SDK 运行时真实运行 -status
+      run: dotnet build Test/Test.csproj -c Release -f net10.0 -p:TargetFrameworks=net10.0 -p:PublishAot=false
     - name: Setup loong64 QEMU environment
       uses: ./.github/actions/loong64-qemu
       with:
         dotnet-sdk: 10.0.113
-    - name: Build and smoke run under QEMU
+    - name: Smoke run under QEMU
       shell: bash
       run: |
         set -euo pipefail
@@ -214,7 +218,6 @@ jobs:
         export PATH=/usr/share/dotnet:$PATH
         cd "$WORKSPACE"
         dotnet --info
-        dotnet build Test/Test.csproj -c Release -f net10.0 -p:TargetFrameworks=net10.0 -p:PublishAot=false
         out=$(dotnet Bin/Test/net10.0/Test.dll -status 2>&1) && rc=0 || rc=$?
         echo "$out"
         [ "$rc" = "0" ] || { echo "LA64 冒烟运行失败（exit=$rc）"; exit 1; }

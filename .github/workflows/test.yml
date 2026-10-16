@@ -79,6 +79,15 @@ jobs:
       # （任务参数取值 NRE、非法指令），故改在宿主原生构建：托管程序集与架构无关，
       # chroot 内只运行测试宿主，验证测试在 LA64 运行时上的真实行为。
       run: dotnet build UnitTest/UnitTest.csproj -c Release
+    - name: Download official VSTest console
+      # 龙芯 SDK 自带的 vstest.console（18.7）未适配 LoongArch64（取进程架构抛
+      # NotSupportedException），官方 18.8.1 起已支持；下载官方控制台供 chroot 内驱动测试
+      run: |
+        curl -fsSL -o mtp-cli.nupkg https://api.nuget.org/v3-flatcontainer/microsoft.testplatform.cli/18.8.1/microsoft.testplatform.cli.18.8.1.nupkg
+        unzip -q -o mtp-cli.nupkg "contentFiles/any/net10.0/*" -d mtp-cli
+        mkdir -p .tmp/vstest-cli
+        cp -r mtp-cli/contentFiles/any/net10.0/. .tmp/vstest-cli/
+        ls .tmp/vstest-cli | head -5
     - name: Setup loong64 QEMU environment
       uses: ./.github/actions/loong64-qemu
       with:
@@ -99,7 +108,7 @@ jobs:
         dotnet --info
         # 宿主构建产物中的 testhost 为宿主 RID 的原生宿主，移除后 VSTest 退回 dotnet exec testhost.dll
         rm -f Bin/UnitTest/net10.0/testhost
-        dotnet vstest Bin/UnitTest/net10.0/UnitTest.dll --logger:"trx;LogFileName=loongarch64.trx" --ResultsDirectory:TestResults
+        dotnet .tmp/vstest-cli/vstest.console.dll Bin/UnitTest/net10.0/UnitTest.dll --logger:"trx;LogFileName=loongarch64.trx" --ResultsDirectory:TestResults
         SCRIPT
         sudo cp /tmp/run-tests.sh "$LOONG64_ROOTFS/tmp/run-tests.sh"
         sudo chroot "$LOONG64_ROOTFS" /usr/bin/env WORKSPACE="$GITHUB_WORKSPACE" /bin/bash /tmp/run-tests.sh
