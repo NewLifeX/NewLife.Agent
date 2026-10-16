@@ -269,10 +269,11 @@ public class Desktop
 
     #region 私有方法
     /// <summary>解析文件路径</summary>
+    /// <remarks>internal 供单元测试覆盖；逻辑与桌面会话无关</remarks>
     /// <param name="fileName">文件名</param>
     /// <param name="workDir">工作目录</param>
     /// <returns>解析后的文件路径</returns>
-    private static String ResolveFilePath(String fileName, String workDir)
+    internal static String ResolveFilePath(String fileName, String workDir)
     {
         // 绝对路径直接返回
         if (Path.IsPathRooted(fileName)) return fileName;
@@ -294,10 +295,11 @@ public class Desktop
     }
 
     /// <summary>解析工作目录</summary>
+    /// <remarks>internal 供单元测试覆盖；逻辑与桌面会话无关</remarks>
     /// <param name="file">文件路径</param>
     /// <param name="workDir">原始工作目录</param>
     /// <returns>解析后的工作目录</returns>
-    private static String ResolveWorkDirectory(String file, String workDir)
+    internal static String ResolveWorkDirectory(String file, String workDir)
     {
         if (!workDir.IsNullOrWhiteSpace()) return workDir;
         return Path.IsPathRooted(file) ? Path.GetDirectoryName(file) : Environment.CurrentDirectory;

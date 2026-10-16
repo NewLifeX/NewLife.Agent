@@ -206,7 +206,7 @@ public abstract class ServiceBase : DisposeBase
             //Console.WriteLine();
 
             //读取命令
-            var key = Console.ReadKey();
+            var key = ReadMenuKey();
             Console.WriteLine();
 
             if (key.KeyChar == '0') break;
@@ -236,6 +236,10 @@ public abstract class ServiceBase : DisposeBase
             //Thread.Sleep(1000);
         }
     }
+
+    /// <summary>读取菜单按键。可重写以便单元测试注入按键序列</summary>
+    /// <returns>控制台按键信息</returns>
+    protected virtual ConsoleKeyInfo ReadMenuKey() => Console.ReadKey();
 
     /// <summary>显示菜单</summary>
     protected virtual void ShowMenu()
