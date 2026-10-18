@@ -1,17 +1,22 @@
 # NewLife.Agent - Cross-Platform Service Daemon & Ops Framework
 
 ![GitHub top language](https://img.shields.io/github/languages/top/newlifex/newlife.agent?logo=github)
-![GitHub License](https://img.shields.io/github/license/newlifex/newlife.agent?logo=github)
-![Nuget Downloads](https://img.shields.io/nuget/dt/newlife.agent?logo=nuget)
-![Nuget](https://img.shields.io/nuget/v/newlife.agent?logo=nuget)
-![Nuget (with prereleases)](https://img.shields.io/nuget/vpre/newlife.agent?label=dev%20nuget&logo=nuget)
-![Nuget Downloads](https://img.shields.io/nuget/dt/NewLife.Extensions.Hosting.AgentService?logo=nuget)
-![Nuget](https://img.shields.io/nuget/v/NewLife.Extensions.Hosting.AgentService?logo=nuget)
-![Nuget (with prereleases)](https://img.shields.io/nuget/vpre/NewLife.Extensions.Hosting.AgentService?label=dev%20nuget&logo=nuget)
+
+
+![GitHub License](https://img.shields.io/github/license/NewLifeX/NewLife.Agent?logo=github)
+![NuGet Downloads](https://img.shields.io/nuget/dt/NewLife.Agent?logo=nuget)
+![NuGet](https://img.shields.io/nuget/v/NewLife.Agent?logo=nuget)
+![NuGet prerelease](https://img.shields.io/nuget/vpre/NewLife.Agent?label=dev%20nuget&logo=nuget)
+[![test](https://github.com/NewLifeX/NewLife.Agent/actions/workflows/test.yml/badge.svg?branch=master)](https://github.com/NewLifeX/NewLife.Agent/actions/workflows/test.yml)
+![platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-blue)
+[![contributors](https://img.shields.io/github/contributors/NewLifeX/NewLife.Agent?logo=github)](https://github.com/NewLifeX/NewLife.Agent/graphs/contributors)
+
+<!-- lang:start -->
+🌐 [中文](Readme.MD) | [繁體中文](README.zh-TW.md) | [Español](README.es.md) | [Deutsch](README.de.md) | [日本語](README.ja.md) | [Français](README.fr.md) | [Português](README.pt.md) | [Русский](README.ru.md) | [한국어](README.ko.md) | [العربية](README.ar.md)
+<!-- lang:end -->
 
 Tutorial: https://newlifex.com/core/agent
 
-> [中文文档](./Readme.MD) | [更新日志](./ChangeLog.md) | [Changelog](./ChangeLog.en.md)
 
 ---
 
