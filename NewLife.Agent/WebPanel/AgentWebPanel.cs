@@ -4,6 +4,7 @@ using NewLife.Data;
 using NewLife.Http;
 using NewLife.Log;
 using NewLife.Serialization;
+using NewLife;
 
 namespace NewLife.Agent.WebPanel;
 
@@ -209,11 +210,11 @@ public class AgentWebPanel
 
         Server.Start();
 
-        XTrace.WriteLine("Web管理面板已启动，端口：{0}", Server.Port);
+        XTrace.WriteLine(L.T("The web management panel started on port {0}."), Server.Port);
 
         // 监听所有网卡且仍在使用默认口令时，给出安全提醒
         if (_listenAll && Password == new Setting().WebPassword)
-            XTrace.WriteLine("安全提醒：Web管理面板已监听所有网卡，且仍在使用默认密码，请尽快修改面板密码！");
+            XTrace.WriteLine(L.T("Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible."));
     }
 
     /// <summary>停止Web面板</summary>

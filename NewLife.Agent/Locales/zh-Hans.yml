@@ -1,0 +1,13 @@
+# 简体中文译文。键为英文源文，缺失时运行期回退英文。
+"Simulation is running...": "正在模拟运行……"
+"Press any key to stop the simulation.": "任意键结束模拟运行！"
+"Service {0} was not found; is it installed?": "未发现服务{0}，是否已安装？"
+"Service {0} was stopped; starting it now.": "发现服务{0}被关闭，准备启动！"
+"Enter a command number: ": "请输入命令序号："
+"StartWork failed: {0}": "StartWork失败，{0}"
+"StartWork took too long; avoid blocking operations in StartWork.": "服务启动函数StartWork耗时过长，建议优化，StartWork应该避免阻塞操作！"
+"Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.": "当前进程占用内存 {0:n0}M，超过阀值 {1:n0}M，准备重新启动！"
+"Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.": "当前进程总线程 {0:n0}个，超过阀值 {1:n0}个，准备重新启动！"
+"Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.": "当前进程句柄 {0:n0}个，超过阀值 {1:n0}个，准备重新启动！"
+"The web management panel started on port {0}.": "Web管理面板已启动，端口：{0}"
+"Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible.": "安全提醒：Web管理面板已监听所有网卡，且仍在使用默认密码，请尽快修改面板密码！"

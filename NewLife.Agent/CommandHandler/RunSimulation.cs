@@ -1,4 +1,5 @@
-﻿using NewLife.Agent.Command;
+﻿using NewLife;
+using NewLife.Agent.Command;
 
 namespace NewLife.Agent.CommandHandler;
 
@@ -27,13 +28,13 @@ public class RunSimulation : BaseCommandHandler
         if ("-delay".EqualIgnoreCase(args)) Thread.Sleep(5_000);
         try
         {
-            Console.WriteLine("正在模拟运行……");
+            Console.WriteLine(L.T("Simulation is running..."));
             Service.StartWork("模拟运行开始");
 
             // 开始辅助循环，检查状态
             ThreadPool.QueueUserWorkItem(s => Service.DoLoop());
 
-            Console.WriteLine("任意键结束模拟运行！");
+            Console.WriteLine(L.T("Press any key to stop the simulation."));
             Console.ReadKey(true);
 
             Service.Running = false;

@@ -1,0 +1,13 @@
+# 繁體中文譯文。鍵為英文源文，缺失時執行期回退英文。
+"Simulation is running...": "正在模擬運行……"
+"Press any key to stop the simulation.": "任意鍵結束模擬運行！"
+"Service {0} was not found; is it installed?": "未發現服務{0}，是否已安裝？"
+"Service {0} was stopped; starting it now.": "發現服務{0}被關閉，準備啟動！"
+"Enter a command number: ": "請輸入命令序號："
+"StartWork failed: {0}": "StartWork失敗，{0}"
+"StartWork took too long; avoid blocking operations in StartWork.": "服務啟動函數StartWork耗時過長，建議優化，StartWork應該避免阻塞操作！"
+"Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.": "當前進程佔用內存 {0:n0}M，超過閥值 {1:n0}M，準備重新啟動！"
+"Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.": "當前進程總線程 {0:n0}個，超過閥值 {1:n0}個，準備重新啟動！"
+"Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.": "當前進程句柄 {0:n0}個，超過閥值 {1:n0}個，準備重新啟動！"
+"The web management panel started on port {0}.": "Web管理面板已啟動，端口：{0}"
+"Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible.": "安全提醒：Web管理面板已監聽所有網卡，且仍在使用默認密碼，請儘快修改面板密碼！"

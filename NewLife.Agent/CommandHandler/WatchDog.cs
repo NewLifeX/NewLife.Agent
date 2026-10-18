@@ -1,5 +1,6 @@
 ﻿using NewLife.Agent.Command;
 using NewLife.Log;
+using NewLife;
 
 namespace NewLife.Agent.CommandHandler;
 
@@ -57,10 +58,10 @@ public class WatchDog : BaseCommandHandler
             }
             // 已安装未运行
             if (!host.IsInstalled(item))
-                XTrace.WriteLine("未发现服务{0}，是否已安装？", item);
+                XTrace.WriteLine(L.T("Service {0} was not found; is it installed?"), item);
             else if (!host.IsRunning(item))
             {
-                XTrace.WriteLine("发现服务{0}被关闭，准备启动！", item);
+                XTrace.WriteLine(L.T("Service {0} was stopped; starting it now."), item);
 
                 host.Start(item);
             }

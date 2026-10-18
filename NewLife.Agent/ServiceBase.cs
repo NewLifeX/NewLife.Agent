@@ -9,6 +9,7 @@ using NewLife.Log;
 using NewLife.Reflection;
 #if !NET40
 using NewLife.Agent.WebPanel;
+using NewLife;
 #endif
 
 [assembly: RuntimeCompatibility(WrapNonExceptionThrows = true)]
@@ -202,7 +203,7 @@ public abstract class ServiceBase : DisposeBase
         {
             //输出菜单
             ShowMenu();
-            Console.Write("请输入命令序号：");
+            Console.Write(L.T("Enter a command number: "));
             //Console.WriteLine();
 
             //读取命令
@@ -392,13 +393,13 @@ public abstract class ServiceBase : DisposeBase
             }
             catch (Exception ex)
             {
-                WriteLog("StartWork失败，{0}", ex.Message);
+                WriteLog(L.T("StartWork failed: {0}"), ex.Message);
                 Log?.Error(ex.ToString());
             }
         });
         if (!task.Wait(3_000))
         {
-            XTrace.WriteLine("服务启动函数StartWork耗时过长，建议优化，StartWork应该避免阻塞操作！");
+            XTrace.WriteLine(L.T("StartWork took too long; avoid blocking operations in StartWork."));
         }
     }
 
@@ -520,7 +521,7 @@ public abstract class ServiceBase : DisposeBase
         var memory = Process.GetCurrentProcess().WorkingSet64 / 1024 / 1024;
         if (!HealthMonitor.IsMemoryOver(set, memory)) return false;
 
-        WriteLog("当前进程占用内存 {0:n0}M，超过阀值 {1:n0}M，准备重新启动！", memory, set.MaxMemory);
+        WriteLog(L.T("Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting."), memory, set.MaxMemory);
 
         Host.Restart(ServiceName);
 
@@ -558,7 +559,7 @@ public abstract class ServiceBase : DisposeBase
         var count = Process.GetCurrentProcess().Threads.Count;
         if (!HealthMonitor.IsThreadOver(set, count)) return false;
 
-        WriteLog("当前进程总线程 {0:n0}个，超过阀值 {1:n0}个，准备重新启动！", count, set.MaxThread);
+        WriteLog(L.T("Process thread count {0:n0} exceeds the threshold {1:n0}; restarting."), count, set.MaxThread);
 
         Host.Restart(ServiceName);
 
@@ -573,7 +574,7 @@ public abstract class ServiceBase : DisposeBase
         var count = Process.GetCurrentProcess().HandleCount;
         if (!HealthMonitor.IsHandleOver(set, count)) return false;
 
-        WriteLog("当前进程句柄 {0:n0}个，超过阀值 {1:n0}个，准备重新启动！", count, set.MaxHandle);
+        WriteLog(L.T("Process handle count {0:n0} exceeds the threshold {1:n0}; restarting."), count, set.MaxHandle);
 
         Host.Restart(ServiceName);
 
