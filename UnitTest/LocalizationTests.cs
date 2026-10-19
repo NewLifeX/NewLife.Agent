@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Globalization;
 using NewLife;
 using NewLife.Agent;
+using NewLife.Configuration;
 using NewLife.Log;
 
 namespace UnitTest;
@@ -137,6 +138,29 @@ public class LocalizationTests
         finally
         {
             ResetCulture();
+        }
+    }
+
+    [Fact]
+    [DisplayName("配置保存_Xml注释_按当前语言输出")]
+    public void XmlConfig_Save_LocalizesComments()
+    {
+        var file = Path.GetTempFileName();
+        try
+        {
+            UseCulture("zh-Hans");
+
+            var prv = new XmlConfigProvider { FileName = file };
+            prv.Save(new NewLife.Agent.Setting());
+
+            var xml = File.ReadAllText(file);
+            Assert.Contains("<!--服务名-->", xml);
+            Assert.Contains("<!--监控时间间隔。服务资源占用检测周期（秒），默认 10。-->", xml);
+        }
+        finally
+        {
+            ResetCulture();
+            File.Delete(file);
         }
     }
 
