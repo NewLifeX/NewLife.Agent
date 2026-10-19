@@ -78,6 +78,9 @@ public static class UiLocalization
 
         map = LoadDictionary(assembly, prefix, language);
         if (map.Count == 0 && language != "en") map = LoadDictionary(assembly, prefix, "en");
+        // 自定义面板没有自带词表时，退回主库词表，至少保证英文与内置语言的常见文案可用
+        if (map.Count == 0 && assembly != typeof(UiLocalization).Assembly)
+            map = LoadDictionary(typeof(UiLocalization).Assembly, "NewLife.Agent.WebPanel.wwwroot", language != "en" ? language : "en");
 
         _dictionaries[key] = map;
 
