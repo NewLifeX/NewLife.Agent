@@ -102,6 +102,57 @@ public class LocalizationTests
     }
 
     [Fact]
+    [DisplayName("本地化_配置项描述_按当前语言翻译")]
+    public void Translate_ConfigDescriptions()
+    {
+        try
+        {
+            UseCulture("zh-Hans");
+
+            Assert.Equal("监控时间间隔。服务资源占用检测周期（秒），默认 10。", Localization.Translate("Watch interval. Resource usage check period in seconds. Default 10."));
+            Assert.Equal("Web 面板密码。", Localization.Translate("Web panel password."));
+
+            UseCulture("fr");
+            Assert.Equal("Intervalle de surveillance. Période de vérification de l'utilisation des ressources, en secondes. Par défaut 10.", Localization.Translate("Watch interval. Resource usage check period in seconds. Default 10."));
+        }
+        finally
+        {
+            ResetCulture();
+        }
+    }
+
+    [Fact]
+    [DisplayName("本地化_Hosting扩展包消息_已注册词表")]
+    public void Translate_HostingPackageMessages()
+    {
+        try
+        {
+            // Hosting 扩展包复用主库词表；引用类型确保扩展包可正常加载
+            _ = typeof(NewLife.Extensions.Hosting.AgentService.ServiceLifetime);
+
+            UseCulture("zh-Hans");
+            Assert.Equal("正常退出菜单", Localization.Translate("Menu exited normally"));
+            Assert.Equal("应用已启动。宿主环境：Production", Localization.Translate("Application started. Hosting environment: {0}", "Production"));
+        }
+        finally
+        {
+            ResetCulture();
+        }
+    }
+
+    [Theory]
+    [InlineData("Watch interval. Resource usage check period in seconds. Default 10.", "Watch interval")]
+    [InlineData("Web panel password.", "Web panel password")]
+    [InlineData("监控时间间隔。服务资源占用检测周期（秒），默认 10。", "监控时间间隔")]
+    [InlineData("সেবার নাম। Windows-এ, স্বয়ংক্রিয় চালু লগইনের পরে ডেস্কটপে চলে।", "সেবার নাম")]
+    [InlineData("ช่วงเวลาตรวจสอบ ช่วงเวลาตรวจสอบการใช้ทรัพยากรเป็นวินาที ค่าเริ่มต้น 10", "ช่วงเวลาตรวจสอบ")]
+    [InlineData("No punctuation", "No punctuation")]
+    public void GetDisplayName_FirstSentence(String description, String expected)
+    {
+        Assert.Equal(expected, NewLife.Agent.WebPanel.ApiController.GetDisplayName(description));
+    }
+
+    [Fact]
     [DisplayName("前缀日志_先翻译后拼前缀_前缀不参与本地化")]
     public void WriteLogPrefixed_TranslatesMessageBeforePrefix()
     {
