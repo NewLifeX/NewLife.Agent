@@ -14,25 +14,23 @@
 [![contributors](https://img.shields.io/github/contributors/NewLifeX/NewLife.Agent?logo=github)](https://github.com/NewLifeX/NewLife.Agent/graphs/contributors)
 
 <!-- lang:start -->
-🌐 [中文](Readme.MD) | [繁體中文](README.zh-TW.md) | [Español](README.es.md) | [Deutsch](README.de.md) | [日本語](README.ja.md) | [Français](README.fr.md) | [Português](README.pt.md) | [Русский](README.ru.md) | [한국어](README.ko.md) | [العربية](README.ar.md)
+🌐 [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [Español](README.es.md) | [Deutsch](README.de.md) | [日本語](README.ja.md) | [Français](README.fr.md) | [Português](README.pt.md) | [Русский](README.ru.md) | [한국어](README.ko.md) | [العربية](README.ar.md)
 <!-- lang:end -->
 
 Tutorial: https://newlifex.com/core/agent
 
-
 ---
-
 ## Overview
 
-`NewLife.Agent` is a service-oriented framework for long-running applications. It enables console/Web/Worker programs to be quickly hosted as operating system services, with unified install, start/stop, monitoring, restart, and troubleshooting capabilities.
+`NewLife.Agent` is a service-oriented framework for long-running applications. It enables console/Web/Worker programs to be quickly hosted as operating system services, and provides unified install, start/stop, monitoring, restart, and troubleshooting capabilities.
 
-### Supported Platforms
+Supported platforms:
 
-- **Windows** (Windows Service / Startup auto-run)
-- **Linux** (Systemd / Procd / RcInit)
-- **macOS** (LaunchAgent)
+- Windows (Service / startup at login)
+- Linux (Systemd / Procd / RcInit, etc.)
+- macOS (LaunchAgent)
 
-### Supported Frameworks
+Supported frameworks:
 
 - `NewLife.Agent`: `net40;net45;net461;netstandard2.0;netstandard2.1;net6.0;net7.0;net8.0;net9.0;net10.0`
 - `NewLife.Extensions.Hosting.AgentService`: `netcoreapp3.1;net5.0;net6.0;net7.0;net8.0;net9.0;net10.0`
@@ -41,14 +39,15 @@ Tutorial: https://newlifex.com/core/agent
 
 ## Highlights
 
-- **DevOps in One**: Inherit `ServiceBase` to gain full service governance capabilities.
-- **Built-in Web Dashboard**: Lightweight management panel accessible via browser for status viewing and operations, with extension panels, theme switching, token-based auth and brute-force protection.
-- **Cross-Platform Auto-Adaptation**: Automatically selects the best host implementation per operating system.
-- **NativeAOT Publishing**: Built-in commands and the Web dashboard are fully trim/AOT-adapted; `net8.0+` builds carry zero `IsAotCompatible` warnings, with CI covering 12 RIDs: 8 natively runnable targets get real smoke runs, while cross targets (linux-arm/linux-musl-arm/linux-musl-arm64/linux-loongarch64) get publish verification.
+- **Integrated Development and Operations**: Inherit `ServiceBase` to gain full service governance capabilities.
+- **Built-in Web Dashboard**: A lightweight management panel for viewing status and performing operations in a browser, with extension panels and theme switching, built-in token authentication and brute-force protection; it listens on localhost by default (`WebBind` can expose it to the LAN).
+- **Cross-Platform Auto-Adaptation**: Automatically selects the most suitable host implementation per operating system.
+- **NativeAOT Native Publishing Support**: Built-in commands and the Web dashboard are fully adapted for trimming/AOT; `net8.0+` builds produce zero `IsAotCompatible` warnings, and CI covers 12 RIDs: 9 targets run real smoke tests (8 native targets + linux-loongarch64 under QEMU user-mode emulation), while cross targets (linux-arm/linux-musl-arm/linux-musl-arm64) get publish verification.
+- **Multi-Architecture Unit Tests**: win-x64 / linux-x64 / linux-arm64 run natively, and linux-loongarch64 (Loongson) runs the full test suite under QEMU user-mode emulation; triggered by push/PR and supports manual runs.
 - **Built-in Command System**: Supports `-install/-start/-stop/-restart/-status/-run`.
-- **Health Monitoring & Self-Healing**: HealthMonitor component provides memory/thread/handle thresholds, scheduled restarts and WatchDog health checks.
-- **Multi-Instance Friendly**: Configure different `ServiceName` values for multi-instance deployment.
-- **Host Integration Extension**: Use `NewLife.Extensions.Hosting.AgentService` to unify ASP.NET Core/Worker lifecycles with Agent service governance.
+- **Health Monitoring & Self-Healing**: The HealthMonitor component provides memory/thread/handle thresholds, scheduled restarts, and WatchDog health checks.
+- **Multi-Instance Friendly**: Configure different `ServiceName` values to deploy multiple instances of one program.
+- **Host Integration Extension Package**: Bring ASP.NET Core/Worker applications under unified service lifecycle management.
 
 ---
 
@@ -65,12 +64,14 @@ Inherit `ServiceBase` and call `Main(args)` at the entry point:
 
 Common commands:
 
-- `-install`: Install the service
+- `-i`: Install the service
+- `-install`: Install and start the service
 - `-start`: Start the service
 - `-stop`: Stop the service
 - `-restart`: Restart the service
 - `-status`: View service status
-- `-uninstall`: Uninstall the service
+- `-u`: Uninstall the service
+- `-uninstall`: Stop and uninstall the service
 - `-run`: Run in console mode (for debugging)
 
 > Install/uninstall/start/stop typically require Administrator (Windows) or root (Linux) privileges.
@@ -83,10 +84,13 @@ Reference `NewLife.Extensions.Hosting.AgentService` and call `UseAgentService()`
 
 ## Documentation
 
-- [User & Ops Manual (Chinese)](./Doc/Agent-使用与运维手册.md)
+- [NewLife.Agent User & Ops Manual (Chinese)](./Doc/Agent-使用与运维手册.md)
 - [Requirements Document (Chinese)](./Doc/需求文档.md)
-- [Competitive Analysis (Chinese)](./Doc/竞品分析报告.md)
-- [Changelog](./ChangeLog.en.md)
+- [Feature List (Chinese)](./Doc/功能清单.md)
+- [Architecture Design (Chinese)](./Doc/架构设计.md)
+- [Competitive Analysis (Chinese)](./Doc/竞品分析.md)
+- [Changelog (Chinese)](./ChangeLog.md)
+- [Changelog (English)](./ChangeLog.en.md)
 
 ---
 
@@ -102,20 +106,21 @@ dotnet run
 ---
 
 ## NewLife Project Matrix
+All projects target net9.0/netstandard2.1/netstandard2.0/net4.62/net4.5 by default; the legacy version (2024.0801) supports net4.0/net2.0.
 
 | Project | Year | Description |
 |:-------:|:----:|-------------|
 | **Core Components** | | Foundation for middleware and products |
 | [NewLife.Core](https://github.com/NewLifeX/X) | 2002 | Core library — logging, config, caching, networking, serialization, APM tracing |
 | [NewLife.XCode](https://github.com/NewLifeX/NewLife.XCode) | 2005 | Big data ORM — 10B+ rows per table, MySQL/SQLite/SQL Server/Oracle/PostgreSQL/DaMeng, auto-sharding, read/write splitting |
-| [NewLife.Net](https://github.com/NewLifeX/NewLife.Net) | 2005 | Network library — 22.66M tps throughput, 4M concurrent TCP connections per node |
-| [NewLife.Remoting](https://github.com/NewLifeX/NewLife.Remoting) | 2011 | RPC framework — HTTP/RPC communication, high throughput, IoT device friendly |
+| [NewLife.Net](https://github.com/NewLifeX/NewLife.Net) | 2005 | Network library — 22.66M tps per node, 4M concurrent TCP long connections per node |
+| [NewLife.Remoting](https://github.com/NewLifeX/NewLife.Remoting) | 2011 | Protocol communication library — CS application communication framework with HTTP/RPC support, high throughput, low overhead and easy access for IoT devices |
 | [NewLife.Cube](https://github.com/NewLifeX/NewLife.Cube) | 2010 | Rapid development platform — user permissions, SSO, OAuth server, verified at 10B+ row scale |
 | [NewLife.Agent](https://github.com/NewLifeX/NewLife.Agent) | 2008 | Service management — install apps as OS daemons, Windows Services, Linux Systemd |
 | [NewLife.Zero](https://github.com/NewLifeX/NewLife.Zero) | 2020 | Zero scaffolding — project templates (Web, WebApi, Service) based on NewLife ecosystem |
 | **Middleware** | | Integration with major middleware platforms |
-| [NewLife.Redis](https://github.com/NewLifeX/NewLife.Redis) | 2017 | Redis client — microsecond latency, million-level throughput, rich message queues |
-| [NewLife.RocketMQ](https://github.com/NewLifeX/NewLife.RocketMQ) | 2018 | RocketMQ client — Apache RocketMQ & Alibaba Cloud MQ, verified at 1B+ scale |
+| [NewLife.Redis](https://github.com/NewLifeX/NewLife.Redis) | 2017 | Redis client — microsecond latency, million-level throughput, rich message queues, verified at 10B+ row scale |
+| [NewLife.RocketMQ](https://github.com/NewLifeX/NewLife.RocketMQ) | 2018 | Fully managed RocketMQ client — Apache RocketMQ & Alibaba Cloud MQ, verified at 1B+ scale |
 | [NewLife.MQTT](https://github.com/NewLifeX/NewLife.MQTT) | 2019 | MQTT — MqttClient/MqttServer, Alibaba Cloud IoT support |
 | [NewLife.IoT](https://github.com/NewLifeX/NewLife.IoT) | 2022 | IoT standard library — protocol specifications for IoT domain |
 | [NewLife.Modbus](https://github.com/NewLifeX/NewLife.Modbus) | 2022 | Modbus — ModbusTcp/ModbusRTU/ModbusASCII, ZeroIoT & IoTEdge support |
@@ -133,8 +138,8 @@ dotnet run
 | [GitCandy](https://github.com/NewLifeX/GitCandy) | 2015 | Git source code management |
 | [SmartOS](https://github.com/NewLifeX/SmartOS) | 2014 | Embedded OS — fully independent, ARM Cortex-M |
 | [SmartA2](https://github.com/NewLifeX/SmartA2) | 2019 | Embedded industrial computer — IoT edge gateway, .NET 8, industrial/agricultural/transportation/medical |
-| **FIoT Platform** | 2020 | IoT total solution — construction, environmental, agriculture, verified at 100K+ nodes |
-| **UWB Indoor Positioning** | 2020 | Centimeter-level (10~20cm) high-precision indoor positioning |
+| **FIoT Platform** | 2020 | IoT total solution — integrated software, hardware and big-data analytics for construction, environmental protection and agriculture, verified in a single-machine 100K+ point project |
+| **UWB Indoor Positioning** | 2020 | Centimeter-level (10~20cm) high-precision indoor positioning — integrated hardware/software, interoperates with other systems, verified in large exhibition hall projects |
 
 ---
 
@@ -142,10 +147,15 @@ dotnet run
 
 ![XCode](https://newlifex.com/logo.png)
 
-The NewLife team, founded in 2002, is a next-generation IoT solution provider dedicated to software/hardware application consulting, system architecture planning, and development services.
-Our 80+ open-source projects are widely used across industries, with over 4 million total NuGet downloads.
-Flagship products — NewLife.XCode big data ORM, AntJob distributed compute, Stardust distributed platform, NewLife.Redis caching, and the FIoT platform — have been successfully deployed in power, education, internet, telecommunications, transportation, logistics, industrial control, healthcare, and cultural heritage sectors.
+The NewLife team, founded in 2002, is a new-era IoT industry solution provider dedicated to software/hardware application consulting, system architecture planning, and development services.
+The team's 80+ open-source projects have been widely used across industries, with cumulative NuGet downloads exceeding 4 million.
+Flagship products developed by the team — NewLife.XCode big data middleware, AntJob distributed computing platform, Stardust distributed platform, NewLife.Redis cache queue component, and the FIoT IoT platform — have been successfully deployed in power, education, internet, telecommunications, transportation, logistics, industrial control, healthcare, and cultural heritage sectors, delivering a large number of advanced, reliable, secure, high-quality, and easily extensible products and system integration services to customers.
 
+We will continuously improve our services to become a long-term trusted partner of our customers, and through continuous innovation and development, become an excellent domestic IoT service provider.
+
+The NewLife team started in 2002; some open-source projects have a history of more than 20 years, and the source repository retains all modification records since 2010.
 Website: https://newlifex.com
 GitHub: https://github.com/newlifex
-QQ Group: 1600800 / 1600838
+QQ Group: 1600800/1600838
+WeChat Official Account:
+![智能大石头](https://newlifex.com/stone.jpg)
