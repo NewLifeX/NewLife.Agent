@@ -73,7 +73,7 @@
     </None>
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'!='net40'">
-    <PackageReference Include="NewLife.Core" Version="12.0.2026.1019-beta0659" />
+    <PackageReference Include="NewLife.Core" Version="12.0.2026.1019-beta1203" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'=='net40'">
     <!-- net40 无 NewLife.Core 12，沿用最后的 net40 专用版本 -->
