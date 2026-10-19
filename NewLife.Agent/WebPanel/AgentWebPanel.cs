@@ -1,5 +1,7 @@
 ﻿#if !NET40
 using System.Net;
+using System.Globalization;
+using System.Text;
 using NewLife.Data;
 using NewLife.Http;
 using NewLife.Log;
@@ -49,6 +51,8 @@ public class AgentWebPanel
 
     /// <summary>实际监听端口（启动后回写）</summary>
     public Int32 Port => Server.Port;
+
+    private String _indexHtml;
     #endregion
 
     #region 构造
@@ -91,7 +95,22 @@ public class AgentWebPanel
         UserName = set.WebUserName;
         Password = set.WebPassword;
 
+        // 按 Accept-Language 切换当前请求语言；显式配置 Setting.Language 时保持宿主语言
+        Server.Use(UseRequestLanguage);
+
         RegisterRoutes();
+    }
+
+    /// <summary>请求语言中间件。按 Accept-Language 设置当前请求的 UI 文化，日志语言已由 Setting 固定</summary>
+    /// <param name="ctx">Http上下文</param>
+    /// <param name="next">下一处理器</param>
+    private static async Task UseRequestLanguage(IHttpContext ctx, Func<Task> next)
+    {
+        using var scope = RequestCultureScope.Create(ctx.Request.Headers["Accept-Language"]);
+
+        ctx.Response.Headers["Vary"] = "Accept-Language";
+
+        await next().ConfigureAwait(false);
     }
 
     /// <summary>解析鉴权级别字符串</summary>
@@ -250,8 +269,37 @@ public class AgentWebPanel
         // API 控制器路由（自动处理 /api/* 通配，控制器自行鉴权）
         Server.MapController<ApiController>("/api");
 
+        // 首页按请求语言输出；精确路由优先于下方通配静态文件
+        Server.MapGet("/", WriteIndex);
+        Server.MapGet("/index.html", WriteIndex);
+
         // 静态文件（根路径，API 路由优先匹配；传 "/" 让 MapEmbedded 内部转为 "/*" 通配）
         Server.MapEmbedded("/", EmbeddedResourcePrefix, EmbeddedResourceAssemblyType.Assembly);
+    }
+
+    /// <summary>输出按当前请求语言本地化的首页</summary>
+    /// <param name="ctx">Http上下文</param>
+    protected virtual void WriteIndex(IHttpContext ctx)
+    {
+        _indexHtml ??= ReadIndexHtml();
+
+        var html = UiLocalization.Localize(_indexHtml, EmbeddedResourceAssemblyType.Assembly, EmbeddedResourcePrefix, CultureInfo.CurrentUICulture);
+
+        ctx.Response.ContentType = "text/html; charset=utf-8";
+        ctx.Response.Headers["Cache-Control"] = "no-cache";
+        ctx.Response.Body = new ArrayPacket(html.GetBytes());
+    }
+
+    /// <summary>读取嵌入的首页源文</summary>
+    /// <returns>首页 HTML；资源不存在时返回空串</returns>
+    private String ReadIndexHtml()
+    {
+        using var stream = EmbeddedResourceAssemblyType.Assembly.GetManifestResourceStream($"{EmbeddedResourcePrefix}.index.html");
+        if (stream == null) return "";
+
+        using var reader = new StreamReader(stream, Encoding.UTF8);
+
+        return reader.ReadToEnd();
     }
     #endregion
 

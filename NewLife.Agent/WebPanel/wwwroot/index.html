@@ -581,7 +581,9 @@ async function freeMemory(){
 
 async function doControl(action){
  const labels={stop:'停止',start:'启动',restart:'重启'};
- showModal(`${labels[action]}服务`,`确定要${labels[action]}服务吗？${action==='restart'?'重启后服务将自动恢复。':''}`,labels[action],async()=>{
+ const titles={stop:'停止服务',start:'启动服务',restart:'重启服务'};
+ const confirms={stop:'确定要停止服务吗？',start:'确定要启动服务吗？',restart:'确定要重启服务吗？重启后服务将自动恢复。'};
+ showModal(titles[action],confirms[action],labels[action],async()=>{
   try{
    const j=await api('/api/control',{method:'POST',body:JSON.stringify({action})});
    cmdHistory.push({time:new Date().toLocaleString(),action:labels[action],result:j.message||'完成'});
