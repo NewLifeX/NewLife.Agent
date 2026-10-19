@@ -108,7 +108,7 @@ public class ServiceLifetime : ServiceBase, IHostLifetime
 
             //todo 这里很遗憾，如果菜单使用0退出，这里不得不抛出异常，以打断IHost.StartAsync向下执行IHostedService
             //Log.Info("退出菜单，后续异常无需理会");
-            _delayStart.TrySetException(new InvalidOperationException("正常退出菜单"));
+            _delayStart.TrySetException(new InvalidOperationException(Localization.Translate("Menu exited normally")));
             //_delayStart.TrySetResult(null);
         }
         catch (Exception exception)

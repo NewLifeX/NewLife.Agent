@@ -248,7 +248,6 @@ public class ApiController : IHttpController
     private class ConfigPropertyInfo
     {
         public String Name;
-        public String DisplayName;
         public String Description;
         public String TypeName;
         public PropertyInfo Property;
@@ -267,18 +266,6 @@ public class ApiController : IHttpController
             if (!prop.CanRead || !prop.CanWrite) continue;
             if (prop.Name.EqualIgnoreCase(nameof(Setting.WebPassword))) continue;
 
-            var displayName = prop.GetCustomAttribute<System.ComponentModel.DisplayNameAttribute>()?.DisplayName;
-            if (displayName.IsNullOrEmpty())
-            {
-                var desc = prop.GetCustomAttribute<System.ComponentModel.DescriptionAttribute>()?.Description;
-                if (!desc.IsNullOrEmpty())
-                {
-                    var dot = desc.IndexOf('。');
-                    displayName = dot > 0 ? desc[..dot] : desc;
-                }
-            }
-            displayName ??= prop.Name;
-
             var description = prop.GetCustomAttribute<System.ComponentModel.DescriptionAttribute>()?.Description ?? "";
 
             var typeName = prop.PropertyType.Name switch
@@ -292,7 +279,6 @@ public class ApiController : IHttpController
             list.Add(new ConfigPropertyInfo
             {
                 Name = prop.Name,
-                DisplayName = displayName,
                 Description = description,
                 TypeName = typeName,
                 Property = prop
@@ -310,20 +296,38 @@ public class ApiController : IHttpController
         var set = Setting.Current;
         var items = new List<ConfigItem>();
 
-        // 元数据来自静态缓存，仅值需实时读取
+        // 元数据来自静态缓存，仅值需实时读取；描述按当前语言翻译，显示名取译文首句
         foreach (var prop in _configProperties)
         {
+            var description = L.T(prop.Description);
             items.Add(new ConfigItem
             {
                 Name = prop.Name,
-                DisplayName = prop.DisplayName,
-                Description = prop.Description,
+                DisplayName = GetDisplayName(description),
+                Description = description,
                 Type = prop.TypeName,
                 Value = prop.Property.GetValue(set, null)
             });
         }
 
         return new ApiResult<ConfigMetadataData> { Code = 0, Data = new ConfigMetadataData { Items = items } };
+    }
+
+    /// <summary>从配置描述中取首句作为显示名</summary>
+    /// <param name="description">已翻译的配置描述</param>
+    /// <returns>显示名</returns>
+    internal static String GetDisplayName(String description)
+    {
+        if (description.IsNullOrEmpty()) return "";
+
+        var index = description.IndexOfAny(['.', '。', '।']);
+        if (index > 0) return description[..index];
+
+        // 泰语等无句末标点的长描述，取首个空格前的短语作为显示名；短标签整体返回
+        if (description.Length <= 40) return description;
+
+        var space = description.IndexOf(' ');
+        return space > 0 ? description[..space] : description;
     }
 
     /// <summary>更新配置</summary>
