@@ -1,9 +1,14 @@
 using System.ComponentModel;
 using System.Globalization;
+using System.Reflection;
+using Moq;
 using NewLife;
 using NewLife.Agent;
+using NewLife.Agent.Command;
+using NewLife.Agent.WebPanel;
 using NewLife.Configuration;
 using NewLife.Log;
+using Setting = NewLife.Agent.Setting;
 
 namespace UnitTest;
 
@@ -174,6 +179,208 @@ public class LocalizationTests
     public void GetDisplayName_FirstSentence(String description, String expected)
     {
         Assert.Equal(expected, NewLife.Agent.WebPanel.ApiController.GetDisplayName(description));
+    }
+
+    [Fact]
+    [DisplayName("语言设置_保存后立即生效_无词表回退系统语言")]
+    public void Setting_Language_AppliesCulture()
+    {
+        using var scope = new SettingScope();
+
+        var set = Setting.Current;
+        var prevUICulture = CultureInfo.CurrentUICulture;
+        try
+        {
+            set.Language = "zh-Hans";
+            set.Save();
+
+            Assert.Equal("zh-Hans", Localization.Culture?.Name);
+            Assert.Equal("安装服务", Localization.Translate("Install service"));
+
+            // 没有词表的语言回退系统语言，不把进程锁在英文
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("en-US");
+            set.Language = "eo";
+            set.Save();
+
+            Assert.Null(Localization.Culture);
+            Assert.Equal("Install service", Localization.Translate("Install service"));
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = prevUICulture;
+            ResetCulture();
+        }
+    }
+
+    [Fact]
+    [DisplayName("命令菜单_描述在显示时翻译_切换语言立即生效")]
+    public void CommandMenu_TranslatesAtRender()
+    {
+        var svc = new ServiceBaseTester { Host = new TestHost() };
+        try
+        {
+            UseCulture("zh-Hans");
+            var menu = svc.Command.GetShortcutMenu().First(e => e.Cmd == CommandConst.Install);
+            Assert.Equal("安装服务", menu.Name);
+
+            // 命令描述不再在构造时冻结，切换语言后菜单跟随变化
+            UseCulture("fr");
+            menu = svc.Command.GetShortcutMenu().First(e => e.Cmd == CommandConst.Install);
+            Assert.Equal("Installer le service", menu.Name);
+        }
+        finally
+        {
+            ResetCulture();
+        }
+    }
+
+    [Fact]
+    [DisplayName("Web面板_API消息_按Accept-Language翻译")]
+    public async Task WebPanel_ApiMessage_FollowsAcceptLanguage()
+    {
+        var set = Setting.Current;
+        var prevPort = set.WebPort;
+        var prevEnable = set.EnableWebPanel;
+        try
+        {
+            set.WebPort = 0;
+            set.EnableWebPanel = false;
+            Localization.Culture = null;
+
+            var svc = new Mock<ServiceBase> { CallBase = true }.Object;
+            svc.ServiceName = "LocTest";
+
+            var panel = new AgentWebPanel(svc) { Level = AuthLevel.Full };
+            panel.Start();
+            try
+            {
+                using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{panel.Port}") };
+                var request = new HttpRequestMessage(HttpMethod.Get, "/api/status");
+                request.Headers.TryAddWithoutValidation("Accept-Language", "zh-Hans");
+                var response = await client.SendAsync(request);
+
+                Assert.Contains("未授权", await response.Content.ReadAsStringAsync());
+                Assert.Contains("Accept-Language", response.Headers.Vary.ToString());
+            }
+            finally
+            {
+                panel.Stop("TestDone");
+            }
+        }
+        finally
+        {
+            set.WebPort = prevPort;
+            set.EnableWebPanel = prevEnable;
+            ResetCulture();
+        }
+    }
+
+    [Fact]
+    [DisplayName("Web面板_首页_按Accept-Language输出界面语言")]
+    public async Task WebPanel_Index_FollowsAcceptLanguage()
+    {
+        var set = Setting.Current;
+        var prevPort = set.WebPort;
+        var prevEnable = set.EnableWebPanel;
+        try
+        {
+            set.WebPort = 0;
+            set.EnableWebPanel = false;
+            Localization.Culture = null;
+
+            var svc = new Mock<ServiceBase> { CallBase = true }.Object;
+            svc.ServiceName = "LocTest";
+
+            var panel = new AgentWebPanel(svc) { Level = AuthLevel.None };
+            panel.Start();
+            try
+            {
+                using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{panel.Port}") };
+
+                static async Task<String> GetIndex(HttpClient client, String language)
+                {
+                    var request = new HttpRequestMessage(HttpMethod.Get, "/");
+                    request.Headers.TryAddWithoutValidation("Accept-Language", language);
+                    var response = await client.SendAsync(request);
+                    response.EnsureSuccessStatusCode();
+                    return await response.Content.ReadAsStringAsync();
+                }
+
+                static String Visible(String html)
+                {
+                    html = System.Text.RegularExpressions.Regex.Replace(html, "<!--.*?-->", "", System.Text.RegularExpressions.RegexOptions.Singleline);
+                    html = System.Text.RegularExpressions.Regex.Replace(html, "/\\*.*?\\*/", "", System.Text.RegularExpressions.RegexOptions.Singleline);
+                    return System.Text.RegularExpressions.Regex.Replace(html, "(?m)^\\s*//.*$", "");
+                }
+
+                var en = Visible(await GetIndex(client, "en-US"));
+                Assert.Contains("Service status", en);
+                Assert.DoesNotMatch("[\\u4e00-\\u9fff]", en);
+
+                var ja = Visible(await GetIndex(client, "ja-JP"));
+                Assert.Contains("サービスの状態", ja);
+                Assert.DoesNotContain("服务状态", ja);
+
+                var zh = await GetIndex(client, "zh-CN");
+                Assert.Contains("服务状态", zh);
+            }
+            finally
+            {
+                panel.Stop("TestDone");
+            }
+        }
+        finally
+        {
+            set.WebPort = prevPort;
+            set.EnableWebPanel = prevEnable;
+            ResetCulture();
+        }
+    }
+
+    [Fact]
+    [DisplayName("Web面板_界面词表_键集合一致且覆盖源文")]
+    public void UiDictionaries_CompleteAndConsistent()
+    {
+        var assembly = typeof(AgentWebPanel).Assembly;
+        var prefix = "NewLife.Agent.WebPanel.wwwroot";
+        var baseline = UiLocalization.LoadDictionary(assembly, prefix, "en");
+        Assert.NotEmpty(baseline);
+
+        // 所有界面词表必须与英文基准键集合一致
+        foreach (var name in assembly.GetManifestResourceNames())
+        {
+            if (!name.StartsWith($"{prefix}.i18n.") || !name.EndsWith(".json") || name.Contains(".en.json")) continue;
+
+            var language = name[(name.IndexOf(".i18n.", StringComparison.Ordinal) + 6)..^5];
+            var map = UiLocalization.LoadDictionary(assembly, prefix, language);
+
+            Assert.True(map.Count > 0, $"{language} 词表为空");
+            var missing = baseline.Keys.Where(e => !map.ContainsKey(e)).ToArray();
+            var extra = map.Keys.Where(e => !baseline.ContainsKey(e)).ToArray();
+            Assert.True(missing.Length == 0, $"{language} 缺少键：{String.Join(", ", missing.Take(5))}");
+            Assert.True(extra.Length == 0, $"{language} 多余键：{String.Join(", ", extra.Take(5))}");
+
+            foreach (var item in map)
+            {
+                Assert.DoesNotContain('<', item.Value);
+                Assert.DoesNotContain('>', item.Value);
+                Assert.DoesNotContain('&', item.Value);
+            }
+        }
+
+        // 英文词表必须覆盖页面中所有可见中文，避免漏词条
+        using var stream = assembly.GetManifestResourceStream($"{prefix}.index.html");
+        Assert.NotNull(stream);
+        using var reader = new StreamReader(stream);
+        var html = reader.ReadToEnd();
+        foreach (var key in baseline.Keys.OrderByDescending(e => e.Length))
+        {
+            html = html.Replace(key, "");
+        }
+        html = System.Text.RegularExpressions.Regex.Replace(html, "<!--.*?-->", "", System.Text.RegularExpressions.RegexOptions.Singleline);
+        html = System.Text.RegularExpressions.Regex.Replace(html, "/\\*.*?\\*/", "", System.Text.RegularExpressions.RegexOptions.Singleline);
+        html = System.Text.RegularExpressions.Regex.Replace(html, "(?m)^\\s*//.*$", "");
+        Assert.DoesNotMatch("[\\u4e00-\\u9fff]", html);
     }
 
     [Fact]

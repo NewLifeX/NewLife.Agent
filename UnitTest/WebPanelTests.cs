@@ -896,7 +896,7 @@ public class WebPanelE2ETests : IDisposable
 
         Assert.Equal(200, (Int32)response.StatusCode);
         Assert.Contains("\"code\":401", json);
-        Assert.Contains("\"Invalid credentials\"", json);
+        Assert.Contains("\"" + L.T("Invalid credentials") + "\"", json);
     }
 
     [Fact]

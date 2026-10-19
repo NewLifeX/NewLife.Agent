@@ -21,7 +21,7 @@ public class CommandHandlerTests
 
         var handler = new ShowStatus(mb.Object);
         Assert.Equal("-status", handler.Cmd);
-        Assert.Equal(L.T("Show status"), handler.Description);
+        Assert.Equal("Show status", handler.Description);
     }
     #endregion
 
@@ -322,7 +322,7 @@ public class CommandHandlerTests
 
         var handler = new RunSimulation(mb.Object);
         Assert.Equal("-run", handler.Cmd);
-        Assert.Equal(L.T("Simulation"), handler.Description);
+        Assert.Equal("Simulation", handler.Description);
     }
     #endregion
 
@@ -335,7 +335,7 @@ public class CommandHandlerTests
 
         var handler = new RunService(mb.Object);
         Assert.Equal("-s", handler.Cmd);
-        Assert.Equal(L.T("Run service"), handler.Description);
+        Assert.Equal("Run service", handler.Description);
         Assert.Null(handler.ShortcutKey);
     }
 

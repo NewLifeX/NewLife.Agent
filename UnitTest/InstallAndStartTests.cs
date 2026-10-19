@@ -110,7 +110,7 @@ public class InstallAndStartTests
 
         Assert.Equal(CommandConst.InstallAndStart, handler.Cmd);
         Assert.Equal("-install", handler.Cmd);
-        Assert.Equal(L.T("Install and start service"), handler.Description);
+        Assert.Equal("Install and start service", handler.Description);
         Assert.Null(handler.ShortcutKey);
     }
 }

@@ -131,7 +131,7 @@ public class WebPanelContractTests
 
         AssertExactKeys(root, "code", "message");
         Assert.Equal(401, root.GetProperty("code").GetInt32());
-        Assert.Equal("Invalid credentials", root.GetProperty("message").GetString());
+        Assert.Equal(L.T("Invalid credentials"), root.GetProperty("message").GetString());
     }
 
     [Fact]
@@ -206,7 +206,7 @@ public class WebPanelContractTests
 
         AssertExactKeys(root, "code", "message");
         Assert.Equal(400, root.GetProperty("code").GetInt32());
-        Assert.Equal("Unknown action: unknown", root.GetProperty("message").GetString());
+        Assert.Equal(L.T("Unknown action: {0}", "unknown"), root.GetProperty("message").GetString());
     }
 
     [Fact]

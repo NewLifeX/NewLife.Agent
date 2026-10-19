@@ -100,7 +100,7 @@ public class ApiConfigUpdateTests
         var result = controller.UpdateConfig(new Dictionary<String, Object> { ["MaxThread"] = 123 });
 
         Assert.Equal(401, GetCode(result));
-        Assert.Equal("Unauthorized", GetMessage(result));
+        Assert.Equal(L.T("Unauthorized"), GetMessage(result));
         Assert.Equal(before, Setting.Current.MaxThread);
     }
     #endregion
@@ -115,11 +115,11 @@ public class ApiConfigUpdateTests
 
         var resultNull = controller.UpdateConfig(null);
         Assert.Equal(400, GetCode(resultNull));
-        Assert.Equal("Missing config", GetMessage(resultNull));
+        Assert.Equal(L.T("Missing config"), GetMessage(resultNull));
 
         var resultEmpty = controller.UpdateConfig(new Dictionary<String, Object>());
         Assert.Equal(400, GetCode(resultEmpty));
-        Assert.Equal("Missing config", GetMessage(resultEmpty));
+        Assert.Equal(L.T("Missing config"), GetMessage(resultEmpty));
     }
     #endregion
 

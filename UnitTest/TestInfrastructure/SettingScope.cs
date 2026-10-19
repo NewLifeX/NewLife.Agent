@@ -36,5 +36,8 @@ public sealed class SettingScope : IDisposable
         }
 
         set.Save();
+
+        // 语言等全局设置随配置一起还原
+        set.ApplyLanguage();
     }
 }
