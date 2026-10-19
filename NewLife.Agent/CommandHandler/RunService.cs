@@ -14,7 +14,7 @@ public class RunService : BaseCommandHandler
     public RunService(ServiceBase service) : base(service)
     {
         Cmd = CommandConst.RunService;
-        Description = "执行服务";
+        Description = L.T("Run service");
     }
 
     /// <inheritdoc/>

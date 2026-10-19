@@ -15,7 +15,7 @@ public class RunSimulation : BaseCommandHandler
     public RunSimulation(ServiceBase service) : base(service)
     {
         Cmd = CommandConst.RunSimulation;
-        Description = "模拟运行";
+        Description = L.T("Simulation");
         ShortcutKey = '5';
     }
 
@@ -29,7 +29,7 @@ public class RunSimulation : BaseCommandHandler
         try
         {
             Console.WriteLine(L.T("Simulation is running..."));
-            Service.StartWork("模拟运行开始");
+            Service.StartWork(L.T("Simulation started"));
 
             // 开始辅助循环，检查状态
             ThreadPool.QueueUserWorkItem(s => Service.DoLoop());
@@ -38,7 +38,7 @@ public class RunSimulation : BaseCommandHandler
             Console.ReadKey(true);
 
             Service.Running = false;
-            Service.StopWork("模拟运行停止");
+            Service.StopWork(L.T("Simulation stopped"));
             Service.FreeMemory();
         }
         catch (Exception ex)

@@ -16,7 +16,7 @@ public class WatchDog : BaseCommandHandler
     public WatchDog(ServiceBase service) : base(service)
     {
         Cmd = CommandConst.WatchDog;
-        Description = "看门狗保护服务";
+        Description = L.T("Watchdog service protection");
         ShortcutKey = '7';
     }
 
@@ -58,10 +58,10 @@ public class WatchDog : BaseCommandHandler
             }
             // 已安装未运行
             if (!host.IsInstalled(item))
-                XTrace.WriteLine(L.T("Service {0} was not found; is it installed?"), item);
+                XTrace.WriteLine("Service {0} was not found; is it installed?", item);
             else if (!host.IsRunning(item))
             {
-                XTrace.WriteLine(L.T("Service {0} was stopped; starting it now."), item);
+                XTrace.WriteLine("Service {0} was stopped; starting it now.", item);
 
                 host.Start(item);
             }

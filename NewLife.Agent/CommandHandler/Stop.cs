@@ -14,7 +14,7 @@ public class Stop : BaseCommandHandler
     public Stop(ServiceBase service) : base(service)
     {
         Cmd = CommandConst.Stop;
-        Description = "停止服务";
+        Description = L.T("Stop service");
         ShortcutKey = '3';
     }
 

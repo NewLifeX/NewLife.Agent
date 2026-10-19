@@ -96,12 +96,12 @@ public class WindowsService : DefaultHost
                 XTrace.WriteLine(new Win32Exception().Message);
             }
 
-            XTrace.WriteLine("退出服务 {0} CtrlDispatcher={1}", service.ServiceName, flag);
+            XTrace.WriteLine("Exiting service {0} CtrlDispatcher={1}", service.ServiceName, flag);
         }
         catch (Exception ex)
         {
             XTrace.WriteException(ex);
-            XTrace.WriteLine("运行服务 {0} 出错，{1}", Service.ServiceName, new Win32Exception(Marshal.GetLastWin32Error()).Message);
+            XTrace.WriteLine("Error running service {0}: {1}", Service.ServiceName, new Win32Exception(Marshal.GetLastWin32Error()).Message);
         }
         finally
         {
@@ -152,7 +152,7 @@ public class WindowsService : DefaultHost
         catch (Exception ex)
         {
             XTrace.WriteException(ex);
-            XTrace.WriteLine("运行服务{0}失败，{1}", Service.ServiceName, new Win32Exception(Marshal.GetLastWin32Error()).Message);
+            XTrace.WriteLine("Failed to run service {0}: {1}", Service.ServiceName, new Win32Exception(Marshal.GetLastWin32Error()).Message);
 
             ReportStatus(ServiceControllerStatus.Stopped);
         }
@@ -330,7 +330,7 @@ public class WindowsService : DefaultHost
         using var manager = new SafeServiceHandle(OpenSCManager(null, null, ServiceControllerOptions.SC_MANAGER_CREATE_SERVICE));
         if (manager.IsInvalid)
         {
-            XTrace.WriteLine("安装Windows服务要求以管理员运行");
+            XTrace.WriteLine("Installing a Windows service requires administrator privileges.");
             throw new Win32Exception(Marshal.GetLastWin32Error());
         }
 
@@ -432,7 +432,7 @@ public class WindowsService : DefaultHost
         using var manager = new SafeServiceHandle(OpenSCManager(null, null, ServiceControllerOptions.SC_MANAGER_ALL));
         if (manager.IsInvalid)
         {
-            XTrace.WriteLine("卸载Windows服务要求以管理员运行");
+            XTrace.WriteLine("Removing a Windows service requires administrator privileges.");
             throw new Win32Exception(Marshal.GetLastWin32Error());
         }
 
@@ -457,7 +457,7 @@ public class WindowsService : DefaultHost
         using var manager = new SafeServiceHandle(OpenSCManager(null, null, ServiceControllerOptions.SC_MANAGER_CONNECT));
         if (manager.IsInvalid)
         {
-            XTrace.WriteLine("启动Windows服务要求以管理员运行");
+            XTrace.WriteLine("Starting a Windows service requires administrator privileges.");
             throw new Win32Exception(Marshal.GetLastWin32Error());
         }
 
@@ -479,7 +479,7 @@ public class WindowsService : DefaultHost
         using var manager = new SafeServiceHandle(OpenSCManager(null, null, ServiceControllerOptions.SC_MANAGER_ALL));
         if (manager.IsInvalid)
         {
-            XTrace.WriteLine("停止Windows服务要求以管理员运行");
+            XTrace.WriteLine("Stopping a Windows service requires administrator privileges.");
             throw new Win32Exception(Marshal.GetLastWin32Error());
         }
 

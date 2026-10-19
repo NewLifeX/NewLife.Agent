@@ -15,7 +15,7 @@ public class Reinstall : BaseCommandHandler
     public Reinstall(ServiceBase service) : base(service)
     {
         Cmd = CommandConst.Reinstall;
-        Description = "重新安装服务";
+        Description = L.T("Reinstall service");
     }
 
     /// <inheritdoc/>

@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using NewLife;
 using NewLife.Agent.Command;
 using NewLife.Agent.CommandHandler;
 using NewLife.Agent.Models;
@@ -109,7 +110,7 @@ public class InstallAndStartTests
 
         Assert.Equal(CommandConst.InstallAndStart, handler.Cmd);
         Assert.Equal("-install", handler.Cmd);
-        Assert.Equal("安装并启动服务", handler.Description);
+        Assert.Equal(L.T("Install and start service"), handler.Description);
         Assert.Null(handler.ShortcutKey);
     }
 }

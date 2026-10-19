@@ -191,19 +191,19 @@ public class ApiController : IHttpController
         switch (action.ToLower())
         {
             case "stop":
-                XTrace.WriteLine("Web面板触发服务停止");
+                XTrace.Log.WriteLogPrefixed(LogLevel.Info, "[WebPanel]", "The web panel triggered a service stop.");
                 Service.Running = false;
-                return new ApiResult { Code = 0, Message = "服务正在停止，Web面板仍可用" };
+                return new ApiResult { Code = 0, Message = L.T("The service is stopping; the web panel remains available.") };
 
             case "start":
-                XTrace.WriteLine("Web面板触发服务启动");
+                XTrace.Log.WriteLogPrefixed(LogLevel.Info, "[WebPanel]", "The web panel triggered a service start.");
                 Service.Host.Restart(Service.ServiceName);
-                return new ApiResult { Code = 0, Message = "服务正在重启" };
+                return new ApiResult { Code = 0, Message = L.T("The service is restarting.") };
 
             case "restart":
-                XTrace.WriteLine("Web面板触发服务重启");
+                XTrace.Log.WriteLogPrefixed(LogLevel.Info, "[WebPanel]", "The web panel triggered a service restart.");
                 Service.Host.Restart(Service.ServiceName);
-                return new ApiResult { Code = 0, Message = "服务正在重启" };
+                return new ApiResult { Code = 0, Message = L.T("The service is restarting.") };
 
             default:
                 return new ApiResult { Code = 400, Message = $"Unknown action: {action}" };
@@ -219,7 +219,7 @@ public class ApiController : IHttpController
         var p = Process.GetCurrentProcess();
         var beforeMB = p.WorkingSet64 / 1024 / 1024;
 
-        XTrace.WriteLine("Web面板触发释放内存，释放前 WorkingSet={0}MB", beforeMB);
+        XTrace.Log.WriteLogPrefixed(LogLevel.Info, "[WebPanel]", "The web panel triggered memory release; WorkingSet before release={0} MB.", beforeMB);
 
         var success = Runtime.FreeMemory();
 
@@ -227,12 +227,12 @@ public class ApiController : IHttpController
         var afterMB = p.WorkingSet64 / 1024 / 1024;
         var freedMB = beforeMB - afterMB;
 
-        XTrace.WriteLine("释放内存完成，释放后 WorkingSet={0}MB，释放 {1}MB", afterMB, freedMB);
+        XTrace.Log.WriteLogPrefixed(LogLevel.Info, "[WebPanel]", "Memory release completed; WorkingSet after release={0} MB, freed {1} MB.", afterMB, freedMB);
 
         return new FreeMemoryResult
         {
             Code = success ? 0 : 500,
-            Message = success ? $"释放内存完成：{beforeMB}MB → {afterMB}MB，释放 {freedMB}MB" : "释放内存失败",
+            Message = success ? L.T("Memory release completed: {0} MB -> {1} MB, freed {2} MB.", beforeMB, afterMB, freedMB) : L.T("Memory release failed."),
             Data = new FreeMemoryData
             {
                 BeforeMB = beforeMB,
@@ -360,7 +360,7 @@ public class ApiController : IHttpController
 
             set.Save();
 
-            return new ApiResult { Code = 0, Message = "配置已更新，部分配置需重启服务后生效" };
+            return new ApiResult { Code = 0, Message = L.T("Configuration updated; some settings take effect after the service restarts.") };
         }
         catch (Exception ex)
         {
@@ -394,9 +394,9 @@ public class ApiController : IHttpController
         // 更新面板内存中的密码（立即生效，无需重启）
         panel.UpdateCredentials(null, newPassword);
 
-        XTrace.WriteLine("Web面板密码已修改");
+        XTrace.Log.WriteLogPrefixed(LogLevel.Info, "[WebPanel]", "The web panel password has been changed.");
 
-        return new ApiResult { Code = 0, Message = "密码已修改，下次登录请使用新密码" };
+        return new ApiResult { Code = 0, Message = L.T("Password changed; use the new password on your next login.") };
     }
     #endregion
 

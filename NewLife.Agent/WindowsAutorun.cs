@@ -204,7 +204,7 @@ public class WindowsAutorun : DefaultHost
         var config = QueryConfig(serviceName);
         if (config == null || config.FilePath.IsNullOrEmpty() || !File.Exists(config.FilePath))
         {
-            XTrace.WriteLine("未找到服务 {0}", serviceName);
+            XTrace.WriteLine("Service {0} was not found; is it installed?", serviceName);
             return false;
         }
 

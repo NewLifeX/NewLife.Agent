@@ -15,7 +15,7 @@ public class Uninstall : BaseCommandHandler
     public Uninstall(ServiceBase service) : base(service)
     {
         Cmd = CommandConst.Uninstall;
-        Description = "停止并卸载服务";
+        Description = L.T("Stop and remove service");
     }
 
     /// <inheritdoc/>

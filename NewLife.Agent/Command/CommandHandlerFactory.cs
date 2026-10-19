@@ -127,7 +127,7 @@ public class CommandFactory
     {
         if (String.IsNullOrEmpty(handler.Cmd))
         {
-            throw new InvalidOperationException($"类型 {handler.GetType().FullName} 未提供命令 Cmd 值");
+            throw new InvalidOperationException(L.T("Type {0} does not provide a Cmd value.", handler.GetType().FullName));
         }
 
         // 如果已经存在相同命令的处理程序，但基类不同，优先使用继承非基类的处理程序
@@ -140,7 +140,7 @@ public class CommandFactory
             }
             else
             {
-                throw new InvalidOperationException($"类型 {handler.GetType().FullName} 与 {oldHandler.GetType().FullName} 提供的命令 Cmd 值 [{handler.Cmd}] 相同");
+                throw new InvalidOperationException(L.T("Types {0} and {1} provide the same Cmd value [{2}].", handler.GetType().FullName, oldHandler.GetType().FullName, handler.Cmd));
             }
         }
         _commandHandlerDict[handler.Cmd] = handler;

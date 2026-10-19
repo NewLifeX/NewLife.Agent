@@ -81,7 +81,7 @@ public class AgentWebPanel
         // 绑定地址：默认仅本机访问；配置为“*”时监听所有网卡；无法识别的值回退本机，宁可连不上也不误开放
         var bind = set.WebBind;
         if (!bind.IsNullOrEmpty() && bind != "*" && !IPAddress.TryParse(bind, out _))
-            XTrace.WriteLine("WebBind 配置无效[{0}]，已回退为仅本机监听 127.0.0.1", bind);
+            XTrace.Log.WriteLogPrefixed(LogLevel.Warn, "[WebPanel]", "Invalid WebBind value [{0}]; falling back to listening on loopback 127.0.0.1 only.", bind);
 
         var address = ParseBindAddress(bind);
         _listenAll = address == null;
@@ -210,11 +210,11 @@ public class AgentWebPanel
 
         Server.Start();
 
-        XTrace.WriteLine(L.T("The web management panel started on port {0}."), Server.Port);
+        XTrace.Log.WriteLogPrefixed(LogLevel.Info, "[WebPanel]", "The web management panel started on port {0}.", Server.Port);
 
         // 监听所有网卡且仍在使用默认口令时，给出安全提醒
         if (_listenAll && Password == new Setting().WebPassword)
-            XTrace.WriteLine(L.T("Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible."));
+            XTrace.Log.WriteLogPrefixed(LogLevel.Warn, "[WebPanel]", "Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible.");
     }
 
     /// <summary>停止Web面板</summary>
@@ -225,7 +225,7 @@ public class AgentWebPanel
 
         Server.Stop(reason ?? "ServiceStop");
 
-        XTrace.WriteLine("Web管理面板已停止：{0}", reason);
+        XTrace.Log.WriteLogPrefixed(LogLevel.Info, "[WebPanel]", "The web management panel has stopped: {0}", reason);
     }
     #endregion
 

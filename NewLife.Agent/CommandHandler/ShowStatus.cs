@@ -17,7 +17,7 @@ public class ShowStatus : BaseCommandHandler
     public ShowStatus(ServiceBase service) : base(service)
     {
         Cmd = CommandConst.ShowStatus;
-        Description = "显示状态";
+        Description = L.T("Show status");
         ShortcutKey = '1';
     }
 
@@ -30,22 +30,22 @@ public class ShowStatus : BaseCommandHandler
 
         var name = Service.ServiceName;
         if (name != Service.DisplayName)
-            Console.WriteLine("服务：{0}({1})", Service.DisplayName, name);
+            Console.WriteLine(L.T("Service: {0}({1})"), Service.DisplayName, name);
         else
-            Console.WriteLine("服务：{0}", name);
-        Console.WriteLine("描述：{0}", Service.Description);
-        Console.Write("状态：{0} ", Service.Host.Name);
+            Console.WriteLine(L.T("Service: {0}"), name);
+        Console.WriteLine(L.T("Description: {0}"), Service.Description);
+        Console.Write(L.T("Status: {0} "), Service.Host.Name);
 
         String status;
         var installed = Service.Host.IsInstalled(name);
         if (!installed)
-            status = "未安装";
+            status = L.T("Not installed");
         else if (Service.Host.IsRunning(name))
-            status = "运行中";
+            status = L.T("Running");
         else
-            status = "未启动";
+            status = L.T("Stopped");
 
-        if (Runtime.Windows) status += $"（{(WindowsService.IsAdministrator() ? "管理员" : "普通用户")}）";
+        if (Runtime.Windows) status += L.T(" ({0})", L.T(WindowsService.IsAdministrator() ? "Administrator" : "Standard user"));
 
         Console.WriteLine(status);
 
@@ -55,7 +55,7 @@ public class ShowStatus : BaseCommandHandler
             try
             {
                 var cfg = Service.Host.QueryConfig(name);
-                if (cfg != null) Console.WriteLine("路径：{0}", cfg.FilePath);
+                if (cfg != null) Console.WriteLine(L.T("Path: {0}"), cfg.FilePath);
             }
             catch (Exception ex)
             {
@@ -65,11 +65,11 @@ public class ShowStatus : BaseCommandHandler
 
         var asm = AssemblyX.Create(Assembly.GetExecutingAssembly());
         Console.WriteLine();
-        Console.WriteLine("{0}\t版本：{1}\t发布：{2:yyyy-MM-dd HH:mm:ss}", asm.Name, asm.FileVersion, asm.Compile);
+        Console.WriteLine(L.T("{0}\tVersion: {1}\tReleased: {2:yyyy-MM-dd HH:mm:ss}"), asm.Name, asm.FileVersion, asm.Compile);
 
         var asm2 = AssemblyX.Create(Assembly.GetEntryAssembly());
         if (asm2 != asm)
-            Console.WriteLine("{0}\t版本：{1}\t发布：{2:yyyy-MM-dd HH:mm:ss}", asm2.Name, asm2.FileVersion, asm2.Compile);
+            Console.WriteLine(L.T("{0}\tVersion: {1}\tReleased: {2:yyyy-MM-dd HH:mm:ss}"), asm2.Name, asm2.FileVersion, asm2.Compile);
 
         Console.ForegroundColor = color;
     }

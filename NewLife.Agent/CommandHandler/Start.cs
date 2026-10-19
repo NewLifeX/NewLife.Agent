@@ -14,7 +14,7 @@ public class Start : BaseCommandHandler
     public Start(ServiceBase service) : base(service)
     {
         Cmd = CommandConst.Start;
-        Description = "启动服务";
+        Description = L.T("Start service");
         ShortcutKey = '3';
     }
 

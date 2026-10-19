@@ -225,7 +225,7 @@ public abstract class ServiceBase : DisposeBase
                     }
                     else
                     {
-                        Console.WriteLine($"您输入的命令序号 [{key.KeyChar}] 无效，请重新输入！");
+                        Console.WriteLine(L.T("Invalid command number [{0}]; please try again."), key.KeyChar);
                     }
                 }
             }
@@ -251,11 +251,11 @@ public abstract class ServiceBase : DisposeBase
         Console.ForegroundColor = ConsoleColor.Yellow;
 
         Console.WriteLine();
-        Console.WriteLine($"序号 功能名称\t命令行参数");
+        Console.WriteLine(L.T("No.\tFunction\tCommand line"));
         var menus = Command.GetShortcutMenu();
         foreach (var menu in menus)
         {
-            Console.WriteLine($" {menu.Key}、 {menu.Name}\t{menu.Cmd}");
+            Console.WriteLine(L.T(" {0}. {1}\t{2}"), menu.Key, menu.Name, menu.Cmd);
         }
 
         //兼容旧版本菜单，相关代码已过时
@@ -267,7 +267,7 @@ public abstract class ServiceBase : DisposeBase
             //}
             foreach (var menu in _Menus)
             {
-                Console.WriteLine($" {menu.Key}、 {menu.Name}\t");
+                Console.WriteLine(L.T(" {0}. {1}\t"), menu.Key, menu.Name);
             }
         }
 
@@ -276,12 +276,12 @@ public abstract class ServiceBase : DisposeBase
         if (_webPanel != null && _webPanel.Active)
         {
             Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine($" Web管理：http://localhost:{_webPanel.Port}/");
+            Console.WriteLine(L.T(" Web management: http://localhost:{0}/"), _webPanel.Port);
             Console.ForegroundColor = ConsoleColor.Yellow;
         }
 #endif
 
-        Console.WriteLine($" 0、 退出\t");
+        Console.WriteLine(L.T(" 0. Exit\t"));
         Console.WriteLine();
         Console.ForegroundColor = color;
     }
@@ -332,14 +332,14 @@ public abstract class ServiceBase : DisposeBase
                 {
                     var file = parts[0];
                     var args = parts.Length > 1 ? parts[1] : "";
-                    WriteLog("启动后执行：FileName={0} Args={1}", file, args);
+                    WriteLog("Run after start: FileName={0} Args={1}", file, args);
 
                     var si = new ProcessStartInfo(file.GetFullPath(), args)
                     {
                         WorkingDirectory = ".".GetFullPath()
                     };
                     _process = Process.Start(si);
-                    WriteLog("进程：[{0}]{1}", _process.Id, _process.ProcessName);
+                    WriteLog("Process: [{0}]{1}", _process.Id, _process.ProcessName);
                 }
             }
             catch (Exception ex)
@@ -393,13 +393,13 @@ public abstract class ServiceBase : DisposeBase
             }
             catch (Exception ex)
             {
-                WriteLog(L.T("StartWork failed: {0}"), ex.Message);
+                WriteLog("StartWork failed: {0}", ex.Message);
                 Log?.Error(ex.ToString());
             }
         });
         if (!task.Wait(3_000))
         {
-            XTrace.WriteLine(L.T("StartWork took too long; avoid blocking operations in StartWork."));
+            XTrace.WriteLine("StartWork took too long; avoid blocking operations in StartWork.");
         }
     }
 
@@ -428,7 +428,7 @@ public abstract class ServiceBase : DisposeBase
     /// <param name="reason"></param>
     public virtual void StartWork(String reason)
     {
-        WriteLog("服务启动 {0}", reason);
+        WriteLog("Service started: {0}", reason);
 
 #if !NET40
         // 启动Web管理面板
@@ -469,7 +469,7 @@ public abstract class ServiceBase : DisposeBase
     /// <param name="reason"></param>
     public virtual void StopWork(String reason)
     {
-        WriteLog("服务停止 {0}", reason);
+        WriteLog("Service stopped: {0}", reason);
 
 #if !NET40
         // 停止Web管理面板
@@ -521,7 +521,7 @@ public abstract class ServiceBase : DisposeBase
         var memory = Process.GetCurrentProcess().WorkingSet64 / 1024 / 1024;
         if (!HealthMonitor.IsMemoryOver(set, memory)) return false;
 
-        WriteLog(L.T("Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting."), memory, set.MaxMemory);
+        WriteLog("Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.", memory, set.MaxMemory);
 
         Host.Restart(ServiceName);
 
@@ -559,7 +559,7 @@ public abstract class ServiceBase : DisposeBase
         var count = Process.GetCurrentProcess().Threads.Count;
         if (!HealthMonitor.IsThreadOver(set, count)) return false;
 
-        WriteLog(L.T("Process thread count {0:n0} exceeds the threshold {1:n0}; restarting."), count, set.MaxThread);
+        WriteLog("Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.", count, set.MaxThread);
 
         Host.Restart(ServiceName);
 
@@ -574,7 +574,7 @@ public abstract class ServiceBase : DisposeBase
         var count = Process.GetCurrentProcess().HandleCount;
         if (!HealthMonitor.IsHandleOver(set, count)) return false;
 
-        WriteLog(L.T("Process handle count {0:n0} exceeds the threshold {1:n0}; restarting."), count, set.MaxHandle);
+        WriteLog("Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.", count, set.MaxHandle);
 
         Host.Restart(ServiceName);
 
@@ -594,11 +594,11 @@ public abstract class ServiceBase : DisposeBase
         var ts = DateTime.Now - Start;
         if (inTimeRange)
         {
-            WriteLog("服务已运行 {0:n0}分钟，达到预设重启时间（{1:n0}分钟），并且当前时间在预设时间范围之内（{2}），准备重启！", ts.TotalMinutes, set.AutoRestart, set.RestartTimeRange);
+            WriteLog("Service has run for {0:n0} minutes, reaching the preset restart interval ({1:n0} minutes) within the configured time range ({2}); restarting!", ts.TotalMinutes, set.AutoRestart, set.RestartTimeRange);
         }
         else
         {
-            WriteLog("服务已运行 {0:n0}分钟，达到预设重启时间（{1:n0}分钟），准备重启！", ts.TotalMinutes, set.AutoRestart);
+            WriteLog("Service has run for {0:n0} minutes, reaching the preset restart interval ({1:n0} minutes); restarting!", ts.TotalMinutes, set.AutoRestart);
         }
         //重置开始时间，防止检测时间过快，重启时间较长时，导致多次重复重启
         Start = DateTime.Now;
@@ -619,5 +619,18 @@ public abstract class ServiceBase : DisposeBase
     /// <param name="format">格式化字符串</param>
     /// <param name="args">格式化参数</param>
     public void WriteLog(String format, params Object[] args) => Log?.Info(format, args);
+
+    /// <summary>写日志。前缀在翻译之后拼接，不参与本地化</summary>
+    /// <param name="prefix">日志前缀，可为空</param>
+    /// <param name="format">格式化字符串</param>
+    /// <param name="args">格式化参数</param>
+    public void WriteLogPrefixed(String prefix, String format, params Object[] args) => Log?.WriteLogPrefixed(prefix, format, args);
+
+    /// <summary>写日志。前缀在翻译之后拼接，不参与本地化</summary>
+    /// <param name="level">日志等级</param>
+    /// <param name="prefix">日志前缀，可为空</param>
+    /// <param name="format">格式化字符串</param>
+    /// <param name="args">格式化参数</param>
+    public void WriteLogPrefixed(LogLevel level, String prefix, String format, params Object[] args) => Log?.WriteLogPrefixed(level, prefix, format, args);
     #endregion
 }
