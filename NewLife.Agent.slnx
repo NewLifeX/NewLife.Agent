@@ -1,0 +1,26 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="iPhone" />
+    <Platform Name="iPhoneSimulator" />
+  </Configurations>
+  <Folder Name="/Others/">
+    <File Path=".editorconfig" />
+    <File Path=".github/actions/loong64-qemu/action.yml" />
+    <File Path=".github/workflows/aot.yml" />
+    <File Path=".github/workflows/publish-beta.yml" />
+    <File Path=".github/workflows/publish.yml" />
+    <File Path=".github/workflows/test.yml" />
+    <File Path=".gitignore" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/Samples/">
+    <Project Path="Zero.Agent/Zero.Agent.csproj" />
+    <Project Path="Zero.Web/Zero.Web.csproj" />
+  </Folder>
+  <Project Path="NewLife.Agent/NewLife.Agent.csproj" />
+  <Project Path="NewLife.Extensions.Hosting.AgentService/NewLife.Extensions.Hosting.AgentService.csproj" />
+  <Project Path="Test/Test.csproj" />
+  <Project Path="TestWorker/TestWorker.csproj" />
+  <Project Path="UnitTest/UnitTest.csproj" />
+</Solution>
