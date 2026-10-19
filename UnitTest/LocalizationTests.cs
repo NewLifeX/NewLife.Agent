@@ -316,10 +316,14 @@ public class LocalizationTests
                 var en = Visible(await GetIndex(client, "en-US"));
                 Assert.Contains("Service status", en);
                 Assert.DoesNotMatch("[\\u4e00-\\u9fff]", en);
+                Assert.Contains("<html lang=\"en\">", en);
 
                 var ja = Visible(await GetIndex(client, "ja-JP"));
                 Assert.Contains("サービスの状態", ja);
                 Assert.DoesNotContain("服务状态", ja);
+
+                var ar = await GetIndex(client, "ar-SA");
+                Assert.Contains("dir=\"rtl\"", ar);
 
                 var zh = await GetIndex(client, "zh-CN");
                 Assert.Contains("服务状态", zh);

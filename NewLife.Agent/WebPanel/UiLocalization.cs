@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using NewLife.Serialization;
 
 namespace NewLife.Agent.WebPanel;
@@ -53,10 +54,17 @@ public static class UiLocalization
         }
 
         page ??= html;
+        // 同步根元素语言与书写方向，便于浏览器与辅助技术选择字体和排版
+        page = Regex.Replace(page, "<html[^>]*>", $"<html lang=\"{language}\"{(IsRightToLeft(language) ? " dir=\"rtl\"" : "")}>", RegexOptions.IgnoreCase);
         _pages[key] = page;
 
         return page;
     }
+
+    /// <summary>判断是否从右到左书写的语言</summary>
+    /// <param name="language">语言代码</param>
+    /// <returns>阿拉伯语、希伯来语、波斯语返回 true</returns>
+    public static Boolean IsRightToLeft(String language) => language is "ar" or "he" or "fa";
 
     /// <summary>获取界面词典</summary>
     /// <param name="assembly">页面资源所在程序集</param>
