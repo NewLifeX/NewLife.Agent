@@ -15,7 +15,7 @@ public class InstallAndStart : BaseCommandHandler
     public InstallAndStart(ServiceBase service) : base(service)
     {
         Cmd = CommandConst.InstallAndStart;
-        Description = L.T("Install and start service");
+        Description = "Install and start service";
     }
 
     /// <inheritdoc/>

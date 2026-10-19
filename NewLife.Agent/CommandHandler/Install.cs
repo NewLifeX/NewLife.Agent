@@ -15,7 +15,7 @@ public class Install : BaseCommandHandler
     public Install(ServiceBase service) : base(service)
     {
         Cmd = CommandConst.Install;
-        Description = L.T("Install service");
+        Description = "Install service";
         ShortcutKey = '2';
     }
 

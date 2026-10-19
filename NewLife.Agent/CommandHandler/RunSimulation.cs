@@ -15,7 +15,7 @@ public class RunSimulation : BaseCommandHandler
     public RunSimulation(ServiceBase service) : base(service)
     {
         Cmd = CommandConst.RunSimulation;
-        Description = L.T("Simulation");
+        Description = "Simulation";
         ShortcutKey = '5';
     }
 

@@ -17,7 +17,7 @@ public class ShowStatus : BaseCommandHandler
     public ShowStatus(ServiceBase service) : base(service)
     {
         Cmd = CommandConst.ShowStatus;
-        Description = L.T("Show status");
+        Description = "Show status";
         ShortcutKey = '1';
     }
 

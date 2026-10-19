@@ -15,7 +15,7 @@ public class Remove : BaseCommandHandler
     public Remove(ServiceBase service) : base(service)
     {
         Cmd = CommandConst.Remove;
-        Description = L.T("Remove service");
+        Description = "Remove service";
         ShortcutKey = '2';
     }
 

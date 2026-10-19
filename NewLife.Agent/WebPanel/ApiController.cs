@@ -40,13 +40,13 @@ public class ApiController : IHttpController
         var ip = GetClientIp();
 
         if (LoginRateLimiter.IsBlocked(ip))
-            return new ApiResult { Code = 429, Message = "Too many failed attempts. Try again later." };
+            return new ApiResult { Code = 429, Message = L.T("Too many failed attempts. Try again later.") };
 
         var token = AgentWebPanel.Current?.IssueToken(user, password);
         if (token == null)
         {
             LoginRateLimiter.RecordFailure(ip);
-            return new ApiResult { Code = 401, Message = "Invalid credentials" };
+            return new ApiResult { Code = 401, Message = L.T("Invalid credentials") };
         }
 
         LoginRateLimiter.RecordSuccess(ip);
@@ -103,7 +103,7 @@ public class ApiController : IHttpController
     /// <returns>服务状态信息，包含运行状态、进程信息、系统资源等</returns>
     public Object Status()
     {
-        if (!CheckAuth()) return new ApiResult { Code = 401, Message = "Unauthorized" };
+        if (!CheckAuth()) return new ApiResult { Code = 401, Message = L.T("Unauthorized") };
 
         var p = Process.GetCurrentProcess();
         var uptime = DateTime.Now - p.StartTime;
@@ -183,10 +183,10 @@ public class ApiController : IHttpController
     /// <returns>操作结果</returns>
     public Object Control(String action)
     {
-        if (!CheckAuth()) return new ApiResult { Code = 401, Message = "Unauthorized" };
+        if (!CheckAuth()) return new ApiResult { Code = 401, Message = L.T("Unauthorized") };
 
         if (action.IsNullOrEmpty())
-            return new ApiResult { Code = 400, Message = "Missing action" };
+            return new ApiResult { Code = 400, Message = L.T("Missing action") };
 
         switch (action.ToLower())
         {
@@ -206,7 +206,7 @@ public class ApiController : IHttpController
                 return new ApiResult { Code = 0, Message = L.T("The service is restarting.") };
 
             default:
-                return new ApiResult { Code = 400, Message = $"Unknown action: {action}" };
+                return new ApiResult { Code = 400, Message = L.T("Unknown action: {0}", action) };
         }
     }
 
@@ -214,7 +214,7 @@ public class ApiController : IHttpController
     /// <returns>释放前后的内存对比</returns>
     public Object FreeMemory()
     {
-        if (!CheckAuth()) return new ApiResult { Code = 401, Message = "Unauthorized" };
+        if (!CheckAuth()) return new ApiResult { Code = 401, Message = L.T("Unauthorized") };
 
         var p = Process.GetCurrentProcess();
         var beforeMB = p.WorkingSet64 / 1024 / 1024;
@@ -291,7 +291,7 @@ public class ApiController : IHttpController
     /// <returns>配置项列表，含显示名、描述、类型和当前值</returns>
     public Object ConfigMetadata()
     {
-        if (!CheckAuth()) return new ApiResult { Code = 401, Message = "Unauthorized" };
+        if (!CheckAuth()) return new ApiResult { Code = 401, Message = L.T("Unauthorized") };
 
         var set = Setting.Current;
         var items = new List<ConfigItem>();
@@ -338,10 +338,10 @@ public class ApiController : IHttpController
     /// <returns>更新结果</returns>
     public Object UpdateConfig(IDictionary<String, Object> updates)
     {
-        if (!CheckAuth()) return new ApiResult { Code = 401, Message = "Unauthorized" };
+        if (!CheckAuth()) return new ApiResult { Code = 401, Message = L.T("Unauthorized") };
 
         if (updates == null || updates.Count == 0)
-            return new ApiResult { Code = 400, Message = "Missing config" };
+            return new ApiResult { Code = 400, Message = L.T("Missing config") };
 
         try
         {
@@ -378,17 +378,17 @@ public class ApiController : IHttpController
     /// <returns>操作结果</returns>
     public Object ChangePassword(String oldPassword, String newPassword)
     {
-        if (!CheckAuth()) return new ApiResult { Code = 401, Message = "Unauthorized" };
+        if (!CheckAuth()) return new ApiResult { Code = 401, Message = L.T("Unauthorized") };
 
-        if (oldPassword.IsNullOrEmpty()) return new ApiResult { Code = 400, Message = "Missing oldPassword" };
-        if (newPassword.IsNullOrEmpty()) return new ApiResult { Code = 400, Message = "Missing newPassword" };
+        if (oldPassword.IsNullOrEmpty()) return new ApiResult { Code = 400, Message = L.T("Missing oldPassword") };
+        if (newPassword.IsNullOrEmpty()) return new ApiResult { Code = 400, Message = L.T("Missing newPassword") };
 
         var panel = AgentWebPanel.Current;
-        if (panel == null) return new ApiResult { Code = 500, Message = "Panel not available" };
+        if (panel == null) return new ApiResult { Code = 500, Message = L.T("Panel not available") };
 
         // 验证旧密码
         if (oldPassword != panel.Password)
-            return new ApiResult { Code = 403, Message = "Old password is incorrect" };
+            return new ApiResult { Code = 403, Message = L.T("Old password is incorrect") };
 
         // 更新配置文件
         var set = Setting.Current;
@@ -412,7 +412,7 @@ public class ApiController : IHttpController
     /// <returns>日志行列表</returns>
     public Object Logs(Int32 count, String file, String level)
     {
-        if (!CheckAuth()) return new ApiResult { Code = 401, Message = "Unauthorized" };
+        if (!CheckAuth()) return new ApiResult { Code = 401, Message = L.T("Unauthorized") };
 
         if (count <= 0) count = 200;
         count = Math.Min(count, 1000);
@@ -426,7 +426,7 @@ public class ApiController : IHttpController
     /// <returns>日志文件列表</returns>
     public Object LogFiles()
     {
-        if (!CheckAuth()) return new ApiResult { Code = 401, Message = "Unauthorized" };
+        if (!CheckAuth()) return new ApiResult { Code = 401, Message = L.T("Unauthorized") };
 
         var list = new List<LogFileItem>();
 
@@ -544,7 +544,7 @@ public class ApiController : IHttpController
     /// <returns>健康指标数据，含内存、线程、句柄、GC等</returns>
     public Object Health()
     {
-        if (!CheckAuth()) return new ApiResult { Code = 401, Message = "Unauthorized" };
+        if (!CheckAuth()) return new ApiResult { Code = 401, Message = L.T("Unauthorized") };
 
         var p = Process.GetCurrentProcess();
         var set = Setting.Current;
@@ -580,7 +580,7 @@ public class ApiController : IHttpController
     /// <returns>看门狗监控的服务状态列表</returns>
     public Object WatchDog()
     {
-        if (!CheckAuth()) return new ApiResult { Code = 401, Message = "Unauthorized" };
+        if (!CheckAuth()) return new ApiResult { Code = 401, Message = L.T("Unauthorized") };
 
         var set = Setting.Current;
         var dogServices = set.WatchDog?.Split(',', StringSplitOptions.RemoveEmptyEntries)
@@ -618,7 +618,7 @@ public class ApiController : IHttpController
     /// <returns>扩展面板配置列表</returns>
     public Object Extensions()
     {
-        if (!CheckAuth()) return new ApiResult { Code = 401, Message = "Unauthorized" };
+        if (!CheckAuth()) return new ApiResult { Code = 401, Message = L.T("Unauthorized") };
 
         var panel = AgentWebPanel.Current;
         var extensions = panel?.GetExtensions() ?? [];

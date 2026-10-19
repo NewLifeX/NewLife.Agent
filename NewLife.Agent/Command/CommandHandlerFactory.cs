@@ -191,7 +191,8 @@ public class CommandFactory
         {
             if (handler.ShortcutKey != null && handler.IsShowMenu())
             {
-                menus.Add(new Menu(handler.ShortcutKey.Value, handler.Description, handler.Cmd, null));
+                // 命令描述在显示时翻译，语言配置变化后菜单跟随变化
+                menus.Add(new Menu(handler.ShortcutKey.Value, L.T(handler.Description), handler.Cmd, null));
             }
         }
         return menus;

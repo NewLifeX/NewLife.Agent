@@ -14,7 +14,7 @@ public class Restart : BaseCommandHandler
     public Restart(ServiceBase service) : base(service)
     {
         Cmd = CommandConst.Restart;
-        Description = L.T("Restart service");
+        Description = "Restart service";
         ShortcutKey = '4';
     }
 

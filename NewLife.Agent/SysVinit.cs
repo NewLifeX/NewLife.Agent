@@ -60,7 +60,7 @@ public class SysVinit : DefaultHost
     public override Boolean Install(ServiceModel service)
     {
         //暂不实现SysVinit服务安装
-        throw new NotImplementedException("SysVinit installation is not implemented.");
+        throw new NotImplementedException(L.T("SysVinit installation is not implemented."));
     }
 
     /// <summary>卸载服务</summary>

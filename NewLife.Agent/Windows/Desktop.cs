@@ -41,7 +41,7 @@ public class Desktop
         // 获取当前活动的控制台会话ID和安全的用户访问令牌
         var userToken = GetSessionUserToken(true);
         if (userToken == IntPtr.Zero)
-            throw new ApplicationException("Failed to get user token for the active session.");
+            throw new ApplicationException(L.T("Failed to get user token for the active session."));
 
         var duplicateToken = IntPtr.Zero;
         var environmentBlock = IntPtr.Zero;
@@ -50,11 +50,11 @@ public class Desktop
             // 复制令牌
             var sa = new SecurityAttributes { Length = MarshalHelper.SizeOf<SecurityAttributes>() };
             if (!DuplicateTokenEx(userToken, MAXIMUM_ALLOWED, ref sa, SecurityImpersonationLevel.SecurityIdentification, TokenType.TokenPrimary, out duplicateToken))
-                throw new ApplicationException("Could not duplicate token.");
+                throw new ApplicationException(L.T("Could not duplicate token."));
 
             // 创建环境块（检索该用户的环境变量）
             if (!CreateEnvironmentBlock(out environmentBlock, duplicateToken, false))
-                throw new ApplicationException("Could not create environment block.");
+                throw new ApplicationException(L.T("Could not create environment block."));
 
             // 处理文件路径和工作目录
             var file = ResolveFilePath(fileName, workDir);
@@ -146,7 +146,7 @@ public class Desktop
             // 复制令牌
             var sa = new SecurityAttributes { Length = MarshalHelper.SizeOf<SecurityAttributes>() };
             if (!DuplicateTokenEx(userToken, MAXIMUM_ALLOWED, ref sa, SecurityImpersonationLevel.SecurityImpersonation, TokenType.TokenPrimary, out duplicateToken))
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not duplicate token.");
+                throw new Win32Exception(Marshal.GetLastWin32Error(), L.T("Could not duplicate token."));
 
             // 获取用户配置目录
             if (userProfilePath.IsNullOrEmpty())
@@ -168,7 +168,7 @@ public class Desktop
 
             // 创建环境块（包含用户的环境变量）
             if (!CreateEnvironmentBlock(out environmentBlock, duplicateToken, false))
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not create environment block.");
+                throw new Win32Exception(Marshal.GetLastWin32Error(), L.T("Could not create environment block."));
 
             // 处理文件路径和工作目录
             var file = Path.IsPathRooted(fileName) ? fileName : fileName.GetFullPath();
@@ -345,7 +345,7 @@ public class Desktop
         }
 
         if (throwOnFailure)
-            throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to get user token for active session.");
+            throw new Win32Exception(Marshal.GetLastWin32Error(), L.T("Failed to get user token for the active session."));
 
         return IntPtr.Zero;
     }

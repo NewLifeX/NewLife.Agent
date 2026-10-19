@@ -16,7 +16,7 @@ public class WatchDog : BaseCommandHandler
     public WatchDog(ServiceBase service) : base(service)
     {
         Cmd = CommandConst.WatchDog;
-        Description = L.T("Watchdog service protection");
+        Description = "Watchdog service protection";
         ShortcutKey = '7';
     }
 
