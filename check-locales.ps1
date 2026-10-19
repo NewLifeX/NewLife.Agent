@@ -14,6 +14,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# 支持 -SourceDir A,B 形式（pwsh -File 传参时数组会被当作单个字符串）
+$SourceDir = @($SourceDir | ForEach-Object { $_ -split '[;,]' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+
 $root = $PSScriptRoot
 $localeDir = if ([IO.Path]::IsPathRooted($LocaleDir)) { $LocaleDir } else { Join-Path $root $LocaleDir }
 if (!(Test-Path $localeDir)) {
