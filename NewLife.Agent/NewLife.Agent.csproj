@@ -59,7 +59,8 @@
     <Compile Remove="BackgroundService.cs" />
     <Compile Remove="IHostedService.cs" />
   </ItemGroup>
-  <ItemGroup>
+  <!-- net40 不编译 Web 面板，wwwroot 资源无需嵌入该目标 -->
+  <ItemGroup Condition="'$(TargetFramework)'!='net40'">
     <EmbeddedResource Include="WebPanel\wwwroot\index.html" />
     <EmbeddedResource Include="WebPanel\wwwroot\favicon.ico" />
     <EmbeddedResource Include="WebPanel\wwwroot\i18n\*.json" />
@@ -74,7 +75,7 @@
     </None>
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'!='net40'">
-    <PackageReference Include="NewLife.Core" Version="12.0.2026.1019-beta1203" />
+    <PackageReference Include="NewLife.Core" Version="12.0.2026.1019-beta1413" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'=='net40'">
     <!-- net40 无 NewLife.Core 12，沿用最后的 net40 专用版本 -->
