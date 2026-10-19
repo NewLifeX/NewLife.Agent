@@ -1,0 +1,13 @@
+# Türkçe 词表（tr）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Simulation is running...": "Simülasyon çalışıyor..."
+"Press any key to stop the simulation.": "Simülasyonu durdurmak için herhangi bir tuşa basın."
+"Service {0} was not found; is it installed?": "{0} hizmeti bulunamadı; yüklü mü?"
+"Service {0} was stopped; starting it now.": "{0} hizmeti durdurulmuştu; şimdi başlatılıyor."
+"Enter a command number: ": "Bir komut numarası girin: "
+"StartWork failed: {0}": "StartWork başarısız oldu: {0}"
+"StartWork took too long; avoid blocking operations in StartWork.": "StartWork çok uzun sürdü; StartWork içinde bloklayan işlemlerden kaçının."
+"Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.": "Süreç bellek kullanımı {0:n0} MB, {1:n0} MB eşiğini aşıyor; yeniden başlatılıyor."
+"Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.": "Süreç iş parçacığı sayısı {0:n0}, {1:n0} eşiğini aşıyor; yeniden başlatılıyor."
+"Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.": "Süreç tanıtıcı sayısı {0:n0}, {1:n0} eşiğini aşıyor; yeniden başlatılıyor."
+"The web management panel started on port {0}.": "Web yönetim paneli {0} bağlantı noktasında başlatıldı."
+"Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible.": "Güvenlik uyarısı: web paneli tüm arayüzleri dinliyor ve hâlâ varsayılan parolayı kullanıyor; mümkün olan en kısa sürede değiştirin."

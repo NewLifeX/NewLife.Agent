@@ -1,0 +1,13 @@
+# Norsk bokmål 词表（nb）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Simulation is running...": "Simuleringen kjører..."
+"Press any key to stop the simulation.": "Trykk en vilkårlig tast for å stoppe simuleringen."
+"Service {0} was not found; is it installed?": "Tjenesten {0} ble ikke funnet; er den installert?"
+"Service {0} was stopped; starting it now.": "Tjenesten {0} var stoppet; starter den nå."
+"Enter a command number: ": "Skriv inn et kommandonummer: "
+"StartWork failed: {0}": "StartWork mislyktes: {0}"
+"StartWork took too long; avoid blocking operations in StartWork.": "StartWork tok for lang tid; unngå blokkerende operasjoner i StartWork."
+"Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.": "Prosessens minnebruk {0:n0} MB overskrider terskelen {1:n0} MB; starter på nytt."
+"Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.": "Prosessens trådantall {0:n0} overskrider terskelen {1:n0}; starter på nytt."
+"Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.": "Prosessens håndtaksantall {0:n0} overskrider terskelen {1:n0}; starter på nytt."
+"The web management panel started on port {0}.": "Webadministrasjonspanelet startet på port {0}."
+"Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible.": "Sikkerhetsadvarsel: webpanelet lytter på alle grensesnitt og bruker fortsatt standardpassordet; endre det så snart som mulig."

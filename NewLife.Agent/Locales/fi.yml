@@ -1,0 +1,13 @@
+# Suomi 词表（fi）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Simulation is running...": "Simulaatio on käynnissä..."
+"Press any key to stop the simulation.": "Pysäytä simulaatio painamalla mitä tahansa näppäintä."
+"Service {0} was not found; is it installed?": "Palvelua {0} ei löytynyt; onko se asennettu?"
+"Service {0} was stopped; starting it now.": "Palvelu {0} oli pysäytetty; käynnistetään nyt."
+"Enter a command number: ": "Anna komennon numero: "
+"StartWork failed: {0}": "StartWork epäonnistui: {0}"
+"StartWork took too long; avoid blocking operations in StartWork.": "StartWork kesti liian kauan; vältä estäviä toimintoja StartWorkissa."
+"Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.": "Prosessin muistinkäyttö {0:n0} Mt ylittää raja-arvon {1:n0} Mt; käynnistetään uudelleen."
+"Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.": "Prosessin säikeiden määrä {0:n0} ylittää raja-arvon {1:n0}; käynnistetään uudelleen."
+"Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.": "Prosessin kahvojen määrä {0:n0} ylittää raja-arvon {1:n0}; käynnistetään uudelleen."
+"The web management panel started on port {0}.": "Verkon hallintapaneeli käynnistyi portissa {0}."
+"Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible.": "Turvavaroitus: verkkopaneeli kuuntelee kaikkia verkkoliitäntöjä ja käyttää edelleen oletussalasanaa; vaihda se mahdollisimman pian."

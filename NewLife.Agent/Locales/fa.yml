@@ -1,0 +1,13 @@
+# فارسی 词表（fa）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Simulation is running...": "شبیه‌سازی در حال اجرا است..."
+"Press any key to stop the simulation.": "برای توقف شبیه‌سازی هر کلیدی را فشار دهید."
+"Service {0} was not found; is it installed?": "سرویس {0} یافت نشد؛ آیا نصب شده است؟"
+"Service {0} was stopped; starting it now.": "سرویس {0} متوقف بود؛ اکنون در حال شروع است."
+"Enter a command number: ": "شماره فرمان را وارد کنید: "
+"StartWork failed: {0}": "StartWork ناموفق بود: {0}"
+"StartWork took too long; avoid blocking operations in StartWork.": "StartWork بیش از حد طول کشید؛ از عملیات مسدودکننده در StartWork خودداری کنید."
+"Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.": "مصرف حافظه فرآیند {0:n0} مگابایت از آستانه {1:n0} مگابایت فراتر رفته است؛ در حال راه‌اندازی مجدد."
+"Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.": "تعداد رشته‌های فرآیند {0:n0} از آستانه {1:n0} فراتر رفته است؛ در حال راه‌اندازی مجدد."
+"Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.": "تعداد دستگیره‌های فرآیند {0:n0} از آستانه {1:n0} فراتر رفته است؛ در حال راه‌اندازی مجدد."
+"The web management panel started on port {0}.": "پنل مدیریت وب روی پورت {0} شروع شد."
+"Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible.": "هشدار امنیتی: پنل وب به همه رابط‌ها گوش می‌دهد و هنوز از رمز عبور پیش‌فرض استفاده می‌کند؛ هرچه زودتر آن را تغییر دهید."

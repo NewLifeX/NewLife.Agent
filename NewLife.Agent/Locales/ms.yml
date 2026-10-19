@@ -1,0 +1,13 @@
+# Bahasa Melayu 词表（ms）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Simulation is running...": "Simulasi sedang berjalan..."
+"Press any key to stop the simulation.": "Tekan mana-mana kekunci untuk menghentikan simulasi."
+"Service {0} was not found; is it installed?": "Perkhidmatan {0} tidak ditemui; adakah ia dipasang?"
+"Service {0} was stopped; starting it now.": "Perkhidmatan {0} telah berhenti; memulakannya sekarang."
+"Enter a command number: ": "Masukkan nombor arahan: "
+"StartWork failed: {0}": "StartWork gagal: {0}"
+"StartWork took too long; avoid blocking operations in StartWork.": "StartWork mengambil masa terlalu lama; elakkan operasi menyekat dalam StartWork."
+"Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.": "Penggunaan memori proses {0:n0} MB melebihi ambang {1:n0} MB; memulakan semula."
+"Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.": "Bilangan utas proses {0:n0} melebihi ambang {1:n0}; memulakan semula."
+"Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.": "Bilangan pengendali proses {0:n0} melebihi ambang {1:n0}; memulakan semula."
+"The web management panel started on port {0}.": "Panel pengurusan web dimulakan pada port {0}."
+"Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible.": "Amaran keselamatan: panel web mendengar pada semua antara muka dan masih menggunakan kata laluan lalai; tukar secepat mungkin."

@@ -1,0 +1,13 @@
+# Svenska 词表（sv）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Simulation is running...": "Simuleringen körs..."
+"Press any key to stop the simulation.": "Tryck på valfri tangent för att stoppa simuleringen."
+"Service {0} was not found; is it installed?": "Tjänsten {0} hittades inte; är den installerad?"
+"Service {0} was stopped; starting it now.": "Tjänsten {0} var stoppad; startar den nu."
+"Enter a command number: ": "Ange ett kommandonummer: "
+"StartWork failed: {0}": "StartWork misslyckades: {0}"
+"StartWork took too long; avoid blocking operations in StartWork.": "StartWork tog för lång tid; undvik blockerande åtgärder i StartWork."
+"Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.": "Processens minnesanvändning {0:n0} MB överskrider tröskeln {1:n0} MB; startar om."
+"Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.": "Processens trådantal {0:n0} överskrider tröskeln {1:n0}; startar om."
+"Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.": "Processens handtagsantal {0:n0} överskrider tröskeln {1:n0}; startar om."
+"The web management panel started on port {0}.": "Webbadministrationspanelen startade på port {0}."
+"Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible.": "Säkerhetsvarning: webbpanelen lyssnar på alla gränssnitt och använder fortfarande standardlösenordet; ändra det så snart som möjligt."

@@ -1,0 +1,13 @@
+# العربية 词表（ar）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Simulation is running...": "المحاكاة قيد التشغيل..."
+"Press any key to stop the simulation.": "اضغط أي مفتاح لإيقاف المحاكاة."
+"Service {0} was not found; is it installed?": "لم يتم العثور على الخدمة {0}؛ هل هي مثبتة؟"
+"Service {0} was stopped; starting it now.": "تم إيقاف الخدمة {0}؛ يتم تشغيلها الآن."
+"Enter a command number: ": "أدخل رقم الأمر: "
+"StartWork failed: {0}": "فشل StartWork: {0}"
+"StartWork took too long; avoid blocking operations in StartWork.": "استغرق StartWork وقتًا طويلًا؛ تجنب العمليات الحاجزة داخل StartWork."
+"Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.": "استخدام الذاكرة للعملية {0:n0} ميغابايت يتجاوز الحد {1:n0} ميغابايت؛ إعادة التشغيل."
+"Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.": "عدد مؤشرات الترابط للعملية {0:n0} يتجاوز الحد {1:n0}؛ إعادة التشغيل."
+"Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.": "عدد مقابض العملية {0:n0} يتجاوز الحد {1:n0}؛ إعادة التشغيل."
+"The web management panel started on port {0}.": "بدأت لوحة الإدارة على المنفذ {0}."
+"Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible.": "تحذير أمني: تستمع لوحة الإدارة على جميع الواجهات وما زالت تستخدم كلمة المرور الافتراضية؛ غيّرها في أقرب وقت ممكن."

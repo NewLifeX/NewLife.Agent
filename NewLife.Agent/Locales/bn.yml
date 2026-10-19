@@ -1,0 +1,13 @@
+# বাংলা 词表（bn）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Simulation is running...": "সিমুলেশন চলছে..."
+"Press any key to stop the simulation.": "সিমুলেশন বন্ধ করতে যেকোনো কী চাপুন।"
+"Service {0} was not found; is it installed?": "সার্ভিস {0} পাওয়া যায়নি; এটি ইনস্টল করা আছে কি?"
+"Service {0} was stopped; starting it now.": "সার্ভিস {0} বন্ধ ছিল; এখন শুরু করা হচ্ছে।"
+"Enter a command number: ": "একটি কমান্ড নম্বর লিখুন: "
+"StartWork failed: {0}": "StartWork ব্যর্থ হয়েছে: {0}"
+"StartWork took too long; avoid blocking operations in StartWork.": "StartWork অনেক সময় নিয়েছে; StartWork-এ ব্লকিং অপারেশন এড়িয়ে চলুন।"
+"Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.": "প্রসেসের মেমরি ব্যবহার {0:n0} MB সীমা {1:n0} MB ছাড়িয়েছে; পুনরায় চালু করা হচ্ছে।"
+"Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.": "প্রসেসের থ্রেড সংখ্যা {0:n0} সীমা {1:n0} ছাড়িয়েছে; পুনরায় চালু করা হচ্ছে।"
+"Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.": "প্রসেসের হ্যান্ডেল সংখ্যা {0:n0} সীমা {1:n0} ছাড়িয়েছে; পুনরায় চালু করা হচ্ছে।"
+"The web management panel started on port {0}.": "ওয়েব প্রশাসন প্যানেল পোর্ট {0}-এ শুরু হয়েছে।"
+"Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible.": "নিরাপত্তা সতর্কতা: ওয়েব প্যানেল সব ইন্টারফেসে শুনছে এবং এখনো ডিফল্ট পাসওয়ার্ড ব্যবহার করছে; যত দ্রুত সম্ভব এটি পরিবর্তন করুন।"

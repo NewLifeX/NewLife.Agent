@@ -1,0 +1,13 @@
+# Русский 词表（ru）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Simulation is running...": "Идёт симуляция..."
+"Press any key to stop the simulation.": "Нажмите любую клавишу, чтобы остановить симуляцию."
+"Service {0} was not found; is it installed?": "Служба {0} не найдена; она установлена?"
+"Service {0} was stopped; starting it now.": "Служба {0} была остановлена; запускаю её."
+"Enter a command number: ": "Введите номер команды: "
+"StartWork failed: {0}": "Сбой StartWork: {0}"
+"StartWork took too long; avoid blocking operations in StartWork.": "StartWork выполнялся слишком долго; избегайте блокирующих операций в StartWork."
+"Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.": "Использование памяти процессом {0:n0} МБ превышает порог {1:n0} МБ; перезапуск."
+"Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.": "Число потоков процесса {0:n0} превышает порог {1:n0}; перезапуск."
+"Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.": "Число дескрипторов процесса {0:n0} превышает порог {1:n0}; перезапуск."
+"The web management panel started on port {0}.": "Панель веб-управления запущена на порту {0}."
+"Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible.": "Предупреждение безопасности: веб-панель прослушивает все интерфейсы и по-прежнему использует пароль по умолчанию; смените его как можно скорее."

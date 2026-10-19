@@ -1,0 +1,13 @@
+# 한국어 词表（ko）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Simulation is running...": "시뮬레이션이 실행 중입니다..."
+"Press any key to stop the simulation.": "아무 키나 누르면 시뮬레이션이 중지됩니다."
+"Service {0} was not found; is it installed?": "서비스 {0}을(를) 찾을 수 없습니다. 설치되어 있습니까?"
+"Service {0} was stopped; starting it now.": "서비스 {0}이(가) 중지되어 있습니다. 지금 시작합니다."
+"Enter a command number: ": "명령 번호를 입력하세요: "
+"StartWork failed: {0}": "StartWork 실패: {0}"
+"StartWork took too long; avoid blocking operations in StartWork.": "StartWork에 시간이 너무 오래 걸렸습니다. StartWork에서 블로킹 작업을 피하세요."
+"Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.": "프로세스 메모리 사용량 {0:n0} MB가 임계값 {1:n0} MB를 초과했습니다. 다시 시작합니다."
+"Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.": "프로세스 스레드 수 {0:n0}이(가) 임계값 {1:n0}을(를) 초과했습니다. 다시 시작합니다."
+"Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.": "프로세스 핸들 수 {0:n0}이(가) 임계값 {1:n0}을(를) 초과했습니다. 다시 시작합니다."
+"The web management panel started on port {0}.": "웹 관리 패널이 포트 {0}에서 시작되었습니다."
+"Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible.": "보안 경고: 웹 패널이 모든 인터페이스에서 수신 대기 중이며 여전히 기본 암호를 사용합니다. 가능한 한 빨리 변경하세요."

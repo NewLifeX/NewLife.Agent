@@ -1,0 +1,13 @@
+# Nederlands 词表（nl）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Simulation is running...": "De simulatie wordt uitgevoerd..."
+"Press any key to stop the simulation.": "Druk op een willekeurige toets om de simulatie te stoppen."
+"Service {0} was not found; is it installed?": "Service {0} is niet gevonden; is deze geïnstalleerd?"
+"Service {0} was stopped; starting it now.": "Service {0} was gestopt; wordt nu gestart."
+"Enter a command number: ": "Voer een opdrachtnummer in: "
+"StartWork failed: {0}": "StartWork mislukt: {0}"
+"StartWork took too long; avoid blocking operations in StartWork.": "StartWork duurde te lang; vermijd blokkerende bewerkingen in StartWork."
+"Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.": "Geheugengebruik van proces {0:n0} MB overschrijdt de drempel {1:n0} MB; opnieuw starten."
+"Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.": "Aantal threads van proces {0:n0} overschrijdt de drempel {1:n0}; opnieuw starten."
+"Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.": "Aantal handles van proces {0:n0} overschrijdt de drempel {1:n0}; opnieuw starten."
+"The web management panel started on port {0}.": "Het webbeheerpaneel is gestart op poort {0}."
+"Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible.": "Beveiligingswaarschuwing: het webpaneel luistert op alle interfaces en gebruikt nog steeds het standaardwachtwoord; wijzig dit zo snel mogelijk."

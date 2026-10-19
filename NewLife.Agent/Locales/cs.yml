@@ -1,0 +1,13 @@
+# Čeština 词表（cs）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Simulation is running...": "Simulace běží..."
+"Press any key to stop the simulation.": "Simulaci zastavíte stisknutím libovolné klávesy."
+"Service {0} was not found; is it installed?": "Služba {0} nebyla nalezena; je nainstalována?"
+"Service {0} was stopped; starting it now.": "Služba {0} byla zastavena; nyní se spouští."
+"Enter a command number: ": "Zadejte číslo příkazu: "
+"StartWork failed: {0}": "StartWork selhal: {0}"
+"StartWork took too long; avoid blocking operations in StartWork.": "StartWork trval příliš dlouho; vyhněte se blokujícím operacím ve StartWork."
+"Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.": "Využití paměti procesu {0:n0} MB překračuje prahovou hodnotu {1:n0} MB; restartuji."
+"Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.": "Počet vláken procesu {0:n0} překračuje prahovou hodnotu {1:n0}; restartuji."
+"Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.": "Počet popisovačů procesu {0:n0} překračuje prahovou hodnotu {1:n0}; restartuji."
+"The web management panel started on port {0}.": "Webový panel správy byl spuštěn na portu {0}."
+"Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible.": "Bezpečnostní upozornění: webový panel naslouchá na všech rozhraních a stále používá výchozí heslo; co nejdříve je změňte."

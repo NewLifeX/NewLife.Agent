@@ -1,0 +1,13 @@
+# ไทย 词表（th）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Simulation is running...": "กำลังจำลองสถานการณ์..."
+"Press any key to stop the simulation.": "กดปุ่มใดก็ได้เพื่อหยุดการจำลอง"
+"Service {0} was not found; is it installed?": "ไม่พบบริการ {0} ติดตั้งแล้วหรือไม่"
+"Service {0} was stopped; starting it now.": "บริการ {0} หยุดอยู่ กำลังเริ่มต้นใหม่"
+"Enter a command number: ": "ป้อนหมายเลขคำสั่ง: "
+"StartWork failed: {0}": "StartWork ล้มเหลว: {0}"
+"StartWork took too long; avoid blocking operations in StartWork.": "StartWork ใช้เวลานานเกินไป โปรดหลีกเลี่ยงการดำเนินการที่บล็อกภายใน StartWork"
+"Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.": "การใช้หน่วยความจำของโปรเซส {0:n0} MB เกินเกณฑ์ {1:n0} MB กำลังรีสตาร์ท"
+"Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.": "จำนวนเธรดของโปรเซส {0:n0} เกินเกณฑ์ {1:n0} กำลังรีสตาร์ท"
+"Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.": "จำนวนแฮนเดิลของโปรเซส {0:n0} เกินเกณฑ์ {1:n0} กำลังรีสตาร์ท"
+"The web management panel started on port {0}.": "แผงผู้ดูแลระบบเว็บเริ่มทำงานที่พอร์ต {0}"
+"Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible.": "คำเตือนด้านความปลอดภัย: แผงเว็บรับฟังบนทุกอินเทอร์เฟซและยังใช้รหัสผ่านเริ่มต้นอยู่ โปรดเปลี่ยนโดยเร็วที่สุด"

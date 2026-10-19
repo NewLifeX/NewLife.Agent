@@ -1,0 +1,13 @@
+# עברית 词表（he）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Simulation is running...": "ההדמיה פועלת..."
+"Press any key to stop the simulation.": "לחץ על מקש כלשהו כדי לעצור את ההדמיה."
+"Service {0} was not found; is it installed?": "השירות {0} לא נמצא; האם הוא מותקן?"
+"Service {0} was stopped; starting it now.": "השירות {0} היה מופסק; מפעיל אותו כעת."
+"Enter a command number: ": "הזן מספר פקודה: "
+"StartWork failed: {0}": "StartWork נכשל: {0}"
+"StartWork took too long; avoid blocking operations in StartWork.": "StartWork ארך יותר מדי זמן; הימנע מפעולות חוסמות בתוך StartWork."
+"Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.": "שימוש הזיכרון של התהליך {0:n0} MB חורג מהסף {1:n0} MB; מפעיל מחדש."
+"Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.": "מספר התהליכונים של התהליך {0:n0} חורג מהסף {1:n0}; מפעיל מחדש."
+"Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.": "מספר ה-handles של התהליך {0:n0} חורג מהסף {1:n0}; מפעיל מחדש."
+"The web management panel started on port {0}.": "לוח הניהול של האינטרנט הופעל בפורט {0}."
+"Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible.": "אזהרת אבטחה: לוח האינטרנט מאזין בכל הממשקים ועדיין משתמש בסיסמה המוגדרת כברירת מחדל; החלף אותה בהקדם האפשרי."

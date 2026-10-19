@@ -1,0 +1,13 @@
+# Română 词表（ro）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Simulation is running...": "Simularea rulează..."
+"Press any key to stop the simulation.": "Apăsați orice tastă pentru a opri simularea."
+"Service {0} was not found; is it installed?": "Serviciul {0} nu a fost găsit; este instalat?"
+"Service {0} was stopped; starting it now.": "Serviciul {0} era oprit; îl pornesc acum."
+"Enter a command number: ": "Introduceți un număr de comandă: "
+"StartWork failed: {0}": "StartWork a eșuat: {0}"
+"StartWork took too long; avoid blocking operations in StartWork.": "StartWork a durat prea mult; evitați operațiile blocante în StartWork."
+"Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.": "Utilizarea memoriei procesului {0:n0} MB depășește pragul {1:n0} MB; repornire."
+"Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.": "Numărul de fire de execuție ale procesului {0:n0} depășește pragul {1:n0}; repornire."
+"Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.": "Numărul de handle-uri ale procesului {0:n0} depășește pragul {1:n0}; repornire."
+"The web management panel started on port {0}.": "Panoul de administrare web a pornit pe portul {0}."
+"Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible.": "Avertisment de securitate: panoul web ascultă pe toate interfețele și folosește încă parola implicită; schimbați-o cât mai curând posibil."

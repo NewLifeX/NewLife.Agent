@@ -1,0 +1,13 @@
+# Tiếng Việt 词表（vi）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Simulation is running...": "Mô phỏng đang chạy..."
+"Press any key to stop the simulation.": "Nhấn phím bất kỳ để dừng mô phỏng."
+"Service {0} was not found; is it installed?": "Không tìm thấy dịch vụ {0}; dịch vụ đã được cài đặt chưa?"
+"Service {0} was stopped; starting it now.": "Dịch vụ {0} đang dừng; đang khởi động lại."
+"Enter a command number: ": "Nhập số lệnh: "
+"StartWork failed: {0}": "StartWork thất bại: {0}"
+"StartWork took too long; avoid blocking operations in StartWork.": "StartWork mất quá nhiều thời gian; tránh các thao tác chặn trong StartWork."
+"Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.": "Mức sử dụng bộ nhớ của tiến trình {0:n0} MB vượt ngưỡng {1:n0} MB; đang khởi động lại."
+"Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.": "Số luồng của tiến trình {0:n0} vượt ngưỡng {1:n0}; đang khởi động lại."
+"Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.": "Số handle của tiến trình {0:n0} vượt ngưỡng {1:n0}; đang khởi động lại."
+"The web management panel started on port {0}.": "Bảng quản trị web đã khởi động trên cổng {0}."
+"Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible.": "Cảnh báo bảo mật: bảng web lắng nghe trên tất cả giao diện và vẫn dùng mật khẩu mặc định; hãy đổi càng sớm càng tốt."

@@ -1,0 +1,13 @@
+# Українська 词表（uk）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Simulation is running...": "Триває симуляція..."
+"Press any key to stop the simulation.": "Натисніть будь-яку клавішу, щоб зупинити симуляцію."
+"Service {0} was not found; is it installed?": "Службу {0} не знайдено; чи вона встановлена?"
+"Service {0} was stopped; starting it now.": "Служба {0} була зупинена; запускаю її."
+"Enter a command number: ": "Введіть номер команди: "
+"StartWork failed: {0}": "Збій StartWork: {0}"
+"StartWork took too long; avoid blocking operations in StartWork.": "StartWork виконувався надто довго; уникайте блокуючих операцій у StartWork."
+"Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.": "Використання пам'яті процесом {0:n0} МБ перевищує поріг {1:n0} МБ; перезапуск."
+"Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.": "Кількість потоків процесу {0:n0} перевищує поріг {1:n0}; перезапуск."
+"Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.": "Кількість дескрипторів процесу {0:n0} перевищує поріг {1:n0}; перезапуск."
+"The web management panel started on port {0}.": "Панель веб-керування запущена на порту {0}."
+"Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible.": "Попередження безпеки: веб-панель прослуховує всі інтерфейси й досі використовує типовий пароль; змініть його якнайшвидше."

@@ -1,0 +1,13 @@
+# Magyar 词表（hu）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Simulation is running...": "A szimuláció fut..."
+"Press any key to stop the simulation.": "A szimuláció leállításához nyomjon meg egy billentyűt."
+"Service {0} was not found; is it installed?": "A(z) {0} szolgáltatás nem található; telepítve van?"
+"Service {0} was stopped; starting it now.": "A(z) {0} szolgáltatás le volt állítva; most elindítom."
+"Enter a command number: ": "Adjon meg egy parancsszámot: "
+"StartWork failed: {0}": "A StartWork meghiúsult: {0}"
+"StartWork took too long; avoid blocking operations in StartWork.": "A StartWork túl sokáig tartott; kerülje a blokkoló műveleteket a StartWorkben."
+"Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.": "A folyamat memóriahasználata {0:n0} MB meghaladja a(z) {1:n0} MB küszöbértéket; újraindítás."
+"Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.": "A folyamat szálainak száma {0:n0} meghaladja a(z) {1:n0} küszöbértéket; újraindítás."
+"Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.": "A folyamat leíróinak száma {0:n0} meghaladja a(z) {1:n0} küszöbértéket; újraindítás."
+"The web management panel started on port {0}.": "A webes felügyeleti panel elindult a(z) {0} porton."
+"Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible.": "Biztonsági figyelmeztetés: a webes panel minden hálózati interfészen figyel, és továbbra is az alapértelmezett jelszót használja; változtassa meg mielőbb."

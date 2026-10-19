@@ -1,0 +1,13 @@
+# Bahasa Indonesia 词表（id）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Simulation is running...": "Simulasi sedang berjalan..."
+"Press any key to stop the simulation.": "Tekan tombol apa saja untuk menghentikan simulasi."
+"Service {0} was not found; is it installed?": "Layanan {0} tidak ditemukan; apakah sudah terpasang?"
+"Service {0} was stopped; starting it now.": "Layanan {0} berhenti; memulai sekarang."
+"Enter a command number: ": "Masukkan nomor perintah: "
+"StartWork failed: {0}": "StartWork gagal: {0}"
+"StartWork took too long; avoid blocking operations in StartWork.": "StartWork terlalu lama; hindari operasi yang memblokir di StartWork."
+"Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.": "Penggunaan memori proses {0:n0} MB melampaui ambang {1:n0} MB; memulai ulang."
+"Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.": "Jumlah thread proses {0:n0} melampaui ambang {1:n0}; memulai ulang."
+"Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.": "Jumlah handle proses {0:n0} melampaui ambang {1:n0}; memulai ulang."
+"The web management panel started on port {0}.": "Panel manajemen web dimulai pada port {0}."
+"Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible.": "Peringatan keamanan: panel web mendengarkan di semua antarmuka dan masih menggunakan kata sandi bawaan; segera ubah."

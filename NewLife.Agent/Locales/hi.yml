@@ -1,0 +1,13 @@
+# हिन्दी 词表（hi）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Simulation is running...": "सिमुलेशन चल रहा है..."
+"Press any key to stop the simulation.": "सिमुलेशन रोकने के लिए कोई भी कुंजी दबाएँ।"
+"Service {0} was not found; is it installed?": "सेवा {0} नहीं मिली; क्या यह स्थापित है?"
+"Service {0} was stopped; starting it now.": "सेवा {0} बंद थी; अब शुरू की जा रही है।"
+"Enter a command number: ": "कमांड संख्या दर्ज करें: "
+"StartWork failed: {0}": "StartWork विफल रहा: {0}"
+"StartWork took too long; avoid blocking operations in StartWork.": "StartWork में बहुत अधिक समय लगा; StartWork में अवरोधक संचालन से बचें।"
+"Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.": "प्रक्रिया की मेमोरी उपयोग {0:n0} MB सीमा {1:n0} MB से अधिक है; पुनः आरंभ किया जा रहा है।"
+"Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.": "प्रक्रिया की थ्रेड संख्या {0:n0} सीमा {1:n0} से अधिक है; पुनः आरंभ किया जा रहा है।"
+"Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.": "प्रक्रिया की हैंडल संख्या {0:n0} सीमा {1:n0} से अधिक है; पुनः आरंभ किया जा रहा है।"
+"The web management panel started on port {0}.": "वेब प्रबंधन पैनल पोर्ट {0} पर शुरू हुआ।"
+"Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible.": "सुरक्षा चेतावनी: वेब पैनल सभी इंटरफ़ेस पर सुनता है और अभी भी डिफ़ॉल्ट पासवर्ड का उपयोग करता है; इसे जल्द से जल्द बदलें।"

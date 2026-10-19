@@ -1,0 +1,13 @@
+# Dansk 词表（da）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Simulation is running...": "Simuleringen kører..."
+"Press any key to stop the simulation.": "Tryk på en vilkårlig tast for at stoppe simuleringen."
+"Service {0} was not found; is it installed?": "Tjenesten {0} blev ikke fundet; er den installeret?"
+"Service {0} was stopped; starting it now.": "Tjenesten {0} blev stoppet; starter den nu."
+"Enter a command number: ": "Indtast et kommandonummer: "
+"StartWork failed: {0}": "StartWork mislykkedes: {0}"
+"StartWork took too long; avoid blocking operations in StartWork.": "StartWork tog for lang tid; undgå blokerende handlinger i StartWork."
+"Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.": "Processens hukommelsesforbrug {0:n0} MB overstiger grænsen {1:n0} MB; genstarter."
+"Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.": "Processens trådantal {0:n0} overstiger grænsen {1:n0}; genstarter."
+"Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.": "Processens håndtagsantal {0:n0} overstiger grænsen {1:n0}; genstarter."
+"The web management panel started on port {0}.": "Webadministrationspanelet startede på port {0}."
+"Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible.": "Sikkerhedsadvarsel: webpanelet lytter på alle netværksgrænseflader og bruger stadig standardadgangskoden; skift den hurtigst muligt."

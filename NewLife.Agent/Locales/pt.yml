@@ -1,0 +1,13 @@
+# Português 词表（pt）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Simulation is running...": "A simulação está em execução..."
+"Press any key to stop the simulation.": "Pressione qualquer tecla para interromper a simulação."
+"Service {0} was not found; is it installed?": "O serviço {0} não foi encontrado; está instalado?"
+"Service {0} was stopped; starting it now.": "O serviço {0} estava parado; iniciando agora."
+"Enter a command number: ": "Digite um número de comando: "
+"StartWork failed: {0}": "Falha em StartWork: {0}"
+"StartWork took too long; avoid blocking operations in StartWork.": "StartWork demorou muito; evite operações bloqueantes em StartWork."
+"Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.": "O uso de memória do processo {0:n0} MB excede o limite {1:n0} MB; reiniciando."
+"Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.": "O número de threads do processo {0:n0} excede o limite {1:n0}; reiniciando."
+"Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.": "O número de identificadores do processo {0:n0} excede o limite {1:n0}; reiniciando."
+"The web management panel started on port {0}.": "O painel de administração web foi iniciado na porta {0}."
+"Security warning: the web panel listens on all interfaces and still uses the default password; change it as soon as possible.": "Aviso de segurança: o painel web escuta em todas as interfaces e ainda usa a senha padrão; altere-a o quanto antes."
