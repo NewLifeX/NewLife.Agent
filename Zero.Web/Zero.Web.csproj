@@ -15,7 +15,7 @@
 
   <ItemGroup>
     <PackageReference Include="NewLife.Cube.Core" Version="6.15.2026.1018-beta1727" />
-    <PackageReference Include="NewLife.Stardust" Version="3.10.2026.1018-beta1738" />
+    <PackageReference Include="NewLife.Stardust" Version="3.10.2026.1020-beta0651" />
   </ItemGroup>
 
   <ItemGroup>
