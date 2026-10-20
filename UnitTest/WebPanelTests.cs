@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
 using Moq;
 using NewLife;
@@ -8,6 +9,7 @@ using NewLife.Agent.WebPanel;
 using Setting = NewLife.Agent.Setting;
 using NewLife.Data;
 using NewLife.Http;
+using NewLife.Log;
 using NewLife.Net;
 using Xunit;
 
@@ -520,6 +522,115 @@ public class AgentWebPanelTests
             set.WebBind = prevBind;
             set.EnableWebPanel = prevEnable;
         }
+    }
+
+    [WindowsFact]
+    [DisplayName("Start_地址重用_后启动面板在前者退出后接管")]
+    public async Task Start_ReuseAddressEnabled_SecondPanelTakesOver()
+    {
+        using var scope = new SettingScope();
+
+        var mockSvc = new Mock<ServiceBase> { CallBase = true };
+        mockSvc.Object.ServiceName = "ReuseSvc";
+
+        var set = Setting.Current;
+        set.WebPort = 0;
+        set.WebBind = "127.0.0.1";
+        set.EnableWebPanel = false;
+
+        var first = new AgentWebPanel(mockSvc.Object) { Level = AuthLevel.None };
+        AgentWebPanel second = null;
+        try
+        {
+            first.Server.ReuseAddress = true;
+            first.Start();
+            Assert.True(first.Active);
+
+            var port = first.Port;
+            Assert.NotEqual(0, port);
+
+            set.WebPort = port;
+            second = new AgentWebPanel(mockSvc.Object) { Level = AuthLevel.None };
+            second.Server.ReuseAddress = true;
+            second.Start();
+            Assert.True(second.Active);
+            Assert.Equal(port, second.Port);
+
+            // 先启动者接收请求
+            using (var client = CreateClient(port))
+            {
+                var response = await client.GetAsync("/");
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            }
+
+            // 先启动者退出，后启动者接管
+            first.Stop("test");
+            Assert.False(first.Active);
+
+            var takenOver = false;
+            for (var i = 0; i < 30 && !takenOver; i++)
+            {
+                await Task.Delay(100);
+                try
+                {
+                    using var client = CreateClient(port);
+                    using var response = await client.GetAsync("/");
+                    takenOver = response.StatusCode == HttpStatusCode.OK;
+                }
+                catch
+                {
+                    // 端口切换瞬间可能出现连接拒绝，重试直至超时
+                }
+            }
+            Assert.True(takenOver, "先启动实例退出后，后启动实例未接管端口");
+        }
+        finally
+        {
+            second?.Stop("test");
+            first.Stop("test");
+        }
+    }
+
+    [WindowsFact]
+    [DisplayName("StartWork_端口被独占_输出告警且不抛异常")]
+    public void StartWork_PanelPortExclusive_LogsWarningAndContinues()
+    {
+        using var scope = new SettingScope();
+
+        // 模拟旧版 StarAgent 的独占绑定（0.0.0.0）：此时 SO_REUSEADDR 也无法覆盖
+        using var blocker = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        blocker.ExclusiveAddressUse = true;
+        blocker.Bind(new IPEndPoint(IPAddress.Any, 0));
+        blocker.Listen(1);
+        var port = ((IPEndPoint)blocker.LocalEndPoint!).Port;
+
+        var set = Setting.Current;
+        set.WebPort = port;
+        set.WebBind = "127.0.0.1";
+        set.EnableWebPanel = true;
+
+        var log = new CaptureLog();
+        var svc = new ServiceBaseTester { ServiceName = "PortBusySvc", Log = log };
+
+        var ex = Record.Exception(() => svc.StartWork("test"));
+
+        Assert.Null(ex);
+        Assert.NotNull(AgentWebPanel.Current);
+        Assert.False(AgentWebPanel.Current!.Active);
+        Assert.Contains(log.Messages, m => m.Contains("[WebPanel]") && m.Contains(port.ToString()));
+    }
+
+    private static HttpClient CreateClient(Int32 port) => new()
+    {
+        BaseAddress = new Uri($"http://127.0.0.1:{port}"),
+        Timeout = TimeSpan.FromSeconds(5)
+    };
+
+    private sealed class CaptureLog : Logger
+    {
+        public List<String> Messages { get; } = [];
+
+        protected override void OnWrite(LogLevel level, String format, params Object[] args) => Messages.Add(Format(format, args));
     }
     #endregion
 

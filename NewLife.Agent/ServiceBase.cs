@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Net.Sockets;
 using System.Runtime;
 using System.Runtime.CompilerServices;
 using System.Security;
@@ -439,6 +440,11 @@ public abstract class ServiceBase : DisposeBase
             {
                 _webPanel = CreateWebPanel(this);
                 _webPanel.Start();
+            }
+            catch (SocketException ex) when (ex.SocketErrorCode is SocketError.AddressAlreadyInUse or SocketError.AccessDenied)
+            {
+                // 端口被占用或保留时不打印完整堆栈，避免看起来像服务本身崩溃
+                WriteLogPrefixed(LogLevel.Warn, "[WebPanel] ", "Web panel failed to start on port {0}: {1}. The port is already in use or reserved; stop the other instance or change WebPort/WebBind.", _webPanel?.Port ?? set.WebPort, ex.SocketErrorCode);
             }
             catch (Exception ex)
             {
