@@ -1,7 +1,5 @@
-﻿using System.ComponentModel;
-using System.Globalization;
+using System.ComponentModel;
 using NewLife.Configuration;
-using NewLife.Log;
 
 namespace NewLife.Agent;
 
@@ -86,57 +84,5 @@ public class Setting : Config<Setting>
     /// <summary>Web面板密码</summary>
     [Description("Web panel password.")]
     public String WebPassword { get; set; } = "admin";
-
-    /// <summary>语言。界面与日志语言，如 zh-Hans、en，为空时跟随操作系统</summary>
-    [Description("Language. UI and log language, such as zh-Hans or en. Empty follows the operating system.")]
-    public String Language { get; set; } = "";
-    #endregion
-
-    #region 方法
-#if !NET40
-    /// <summary>系统语言。进程启动时的 UI 文化，不受请求语言作用域影响</summary>
-    private static readonly CultureInfo _SystemCulture = CultureInfo.CurrentUICulture;
-#endif
-
-    /// <summary>保存配置后立即应用语言设置</summary>
-    public override void Save()
-    {
-        base.Save();
-
-        ApplyLanguage();
-    }
-
-    /// <summary>加载配置后立即应用语言设置</summary>
-    protected override void OnLoaded() => ApplyLanguage();
-
-    /// <summary>应用语言设置</summary>
-    /// <remarks>语言表缺失或名称无效时回退系统语言，避免进程停留在英文界面。</remarks>
-    public void ApplyLanguage()
-    {
-#if !NET40
-        CultureInfo culture = null;
-        if (!Language.IsNullOrEmpty())
-        {
-            try
-            {
-                culture = CultureInfo.GetCultureInfo(Language.Trim());
-            }
-            catch (ArgumentException)
-            {
-                XTrace.WriteLine("Invalid language [{0}], falling back to the system language.", Language);
-            }
-        }
-
-        if (culture != null && !Localization.IsSupported(culture))
-        {
-            XTrace.WriteLine("Language [{0}] has no translation table, falling back to the system language.", Language);
-            culture = null;
-        }
-
-        Localization.Culture = culture;
-        // 固定日志语言，避免 Web 请求按 Accept-Language 切换文化时日志跟着变化
-        Localization.LogCulture = culture ?? _SystemCulture;
-#endif
-    }
     #endregion
 }
