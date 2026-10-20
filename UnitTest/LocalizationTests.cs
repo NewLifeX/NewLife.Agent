@@ -182,27 +182,37 @@ public class LocalizationTests
     }
 
     [Fact]
-    [DisplayName("语言设置_保存后立即生效_无词表回退系统语言")]
-    public void Setting_Language_AppliesCulture()
+    [DisplayName("语言设置_Core配置_保存后立即生效_无词表保持自动")]
+    public void CoreSetting_Language_AppliesCulture()
     {
         using var scope = new SettingScope();
 
-        var set = Setting.Current;
+        var set = NewLife.Setting.Current;
         var prevUICulture = CultureInfo.CurrentUICulture;
         try
         {
             set.Language = "zh-Hans";
             set.Save();
 
-            Assert.Equal("zh-Hans", Localization.Culture?.Name);
+            Assert.Equal("zh-CN", Localization.Culture?.Name);
+            Assert.Equal("zh-CN", Localization.LogCulture?.Name);
             Assert.Equal("安装服务", Localization.Translate("Install service"));
 
-            // 没有词表的语言回退系统语言，不把进程锁在英文
+            // 清空配置后恢复自动识别，不把进程锁在中文
             CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("en-US");
+            set.Language = "";
+            set.Save();
+
+            Assert.Null(Localization.Culture);
+            Assert.Null(Localization.ForcedLanguage);
+            Assert.Equal("Install service", Localization.Translate("Install service"));
+
+            // 没有词表的语言保持自动识别，不把进程锁在英文
             set.Language = "eo";
             set.Save();
 
             Assert.Null(Localization.Culture);
+            Assert.Null(Localization.ForcedLanguage);
             Assert.Equal("Install service", Localization.Translate("Install service"));
         }
         finally
@@ -327,6 +337,66 @@ public class LocalizationTests
 
                 var zh = await GetIndex(client, "zh-CN");
                 Assert.Contains("服务状态", zh);
+
+                // 固定全局语言后不再跟随请求语言
+                Localization.Culture = CultureInfo.GetCultureInfo("ja-JP");
+                var forced = Visible(await GetIndex(client, "en-US"));
+                Assert.Contains("サービスの状態", forced);
+                Assert.DoesNotContain("服务状态", forced);
+            }
+            finally
+            {
+                panel.Stop("TestDone");
+            }
+        }
+        finally
+        {
+            set.WebPort = prevPort;
+            set.EnableWebPanel = prevEnable;
+            ResetCulture();
+        }
+    }
+
+    [Fact]
+    [DisplayName("Web面板_语言接口_列表与切换立即生效")]
+    public async Task WebPanel_LanguageApi_ListsAndSwitches()
+    {
+        using var scope = new SettingScope();
+
+        var set = Setting.Current;
+        var prevPort = set.WebPort;
+        var prevEnable = set.EnableWebPanel;
+        try
+        {
+            set.WebPort = 0;
+            set.EnableWebPanel = false;
+            Localization.Culture = null;
+
+            var svc = new Mock<ServiceBase> { CallBase = true }.Object;
+            svc.ServiceName = "LocTest";
+
+            var panel = new AgentWebPanel(svc) { Level = AuthLevel.Full, UserName = "admin", Password = "123456" };
+            panel.Start();
+            try
+            {
+                using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{panel.Port}") };
+
+                // 语言列表不鉴权，登录页也可读取
+                var list = await client.GetStringAsync("/api/languages");
+                Assert.Contains("\"code\":\"zh-CN\"", list);
+
+                var token = panel.IssueToken("admin", "123456");
+                using var request = new HttpRequestMessage(HttpMethod.Post, "/api/setLanguage?language=fr");
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                var json = await (await client.SendAsync(request)).Content.ReadAsStringAsync();
+                Assert.Contains("\"code\":0", json);
+                Assert.Equal("fr-FR", Localization.Culture?.Name);
+
+                // 固定语言后忽略请求语言
+                using var indexRequest = new HttpRequestMessage(HttpMethod.Get, "/");
+                indexRequest.Headers.TryAddWithoutValidation("Accept-Language", "en-US");
+                var html = await (await client.SendAsync(indexRequest)).Content.ReadAsStringAsync();
+                Assert.Contains("<html lang=\"fr\">", html);
             }
             finally
             {

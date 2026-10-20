@@ -350,6 +350,41 @@ public class WebPanelContractTests
     }
     #endregion
 
+    #region 语言契约
+    [Fact]
+    [DisplayName("契约_语言列表_键集合精确")]
+    public void Languages_Contract()
+    {
+        var (_, controller) = CreateController();
+
+        var root = Parse(controller.Languages());
+
+        AssertExactKeys(root, "code", "data");
+        Assert.Equal(0, root.GetProperty("code").GetInt32());
+
+        var data = root.GetProperty("data");
+        AssertExactKeys(data, "current", "items");
+        Assert.Equal(JsonValueKind.Array, data.GetProperty("items").ValueKind);
+
+        var item = data.GetProperty("items")[0];
+        AssertExactKeys(item, "code", "name");
+    }
+
+    [Fact]
+    [DisplayName("契约_设置语言_code+message 两键形态")]
+    public void SetLanguage_Contract()
+    {
+        using var scope = new SettingScope();
+        var (_, controller) = CreateController();
+
+        var root = Parse(controller.SetLanguage("zh-CN"));
+
+        AssertExactKeys(root, "code", "message");
+        Assert.Equal(0, root.GetProperty("code").GetInt32());
+        Assert.False(root.GetProperty("message").GetString().IsNullOrEmpty());
+    }
+    #endregion
+
     #region 防漂移
     [Fact]
     [DisplayName("AotRoots_响应DTO_全部登记DynamicDependency")]

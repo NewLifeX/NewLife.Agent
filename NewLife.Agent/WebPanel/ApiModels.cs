@@ -293,4 +293,24 @@ internal class ExtensionsData
     /// <summary>扩展面板列表</summary>
     public List<PanelExtension> Panels { get; set; }
 }
+
+/// <summary>语言项</summary>
+internal class LanguageItem
+{
+    /// <summary>语言代码，如 zh-CN</summary>
+    public String Code { get; set; }
+
+    /// <summary>语言显示名称</summary>
+    public String Name { get; set; }
+}
+
+/// <summary>语言列表载荷</summary>
+internal class LanguagesData
+{
+    /// <summary>当前固定语言。空表示跟随系统自动识别</summary>
+    public String Current { get; set; }
+
+    /// <summary>可选语言列表</summary>
+    public List<LanguageItem> Items { get; set; }
+}
 #endif

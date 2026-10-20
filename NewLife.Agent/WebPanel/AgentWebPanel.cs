@@ -95,13 +95,13 @@ public class AgentWebPanel
         UserName = set.WebUserName;
         Password = set.WebPassword;
 
-        // 按 Accept-Language 切换当前请求语言；显式配置 Setting.Language 时保持宿主语言
+        // 按 Accept-Language 切换当前请求语言；NewLife.Setting.Language 显式配置时保持宿主语言
         Server.Use(UseRequestLanguage);
 
         RegisterRoutes();
     }
 
-    /// <summary>请求语言中间件。按 Accept-Language 设置当前请求的 UI 文化，日志语言已由 Setting 固定</summary>
+    /// <summary>请求语言中间件。按 Accept-Language 设置当前请求的 UI 文化，日志语言由 NewLife.Setting.Language 固定</summary>
     /// <param name="ctx">Http上下文</param>
     /// <param name="next">下一处理器</param>
     private static async Task UseRequestLanguage(IHttpContext ctx, Func<Task> next)
@@ -283,7 +283,7 @@ public class AgentWebPanel
     {
         _indexHtml ??= ReadIndexHtml();
 
-        var html = UiLocalization.Localize(_indexHtml, EmbeddedResourceAssemblyType.Assembly, EmbeddedResourcePrefix, CultureInfo.CurrentUICulture);
+        var html = UiLocalization.Localize(_indexHtml, EmbeddedResourceAssemblyType.Assembly, EmbeddedResourcePrefix, Localization.Culture ?? CultureInfo.CurrentUICulture);
 
         ctx.Response.ContentType = "text/html; charset=utf-8";
         ctx.Response.Headers["Cache-Control"] = "no-cache";

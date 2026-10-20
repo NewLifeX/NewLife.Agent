@@ -404,6 +404,43 @@ public class ApiController : IHttpController
     }
     #endregion
 
+    #region 语言
+    /// <summary>获取可用界面语言</summary>
+    /// <returns>语言代码、显示名称与当前固定语言；语言列表不敏感，登录页也可读取</returns>
+    public Object Languages()
+    {
+        var items = new List<LanguageItem>();
+        foreach (var item in Localization.GetLanguageOptions())
+        {
+            items.Add(new LanguageItem { Code = item.Key, Name = item.Value });
+        }
+
+        return new ApiResult<LanguagesData>
+        {
+            Code = 0,
+            Data = new LanguagesData { Current = Localization.ForcedLanguage ?? "", Items = items }
+        };
+    }
+
+    /// <summary>设置界面与日志语言，写入 Core 全局配置并立即生效</summary>
+    /// <param name="language">语言代码，留空表示跟随系统自动识别</param>
+    /// <returns>操作结果</returns>
+    public Object SetLanguage(String language)
+    {
+        if (!CheckAuth()) return new ApiResult { Code = 401, Message = L.T("Unauthorized") };
+
+        var name = Localization.NormalizeCulture(language);
+        if (name == null && !language.IsNullOrWhiteSpace())
+            return new ApiResult { Code = 400, Message = L.T("Unsupported language: {0}", language) };
+
+        var set = NewLife.Setting.Current;
+        set.Language = name ?? "";
+        set.Save();
+
+        return new ApiResult { Code = 0, Message = L.T("Language updated.") };
+    }
+    #endregion
+
     #region 日志
     /// <summary>获取日志内容</summary>
     /// <param name="count">读取行数，默认200，最大1000</param>

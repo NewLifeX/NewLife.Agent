@@ -33,6 +33,8 @@ internal static class AotRoots
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(HealthData))]
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(GcCollectionsData))]
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(ExtensionsData))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(LanguageItem))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(LanguagesData))]
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(PanelExtension))]
 #endif
     [MethodImpl(MethodImplOptions.NoInlining)]

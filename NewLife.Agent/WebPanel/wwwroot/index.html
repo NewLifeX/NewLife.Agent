@@ -58,6 +58,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .btn-ghost:hover:not(:disabled){background:var(--surface-2);color:var(--text-primary)}
 .btn-sm{padding:6px 12px;font-size:12px;border-radius:var(--radius-sm)}
 .btn-lg{padding:14px 28px;font-size:16px;border-radius:var(--radius-lg)}
+.lang-select{padding:6px 10px;border:1px solid var(--border-default);border-radius:var(--radius-sm);background:var(--surface-2);color:var(--text-secondary);font-size:12px;font-weight:600;cursor:pointer;outline:none;max-width:150px}
+.lang-select:hover{background:var(--surface-3);color:var(--text-primary)}
 input[type=text],input[type=password],input[type=number],input[type=search]{padding:10px 12px;border:1px solid var(--border-default);border-radius:var(--radius-sm);background:var(--surface-2);color:var(--text-primary);font-size:13px;outline:none;transition:border-color var(--duration-fast),box-shadow var(--duration-fast);width:100%}
 input:focus{border-color:var(--brand-500);box-shadow:0 0 0 3px rgba(91,91,255,0.2)}
 input[type=number]{font-family:var(--font-mono);max-width:140px}
@@ -229,6 +231,7 @@ document.getElementById('lpass').addEventListener('keydown', e => {
 <span class="meta" id="header-meta"></span>
 </div>
 <div style="display:flex;align-items:center;gap:10px">
+<select id="lang-select" class="lang-select" onchange="changeLanguage(this.value)" aria-label="Language"></select>
 <button class="btn btn-ghost btn-sm" id="theme-toggle" onclick="toggleTheme()" title="切换浅色/深色主题">🌓</button>
 <button class="btn btn-ghost btn-sm" onclick="logout()">退出</button>
 </div>
@@ -297,7 +300,26 @@ async function logout(){
 
 function showApp(){
  $('login').style.display='none';$('app').style.display='block';
+ loadLanguages();
  loadExtensions().then(()=>{loadDashboard();timer=setInterval(loadDashboard,10000)});
+}
+
+async function loadLanguages(){
+ try{
+  const j=await api('/api/languages');if(j.code!==0)return;
+  const sel=$('lang-select'),cur=j.data.current||'';
+  let html='<option value="">🌐</option>';
+  (j.data.items||[]).forEach(it=>{html+=`<option value="${escAttr(it.code)}"${it.code===cur?' selected':''}>${esc(it.name)}</option>`});
+  sel.innerHTML=html;
+ }catch(e){}
+}
+
+async function changeLanguage(lang){
+ try{
+  const j=await api('/api/setLanguage?language='+encodeURIComponent(lang),{method:'POST'});
+  if(j.code!==0){showToast(j.message||'操作失败','error');loadLanguages();return}
+  location.reload();
+ }catch(e){}
 }
 
 async function api(url,opt={}){

@@ -18,6 +18,7 @@ namespace NewLife.Agent.WebPanel;
 [JsonSerializable(typeof(ApiResult<WatchDogData>))]
 [JsonSerializable(typeof(ApiResult<HealthData>))]
 [JsonSerializable(typeof(ApiResult<ExtensionsData>))]
+[JsonSerializable(typeof(ApiResult<LanguagesData>))]
 [JsonSerializable(typeof(FreeMemoryResult))]
 [JsonSerializable(typeof(LoginData))]
 [JsonSerializable(typeof(StatusData))]
@@ -32,6 +33,8 @@ namespace NewLife.Agent.WebPanel;
 [JsonSerializable(typeof(HealthData))]
 [JsonSerializable(typeof(GcCollectionsData))]
 [JsonSerializable(typeof(ExtensionsData))]
+[JsonSerializable(typeof(LanguageItem))]
+[JsonSerializable(typeof(LanguagesData))]
 [JsonSerializable(typeof(PanelExtension))]
 internal partial class AgentJsonContext : JsonSerializerContext { }
 #endif

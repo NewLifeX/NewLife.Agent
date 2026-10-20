@@ -233,6 +233,58 @@ public class ApiControllerTests
     }
     #endregion
 
+    #region 语言
+    [Fact]
+    [DisplayName("Languages_返回语言列表_含当前固定语言")]
+    public void Languages_ReturnsItems()
+    {
+        var (_, controller) = CreateController();
+
+        var result = controller.Languages();
+
+        Assert.Equal(0, GetCode(result));
+        var data = GetData(result);
+        var items = data.GetProperty("items").EnumerateArray().ToList();
+        Assert.NotEmpty(items);
+        Assert.True(data.TryGetProperty("current", out _));
+        Assert.Contains(items, e => e.GetProperty("code").GetString() == "zh-CN");
+    }
+
+    [Fact]
+    [DisplayName("SetLanguage_无效语言_返回400且不改变配置")]
+    public void SetLanguage_Unsupported_Returns400()
+    {
+        using var scope = new SettingScope();
+        var before = NewLife.Setting.Current.Language;
+        var (_, controller) = CreateController();
+
+        var result = controller.SetLanguage("eo");
+
+        Assert.Equal(400, GetCode(result));
+        Assert.Equal(before, NewLife.Setting.Current.Language);
+    }
+
+    [Fact]
+    [DisplayName("SetLanguage_有效语言_写入Core配置并立即生效")]
+    public void SetLanguage_Valid_UpdatesCoreSetting()
+    {
+        using var scope = new SettingScope();
+        var (_, controller) = CreateController();
+
+        var result = controller.SetLanguage("zh-CN");
+
+        Assert.Equal(0, GetCode(result));
+        Assert.Equal("zh-CN", NewLife.Setting.Current.Language);
+        Assert.Equal("zh-CN", Localization.Culture?.Name);
+
+        // 空值恢复自动识别
+        result = controller.SetLanguage("");
+        Assert.Equal(0, GetCode(result));
+        Assert.True(NewLife.Setting.Current.Language.IsNullOrEmpty());
+        Assert.Null(Localization.ForcedLanguage);
+    }
+    #endregion
+
     #region 健康
     [Fact]
     [DisplayName("Health_带token_返回健康指标")]
