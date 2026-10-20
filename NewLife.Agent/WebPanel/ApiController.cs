@@ -1,5 +1,6 @@
 ﻿#if !NET40
 using System.Diagnostics;
+using System.Globalization;
 using System.Net.NetworkInformation;
 using System.Reflection;
 using NewLife.Data;
@@ -406,7 +407,7 @@ public class ApiController : IHttpController
 
     #region 语言
     /// <summary>获取可用界面语言</summary>
-    /// <returns>语言代码、显示名称与当前固定语言；语言列表不敏感，登录页也可读取</returns>
+    /// <returns>语言代码、显示名称、当前固定语言与实际生效语言；语言列表不敏感，未登录也可读取</returns>
     public Object Languages()
     {
         var items = new List<LanguageItem>();
@@ -415,10 +416,18 @@ public class ApiController : IHttpController
             items.Add(new LanguageItem { Code = item.Key, Name = item.Value });
         }
 
+        // 请求实际生效的语言：全局配置优先，其次 Accept-Language，最后服务器语言
+        var culture = Localization.Culture ?? CultureInfo.CurrentUICulture;
+
         return new ApiResult<LanguagesData>
         {
             Code = 0,
-            Data = new LanguagesData { Current = Localization.ForcedLanguage ?? "", Items = items }
+            Data = new LanguagesData
+            {
+                Current = Localization.ForcedLanguage ?? "",
+                Effective = Localization.NormalizeCulture(culture.Name) ?? "",
+                Items = items
+            }
         };
     }
 

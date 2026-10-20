@@ -310,6 +310,9 @@ internal class LanguagesData
     /// <summary>当前固定语言。空表示跟随系统自动识别</summary>
     public String Current { get; set; }
 
+    /// <summary>当前请求实际生效的语言</summary>
+    public String Effective { get; set; }
+
     /// <summary>可选语言列表</summary>
     public List<LanguageItem> Items { get; set; }
 }

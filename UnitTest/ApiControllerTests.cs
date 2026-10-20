@@ -248,6 +248,7 @@ public class ApiControllerTests
         Assert.NotEmpty(items);
         Assert.True(data.TryGetProperty("current", out _));
         Assert.Contains(items, e => e.GetProperty("code").GetString() == "zh-CN");
+        Assert.True(data.TryGetProperty("effective", out _));
     }
 
     [Fact]

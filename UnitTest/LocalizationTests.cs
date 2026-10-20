@@ -245,49 +245,8 @@ public class LocalizationTests
     }
 
     [Fact]
-    [DisplayName("Web面板_API消息_按Accept-Language翻译")]
-    public async Task WebPanel_ApiMessage_FollowsAcceptLanguage()
-    {
-        var set = Setting.Current;
-        var prevPort = set.WebPort;
-        var prevEnable = set.EnableWebPanel;
-        try
-        {
-            set.WebPort = 0;
-            set.EnableWebPanel = false;
-            Localization.Culture = null;
-
-            var svc = new Mock<ServiceBase> { CallBase = true }.Object;
-            svc.ServiceName = "LocTest";
-
-            var panel = new AgentWebPanel(svc) { Level = AuthLevel.Full };
-            panel.Start();
-            try
-            {
-                using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{panel.Port}") };
-                var request = new HttpRequestMessage(HttpMethod.Get, "/api/status");
-                request.Headers.TryAddWithoutValidation("Accept-Language", "zh-Hans");
-                var response = await client.SendAsync(request);
-
-                Assert.Contains("未授权", await response.Content.ReadAsStringAsync());
-                Assert.Contains("Accept-Language", response.Headers.Vary.ToString());
-            }
-            finally
-            {
-                panel.Stop("TestDone");
-            }
-        }
-        finally
-        {
-            set.WebPort = prevPort;
-            set.EnableWebPanel = prevEnable;
-            ResetCulture();
-        }
-    }
-
-    [Fact]
-    [DisplayName("Web面板_首页_按Accept-Language输出界面语言")]
-    public async Task WebPanel_Index_FollowsAcceptLanguage()
+    [DisplayName("Web面板_首页_按固定语言输出界面")]
+    public async Task WebPanel_Index_FollowsForcedCulture()
     {
         var set = Setting.Current;
         var prevPort = set.WebPort;
@@ -307,11 +266,9 @@ public class LocalizationTests
             {
                 using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{panel.Port}") };
 
-                static async Task<String> GetIndex(HttpClient client, String language)
+                static async Task<String> GetIndex(HttpClient client)
                 {
-                    var request = new HttpRequestMessage(HttpMethod.Get, "/");
-                    request.Headers.TryAddWithoutValidation("Accept-Language", language);
-                    var response = await client.SendAsync(request);
+                    var response = await client.GetAsync("/");
                     response.EnsureSuccessStatusCode();
                     return await response.Content.ReadAsStringAsync();
                 }
@@ -323,26 +280,24 @@ public class LocalizationTests
                     return System.Text.RegularExpressions.Regex.Replace(html, "(?m)^\\s*//.*$", "");
                 }
 
-                var en = Visible(await GetIndex(client, "en-US"));
+                Localization.Culture = CultureInfo.GetCultureInfo("en-US");
+                var en = Visible(await GetIndex(client));
                 Assert.Contains("Service status", en);
                 Assert.DoesNotMatch("[\\u4e00-\\u9fff]", en);
                 Assert.Contains("<html lang=\"en\">", en);
 
-                var ja = Visible(await GetIndex(client, "ja-JP"));
+                Localization.Culture = CultureInfo.GetCultureInfo("ja-JP");
+                var ja = Visible(await GetIndex(client));
                 Assert.Contains("サービスの状態", ja);
                 Assert.DoesNotContain("服务状态", ja);
 
-                var ar = await GetIndex(client, "ar-SA");
+                Localization.Culture = CultureInfo.GetCultureInfo("ar-SA");
+                var ar = await GetIndex(client);
                 Assert.Contains("dir=\"rtl\"", ar);
 
-                var zh = await GetIndex(client, "zh-CN");
+                Localization.Culture = CultureInfo.GetCultureInfo("zh-CN");
+                var zh = await GetIndex(client);
                 Assert.Contains("服务状态", zh);
-
-                // 固定全局语言后不再跟随请求语言
-                Localization.Culture = CultureInfo.GetCultureInfo("ja-JP");
-                var forced = Visible(await GetIndex(client, "en-US"));
-                Assert.Contains("サービスの状態", forced);
-                Assert.DoesNotContain("服务状态", forced);
             }
             finally
             {
@@ -381,7 +336,7 @@ public class LocalizationTests
             {
                 using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{panel.Port}") };
 
-                // 语言列表不鉴权，登录页也可读取
+                // 语言列表不鉴权，未登录也可读取
                 var list = await client.GetStringAsync("/api/languages");
                 Assert.Contains("\"code\":\"zh-CN\"", list);
 
@@ -439,6 +394,12 @@ public class LocalizationTests
                 Assert.DoesNotContain('<', item.Value);
                 Assert.DoesNotContain('>', item.Value);
                 Assert.DoesNotContain('&', item.Value);
+                // 词条直接替换进 HTML 文本、属性与脚本字符串，引号/反引号/转义符/模板插值会破坏页面
+                Assert.DoesNotContain('\'', item.Value);
+                Assert.DoesNotContain('"', item.Value);
+                Assert.DoesNotContain('`', item.Value);
+                Assert.DoesNotContain('\\', item.Value);
+                Assert.DoesNotContain("${", item.Value);
             }
         }
 

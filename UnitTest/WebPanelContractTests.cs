@@ -363,7 +363,7 @@ public class WebPanelContractTests
         Assert.Equal(0, root.GetProperty("code").GetInt32());
 
         var data = root.GetProperty("data");
-        AssertExactKeys(data, "current", "items");
+        AssertExactKeys(data, "current", "effective", "items");
         Assert.Equal(JsonValueKind.Array, data.GetProperty("items").ValueKind);
 
         var item = data.GetProperty("items")[0];

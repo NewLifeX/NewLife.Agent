@@ -95,22 +95,7 @@ public class AgentWebPanel
         UserName = set.WebUserName;
         Password = set.WebPassword;
 
-        // 按 Accept-Language 切换当前请求语言；NewLife.Setting.Language 显式配置时保持宿主语言
-        Server.Use(UseRequestLanguage);
-
         RegisterRoutes();
-    }
-
-    /// <summary>请求语言中间件。按 Accept-Language 设置当前请求的 UI 文化，日志语言由 NewLife.Setting.Language 固定</summary>
-    /// <param name="ctx">Http上下文</param>
-    /// <param name="next">下一处理器</param>
-    private static async Task UseRequestLanguage(IHttpContext ctx, Func<Task> next)
-    {
-        using var scope = RequestCultureScope.Create(ctx.Request.Headers["Accept-Language"]);
-
-        ctx.Response.Headers["Vary"] = "Accept-Language";
-
-        await next().ConfigureAwait(false);
     }
 
     /// <summary>解析鉴权级别字符串</summary>

@@ -300,17 +300,18 @@ async function logout(){
 
 function showApp(){
  $('login').style.display='none';$('app').style.display='block';
- loadLanguages();
  loadExtensions().then(()=>{loadDashboard();timer=setInterval(loadDashboard,10000)});
 }
 
+// 语言列表填充主界面上拉框；选择写入 Core 全局配置，未配置时跟随浏览器 Accept-Language
 async function loadLanguages(){
  try{
   const j=await api('/api/languages');if(j.code!==0)return;
-  const sel=$('lang-select'),cur=j.data.current||'';
+  const items=j.data.items||[],cur=j.data.current||'';
   let html='<option value="">🌐</option>';
-  (j.data.items||[]).forEach(it=>{html+=`<option value="${escAttr(it.code)}"${it.code===cur?' selected':''}>${esc(it.name)}</option>`});
-  sel.innerHTML=html;
+  items.forEach(it=>{html+=`<option value="${escAttr(it.code)}"${it.code===cur?' selected':''}>${esc(it.name)}</option>`});
+
+  const header=$('lang-select');if(header)header.innerHTML=html;
  }catch(e){}
 }
 
@@ -813,6 +814,7 @@ applyTheme(getTheme());
 window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>{if(getTheme()==='auto')applyTheme('auto')});
 
 token=sessionStorage.getItem('agent_token')||'';
+loadLanguages();
 if(token)showApp();
 </script>
 </body>
