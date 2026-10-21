@@ -64,6 +64,7 @@ public class LocalizationTests
             Assert.Equal("无效的命令序号 [{0}]，请重新输入！", Localization.Translate("Invalid command number [{0}]; please try again."));
             Assert.Equal("服务启动：模拟运行开始", Localization.Translate("Service started: {0}", "模拟运行开始"));
             Assert.Equal("跨平台服务守护", Localization.Translate("Cross-platform Service Agent"));
+            Assert.Equal("跨平台系统服务与守护进程管理框架，支持安装、监控与自动重启。", Localization.Translate("Cross-platform system service and daemon management framework with install, monitoring, and auto-restart support."));
         }
         finally
         {
@@ -537,14 +538,22 @@ public class LocalizationTests
         try
         {
             UseCulture("zh-Hans");
-            var svc = new ServiceBaseTester { DisplayName = "Cross-platform Service Agent" };
+            var svc = new ServiceBaseTester
+            {
+                DisplayName = "Cross-platform Service Agent",
+                Description = "Cross-platform system service and daemon management framework with install, monitoring, and auto-restart support."
+            };
 
             Assert.Equal("跨平台服务守护", svc.DisplayTitle);
             Assert.Equal("Cross-platform Service Agent", svc.DisplayName);
+            Assert.Equal("跨平台系统服务与守护进程管理框架，支持安装、监控与自动重启。", svc.DisplayDescription);
+            Assert.StartsWith("Cross-platform system service", svc.Description);
 
             // 用户自定义名称没有词条时原样返回
             svc.DisplayName = "My Company Agent";
+            svc.Description = "My Company service";
             Assert.Equal("My Company Agent", svc.DisplayTitle);
+            Assert.Equal("My Company service", svc.DisplayDescription);
         }
         finally
         {

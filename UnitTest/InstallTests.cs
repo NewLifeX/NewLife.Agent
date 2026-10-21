@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Globalization;
 using Moq;
 using NewLife;
 using NewLife.Agent;
@@ -34,6 +35,41 @@ public class InstallTests
         Assert.Equal(svc.ServiceName, model.ServiceName);
         Assert.Equal(svc.DisplayName, model.DisplayName);
         Assert.StartsWith("-s", model.Arguments);
+    }
+
+    [Fact]
+    [DisplayName("安装服务_显示名与描述按当前语言翻译")]
+    public void Install_TranslatesDisplayMetadata()
+    {
+        ServiceModel model = null;
+
+        var mb1 = new Mock<ServiceBase> { CallBase = true };
+        var mb2 = new Mock<DefaultHost> { CallBase = true };
+        mb2.Setup(x => x.Install(It.IsAny<ServiceModel>())).Callback<ServiceModel>(m => model = m);
+
+        var svc = mb1.Object;
+        svc.Host = mb2.Object;
+        svc.ServiceName = "StarAgent";
+        svc.DisplayName = "Cross-platform Service Agent";
+        svc.Description = "Cross-platform system service and daemon management framework with install, monitoring, and auto-restart support.";
+
+        var prevCulture = Localization.Culture;
+        try
+        {
+            Localization.Culture = CultureInfo.GetCultureInfo("zh-CN");
+            new Install(svc).Process([]);
+        }
+        finally
+        {
+            Localization.Culture = prevCulture;
+        }
+
+        Assert.NotNull(model);
+        Assert.Equal("跨平台服务守护", model.DisplayName);
+        Assert.Equal("跨平台系统服务与守护进程管理框架，支持安装、监控与自动重启。", model.Description);
+        // 原始配置值保持不变
+        Assert.Equal("Cross-platform Service Agent", svc.DisplayName);
+        Assert.StartsWith("Cross-platform system service", svc.Description);
     }
 
     [Fact]

@@ -179,8 +179,10 @@ public class ApiControllerTests
             var data = GetData(controller.Status());
 
             Assert.Equal("跨平台服务守护", data.GetProperty("displayName").GetString());
-            // 描述未纳入词表，保持英文原文
-            Assert.Equal(panel.Service.Description, data.GetProperty("description").GetString());
+            Assert.Equal("跨平台系统服务与守护进程管理框架，支持安装、监控与自动重启。", data.GetProperty("description").GetString());
+            // 原始配置值保持不变
+            Assert.Equal("Cross-platform Service Agent", panel.Service.DisplayName);
+            Assert.StartsWith("Cross-platform system service", panel.Service.Description);
         }
         finally
         {
