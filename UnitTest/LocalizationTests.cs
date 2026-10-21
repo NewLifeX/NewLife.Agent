@@ -63,6 +63,7 @@ public class LocalizationTests
             Assert.Equal("未安装", Localization.Translate("Not installed"));
             Assert.Equal("无效的命令序号 [{0}]，请重新输入！", Localization.Translate("Invalid command number [{0}]; please try again."));
             Assert.Equal("服务启动：模拟运行开始", Localization.Translate("Service started: {0}", "模拟运行开始"));
+            Assert.Equal("跨平台服务守护", Localization.Translate("Cross-platform Service Agent"));
         }
         finally
         {
@@ -526,6 +527,28 @@ public class LocalizationTests
             coreSet.Language = prevLanguage;
             coreSet.Save();
             Localization.Culture = null;
+        }
+    }
+
+    [Fact]
+    [DisplayName("应用标题_仅显示时翻译_原始配置不变")]
+    public void DisplayTitle_TranslatesForDisplayOnly()
+    {
+        try
+        {
+            UseCulture("zh-Hans");
+            var svc = new ServiceBaseTester { DisplayName = "Cross-platform Service Agent" };
+
+            Assert.Equal("跨平台服务守护", svc.DisplayTitle);
+            Assert.Equal("Cross-platform Service Agent", svc.DisplayName);
+
+            // 用户自定义名称没有词条时原样返回
+            svc.DisplayName = "My Company Agent";
+            Assert.Equal("My Company Agent", svc.DisplayTitle);
+        }
+        finally
+        {
+            ResetCulture();
         }
     }
 

@@ -165,6 +165,30 @@ public class ApiControllerTests
     }
 
     [Fact]
+    [DisplayName("Status_显示名_按当前语言翻译")]
+    public void Status_DisplayName_Translated()
+    {
+        var (panel, controller) = CreateController();
+        var prevCulture = Localization.Culture;
+        try
+        {
+            panel.Service.DisplayName = "Cross-platform Service Agent";
+            panel.Service.Description = "Cross-platform system service and daemon management framework with install, monitoring, and auto-restart support.";
+            Localization.Culture = CultureInfo.GetCultureInfo("zh-CN");
+
+            var data = GetData(controller.Status());
+
+            Assert.Equal("跨平台服务守护", data.GetProperty("displayName").GetString());
+            // 描述未纳入词表，保持英文原文
+            Assert.Equal(panel.Service.Description, data.GetProperty("description").GetString());
+        }
+        finally
+        {
+            Localization.Culture = prevCulture;
+        }
+    }
+
+    [Fact]
     [DisplayName("Status_包含磁盘IOPS指标")]
     public void Status_ContainsDiskIops()
     {
