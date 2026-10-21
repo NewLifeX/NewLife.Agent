@@ -22,10 +22,8 @@ public class MyServices : ServiceBase
         // 一般在构造函数里面指定服务名
         ServiceName = "XAgent";
 
-        DisplayName = "新生命服务代理";
-        Description = "用于承载各种服务的服务代理！";
-
-        //UseAutorun = true;
+        // 标题与描述由 Test.csproj 的 AssemblyTitle/Description 提供（英文源文），
+        // 运行时按当前语言翻译；如需自定义，也请使用英文源文并在 Locales 中补齐译文。
     }
     #endregion
 
