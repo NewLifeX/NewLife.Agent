@@ -1,4 +1,5 @@
 # Українська 词表（uk）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Cross-platform Service Agent": "Крос-платформний агент служби"
 "Simulation is running...": "Триває симуляція..."
 "Press any key to stop the simulation.": "Натисніть будь-яку клавішу, щоб зупинити симуляцію."
 "Service {0} was not found; is it installed?": "Службу {0} не знайдено; чи вона встановлена?"

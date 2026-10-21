@@ -1,4 +1,5 @@
 # 简体中文译文。键为英文源文，缺失时运行期回退英文。
+"Cross-platform Service Agent": "跨平台服务守护"
 "Simulation is running...": "正在模拟运行……"
 "Press any key to stop the simulation.": "任意键结束模拟运行！"
 "Service {0} was not found; is it installed?": "未发现服务{0}，是否已安装？"

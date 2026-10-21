@@ -1,4 +1,5 @@
 # Norsk bokmål 词表（nb）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Cross-platform Service Agent": "Tverrplattform serviceagent"
 "Simulation is running...": "Simuleringen kjører..."
 "Press any key to stop the simulation.": "Trykk en vilkårlig tast for å stoppe simuleringen."
 "Service {0} was not found; is it installed?": "Tjenesten {0} ble ikke funnet; er den installert?"

@@ -1,4 +1,4 @@
-# 多语言词表一致性校验：键集合、空译文、占位符、格式说明符
+# 多语言词表一致性校验：键集合、空译文、首尾空白、占位符、格式说明符
 # 以基准语言文件（默认 zh-Hans.yml）为准，所有语言必须提供完全相同的键集合
 #
 # 用法：
@@ -186,12 +186,12 @@ if (!$SkipOrphan) {
         if ([IO.Path]::IsPathRooted($_)) { $_ } else { Join-Path $root $_ }
     } | Where-Object { Test-Path $_ })
 
-    $sourceText = ($sourceDirs | ForEach-Object { Get-ChildItem $_ -Recurse -Filter *.cs } |
+    $sourceText = ($sourceDirs | ForEach-Object { Get-ChildItem $_ -Recurse -File | Where-Object { $_.Extension -eq '.cs' -or $_.Extension -eq '.csproj' } } |
         Where-Object { $_.FullName -notmatch '\\(obj|bin|Locales)\\' } |
         ForEach-Object { [IO.File]::ReadAllText($_.FullName) }) -join "`n"
 
     foreach ($key in $reference.Entries.Keys) {
-        # 源码中的字面量形式：制表符写作 \t，引号写作 \"
+        # 源码中的字面量形式：制表符写作 \t，引号写作 \"; 程序集元数据（AssemblyTitle/Description）从 csproj 中查找
         $escaped = $key.Replace('\', '\\').Replace('"', '\"').Replace("`t", '\t').Replace("`r", '\r').Replace("`n", '\n')
         if (!$sourceText.Contains($key) -and !$sourceText.Contains($escaped)) {
             $orphans += $key

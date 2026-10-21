@@ -31,6 +31,10 @@ public abstract class ServiceBase : DisposeBase
     /// <summary>显示名</summary>
     public String DisplayName { get; set; }
 
+    /// <summary>用于界面显示的服务标题。按当前语言翻译</summary>
+    /// <remarks>只用于控制台与 Web 面板显示，不改变原始 DisplayName；服务注册（Windows SCM/systemd 等）仍使用原始值</remarks>
+    public String DisplayTitle => DisplayName.IsNullOrEmpty() ? DisplayName : L.T(DisplayName);
+
     /// <summary>描述</summary>
     public String Description { get; set; }
 
@@ -121,7 +125,7 @@ public abstract class ServiceBase : DisposeBase
         }
         else
         {
-            if (!DisplayName.IsNullOrEmpty()) Console.Title = DisplayName;
+            if (!DisplayName.IsNullOrEmpty()) Console.Title = DisplayTitle;
 
             Command.Handle(CommandConst.ShowStatus, args);
 

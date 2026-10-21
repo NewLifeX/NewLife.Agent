@@ -1,4 +1,5 @@
 # हिन्दी 词表（hi）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Cross-platform Service Agent": "क्रॉस-प्लेटफ़ॉर्म सेवा एजेंट"
 "Simulation is running...": "सिमुलेशन चल रहा है..."
 "Press any key to stop the simulation.": "सिमुलेशन रोकने के लिए कोई भी कुंजी दबाएँ।"
 "Service {0} was not found; is it installed?": "सेवा {0} नहीं मिली; क्या यह स्थापित है?"

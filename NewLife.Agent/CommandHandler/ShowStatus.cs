@@ -30,7 +30,7 @@ public class ShowStatus : BaseCommandHandler
 
         var name = Service.ServiceName;
         if (name != Service.DisplayName)
-            Console.WriteLine(L.T("Service: {0}({1})"), Service.DisplayName, name);
+            Console.WriteLine(L.T("Service: {0}({1})"), Service.DisplayTitle, name);
         else
             Console.WriteLine(L.T("Service: {0}"), name);
         Console.WriteLine(L.T("Description: {0}"), Service.Description);

@@ -138,7 +138,7 @@ public class ApiController : IHttpController
             Data = new StatusData
             {
                 ServiceName = Service.ServiceName,
-                DisplayName = Service.DisplayName,
+                DisplayName = Service.DisplayTitle,
                 Description = Service.Description,
                 Running = Service.Running,
                 Uptime = uptime.ToString(@"d\.hh\:mm\:ss"),

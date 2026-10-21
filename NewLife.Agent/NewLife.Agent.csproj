@@ -4,8 +4,8 @@
     <TargetFrameworks>net40;net45;net461;netstandard2.0;netstandard2.1;net6.0;net7.0;net8.0;net9.0;net10.0</TargetFrameworks>
     <AssemblyName>NewLife.Agent</AssemblyName>
     <RootNamespace>NewLife.Agent</RootNamespace>
-    <AssemblyTitle>跨平台服务守护</AssemblyTitle>
-    <Description>跨平台系统服务与守护进程管理框架，支持安装、监控与自动重启。</Description>
+    <AssemblyTitle>Cross-platform Service Agent</AssemblyTitle>
+    <Description>Cross-platform system service and daemon management framework with install, monitoring, and auto-restart support.</Description>
     <Company>新生命开发团队</Company>
     <Copyright>©2002-2026 NewLife</Copyright>
     <VersionPrefix>10.17</VersionPrefix>

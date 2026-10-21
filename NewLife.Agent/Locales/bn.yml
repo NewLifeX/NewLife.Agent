@@ -1,4 +1,5 @@
 # বাংলা 词表（bn）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Cross-platform Service Agent": "ক্রস-প্ল্যাটফর্ম পরিষেবা এজেন্ট"
 "Simulation is running...": "সিমুলেশন চলছে..."
 "Press any key to stop the simulation.": "সিমুলেশন বন্ধ করতে যেকোনো কী চাপুন।"
 "Service {0} was not found; is it installed?": "সার্ভিস {0} পাওয়া যায়নি; এটি ইনস্টল করা আছে কি?"

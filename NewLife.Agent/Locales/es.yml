@@ -1,4 +1,5 @@
 # Español 词表（es）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Cross-platform Service Agent": "Agente de servicio multiplataforma"
 "Simulation is running...": "La simulación está en ejecución..."
 "Press any key to stop the simulation.": "Pulse cualquier tecla para detener la simulación."
 "Service {0} was not found; is it installed?": "No se encontró el servicio {0}; ¿está instalado?"

@@ -1,4 +1,5 @@
 # العربية 词表（ar）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Cross-platform Service Agent": "وكيل خدمة متعدد المنصات"
 "Simulation is running...": "المحاكاة قيد التشغيل..."
 "Press any key to stop the simulation.": "اضغط أي مفتاح لإيقاف المحاكاة."
 "Service {0} was not found; is it installed?": "لم يتم العثور على الخدمة {0}؛ هل هي مثبتة؟"

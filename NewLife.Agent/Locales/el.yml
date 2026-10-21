@@ -1,4 +1,5 @@
 # Ελληνικά 词表（el）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
+"Cross-platform Service Agent": "Πράκτορας υπηρεσίας πολλαπλών πλατφορμών"
 "Simulation is running...": "Η προσομοίωση εκτελείται..."
 "Press any key to stop the simulation.": "Πατήστε οποιοδήποτε πλήκτρο για να σταματήσετε την προσομοίωση."
 "Service {0} was not found; is it installed?": "Η υπηρεσία {0} δεν βρέθηκε· είναι εγκατεστημένη;"
