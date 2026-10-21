@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Globalization;
 using System.Text.Json;
 using Moq;
 using NewLife;
@@ -249,6 +250,93 @@ public class ApiControllerTests
         Assert.True(data.TryGetProperty("current", out _));
         Assert.Contains(items, e => e.GetProperty("code").GetString() == "zh-CN");
         Assert.True(data.TryGetProperty("effective", out _));
+        Assert.True(data.TryGetProperty("selected", out _));
+        Assert.True(data.TryGetProperty("forced", out _));
+    }
+
+    [Fact]
+    [DisplayName("Languages_自动模式_选中值为空且返回实际语言")]
+    public void Languages_AutoMode_SelectedEmpty()
+    {
+        using var scope = new SettingScope();
+        var prevCulture = CultureInfo.CurrentUICulture;
+        try
+        {
+            var set = NewLife.Setting.Current;
+            set.Language = "";
+            set.Save();
+            Localization.Culture = null;
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("en-US");
+
+            var (_, controller) = CreateController();
+            var data = GetData(controller.Languages());
+
+            // 空配置表示自动，前端必须选中 Auto，而不是某个具体语言
+            Assert.Equal("", data.GetProperty("selected").GetString());
+            Assert.False(data.GetProperty("forced").GetBoolean());
+            Assert.Equal("en-US", data.GetProperty("effective").GetString());
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = prevCulture;
+            Localization.Culture = null;
+        }
+    }
+
+    [Fact]
+    [DisplayName("Languages_固定模式_选中值与配置一致")]
+    public void Languages_ForcedMode_SelectedMatchesSetting()
+    {
+        using var scope = new SettingScope();
+        try
+        {
+            var set = NewLife.Setting.Current;
+            set.Language = "fr-FR";
+            set.Save();
+
+            var (_, controller) = CreateController();
+            var data = GetData(controller.Languages());
+
+            Assert.Equal("fr-FR", data.GetProperty("selected").GetString());
+            Assert.True(data.GetProperty("forced").GetBoolean());
+            Assert.Equal("fr-FR", data.GetProperty("effective").GetString());
+        }
+        finally
+        {
+            Localization.Culture = null;
+        }
+    }
+
+    [Fact]
+    [DisplayName("Languages_语言名称_跟随当前界面语言")]
+    public void Languages_NamesFollowCulture()
+    {
+        var prevCulture = CultureInfo.CurrentUICulture;
+        try
+        {
+            Localization.Culture = CultureInfo.GetCultureInfo("en-US");
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("en-US");
+            var (_, enController) = CreateController();
+            var enData = GetData(enController.Languages());
+            var enName = enData.GetProperty("items").EnumerateArray()
+                .First(e => e.GetProperty("code").GetString() == "de-DE")
+                .GetProperty("name").GetString();
+            Assert.Contains("German", enName);
+
+            Localization.Culture = CultureInfo.GetCultureInfo("zh-CN");
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("zh-CN");
+            var (_, zhController) = CreateController();
+            var zhData = GetData(zhController.Languages());
+            var zhName = zhData.GetProperty("items").EnumerateArray()
+                .First(e => e.GetProperty("code").GetString() == "de-DE")
+                .GetProperty("name").GetString();
+            Assert.Contains("德语", zhName);
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = prevCulture;
+            Localization.Culture = null;
+        }
     }
 
     [Fact]

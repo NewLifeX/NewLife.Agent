@@ -269,10 +269,25 @@ public class AgentWebPanel
         _indexHtml ??= ReadIndexHtml();
 
         var html = UiLocalization.Localize(_indexHtml, EmbeddedResourceAssemblyType.Assembly, EmbeddedResourcePrefix, Localization.Culture ?? CultureInfo.CurrentUICulture);
+        html = InjectLanguageState(html);
 
         ctx.Response.ContentType = "text/html; charset=utf-8";
         ctx.Response.Headers["Cache-Control"] = "no-cache";
         ctx.Response.Body = new ArrayPacket(html.GetBytes());
+    }
+
+    /// <summary>注入当前语言状态，供前端首屏渲染下拉框</summary>
+    /// <param name="html">已本地化的页面</param>
+    /// <returns>注入语言状态后的页面</returns>
+    private static String InjectLanguageState(String html)
+    {
+        var index = html.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
+        if (index < 0) return html;
+
+        var forced = PanelLanguage.Forced ? "true" : "false";
+        var script = $"<script>window.__panelLanguage={{selected:'{PanelLanguage.Selected}',effective:'{PanelLanguage.Effective}',forced:{forced}}};</script>";
+
+        return html.Insert(index, script);
     }
 
     /// <summary>读取嵌入的首页源文</summary>

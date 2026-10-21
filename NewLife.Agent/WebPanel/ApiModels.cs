@@ -310,6 +310,12 @@ internal class LanguagesData
     /// <summary>当前固定语言。空表示跟随系统自动识别</summary>
     public String Current { get; set; }
 
+    /// <summary>配置选中的语言（归一化）。空表示自动识别</summary>
+    public String Selected { get; set; }
+
+    /// <summary>是否已固定语言</summary>
+    public Boolean Forced { get; set; }
+
     /// <summary>当前请求实际生效的语言</summary>
     public String Effective { get; set; }
 
