@@ -61,6 +61,15 @@ function Get-PlaceholderSpecs([string]$text) {
     return $map
 }
 
+function Test-WhitespaceMatch([string]$key, [string]$value) {
+    $keyLead = $key.Length - $key.TrimStart().Length
+    $keyTail = $key.Length - $key.TrimEnd().Length
+    $valueLead = $value.Length - $value.TrimStart().Length
+    $valueTail = $value.Length - $value.TrimEnd().Length
+
+    return $keyLead -eq $valueLead -and $keyTail -eq $valueTail
+}
+
 function Read-Locale([string]$path) {
     $entries = [ordered]@{}
     $errors = @()
@@ -92,9 +101,27 @@ $reference = Read-Locale $referencePath
 $allErrors = @($reference.Errors | ForEach-Object { "$($Baseline): $_" })
 $allWarnings = @()
 
-# 基准表自身也不能有空译文
+# 基准表自身也不能有空译文，且首尾空白要与英文键一致
 foreach ($key in $reference.Entries.Keys) {
-    if ([String]::IsNullOrWhiteSpace($reference.Entries[$key])) { $allErrors += "$($Baseline): 空译文 $key" }
+    $value = $reference.Entries[$key]
+    if ([String]::IsNullOrWhiteSpace($value)) {
+        $allErrors += "$($Baseline): 空译文 $key"
+        continue
+    }
+    if (!(Test-WhitespaceMatch $key $value)) { $allErrors += "$($Baseline): 首尾空白不一致 $key" }
+}
+
+# 占位符序号应当连续，避免 {0} 与 {2} 之间跳号
+foreach ($key in $reference.Entries.Keys) {
+    $indices = Get-Placeholders $key
+    if ($indices.Count -eq 0) { continue }
+    $max = ($indices | Measure-Object -Maximum).Maximum
+    for ($i = 0; $i -le $max; $i++) {
+        if (!$indices.Contains($i)) {
+            $allWarnings += "$($Baseline): 占位符跳号 → $key"
+            break
+        }
+    }
 }
 
 foreach ($file in Get-ChildItem $localeDir -Filter *.yml | Sort-Object Name) {
@@ -117,6 +144,17 @@ foreach ($file in Get-ChildItem $localeDir -Filter *.yml | Sort-Object Name) {
         if ([String]::IsNullOrWhiteSpace($value)) {
             $allErrors += "$($file.Name): 空译文 $key"
             continue
+        }
+
+        # 菜单缩进与提示符空格依赖首尾空白，必须与英文键保持一致
+        if (!(Test-WhitespaceMatch $key $value)) {
+            $allErrors += "$($file.Name): 首尾空白不一致 $key"
+            continue
+        }
+
+        # 值等于英文键且为较长短语时，大概率是漏翻译，仅告警
+        if ($value -ceq $key -and $key -match '\s' -and $key.Length -gt 20) {
+            $allWarnings += "$($file.Name): 疑似未翻译 → $key"
         }
 
         $expected = Get-Placeholders $key
