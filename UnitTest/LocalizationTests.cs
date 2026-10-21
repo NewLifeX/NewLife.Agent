@@ -289,7 +289,7 @@ public class LocalizationTests
                 Localization.Culture = CultureInfo.GetCultureInfo("ja-JP");
                 var ja = Visible(await GetIndex(client));
                 Assert.Contains("サービスの状態", ja);
-                Assert.DoesNotContain("服务状态", ja);
+                Assert.DoesNotContain("Service status", ja);
 
                 Localization.Culture = CultureInfo.GetCultureInfo("ar-SA");
                 var ar = await GetIndex(client);
@@ -298,6 +298,8 @@ public class LocalizationTests
                 Localization.Culture = CultureInfo.GetCultureInfo("zh-CN");
                 var zh = await GetIndex(client);
                 Assert.Contains("服务状态", zh);
+                Assert.DoesNotContain("Service status", zh);
+                Assert.Contains("<html lang=\"zh-Hans\">", zh);
             }
             finally
             {
@@ -391,6 +393,7 @@ public class LocalizationTests
 
             foreach (var item in map)
             {
+                Assert.False(String.IsNullOrWhiteSpace(item.Value), $"{language} 空译文：{item.Key}");
                 Assert.DoesNotContain('<', item.Value);
                 Assert.DoesNotContain('>', item.Value);
                 Assert.DoesNotContain('&', item.Value);
@@ -403,19 +406,50 @@ public class LocalizationTests
             }
         }
 
-        // 英文词表必须覆盖页面中所有可见中文，避免漏词条
+        // 英文基准词表的每个键都必须出现在英文源文页面中，避免出现死条目
         using var stream = assembly.GetManifestResourceStream($"{prefix}.index.html");
         Assert.NotNull(stream);
         using var reader = new StreamReader(stream);
         var html = reader.ReadToEnd();
-        foreach (var key in baseline.Keys.OrderByDescending(e => e.Length))
+        foreach (var key in baseline.Keys)
         {
-            html = html.Replace(key, "");
+            Assert.Contains(key, html);
         }
+
+        // 英文源文除注释外不得出现中文，确保所有界面文案都以英文记录
         html = System.Text.RegularExpressions.Regex.Replace(html, "<!--.*?-->", "", System.Text.RegularExpressions.RegexOptions.Singleline);
         html = System.Text.RegularExpressions.Regex.Replace(html, "/\\*.*?\\*/", "", System.Text.RegularExpressions.RegexOptions.Singleline);
         html = System.Text.RegularExpressions.Regex.Replace(html, "(?m)^\\s*//.*$", "");
         Assert.DoesNotMatch("[\\u4e00-\\u9fff]", html);
+
+        // 简体中文不是源文，必须有独立词表
+        var zhHans = UiLocalization.LoadDictionary(assembly, prefix, "zh-Hans");
+        Assert.Equal("📊 服务状态", zhHans["📊 Service status"]);
+    }
+
+    [Fact]
+    [DisplayName("Web面板_界面词表_单次替换_译文不被二次替换")]
+    public void UiLocalization_ReplacesOnce_NoDoubleTranslation()
+    {
+        var assembly = typeof(AgentWebPanel).Assembly;
+        const String prefix = "NewLife.Agent.WebPanel.wwwroot";
+        using var stream = assembly.GetManifestResourceStream($"{prefix}.index.html");
+        Assert.NotNull(stream);
+        using var reader = new StreamReader(stream);
+        var html = reader.ReadToEnd();
+
+        // pt 的 Confirm 译作 Confirmar，若译文再次参与替换会得到 Confirmarar
+        var page = UiLocalization.Localize(html, assembly, prefix, CultureInfo.GetCultureInfo("pt-BR"));
+
+        Assert.Contains("Confirmar nova senha", page);
+        Assert.DoesNotContain("Confirmarar", page);
+        Assert.Contains("<html lang=\"pt\">", page);
+
+        // 界面词条不能命中脚本标识符中的同名片段
+        Assert.Contains("d.totalMemory", page);
+        Assert.Contains("function freeMemory", page);
+        Assert.Contains("changeLanguage", page);
+        Assert.Contains("oldPassword", page);
     }
 
     [Fact]

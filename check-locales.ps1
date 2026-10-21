@@ -1,4 +1,4 @@
-# 多语言词表一致性校验：键集合、占位符、格式说明符
+# 多语言词表一致性校验：键集合、空译文、占位符、格式说明符
 # 以基准语言文件（默认 zh-Hans.yml）为准，所有语言必须提供完全相同的键集合
 #
 # 用法：
@@ -92,6 +92,11 @@ $reference = Read-Locale $referencePath
 $allErrors = @($reference.Errors | ForEach-Object { "$($Baseline): $_" })
 $allWarnings = @()
 
+# 基准表自身也不能有空译文
+foreach ($key in $reference.Entries.Keys) {
+    if ([String]::IsNullOrWhiteSpace($reference.Entries[$key])) { $allErrors += "$($Baseline): 空译文 $key" }
+}
+
 foreach ($file in Get-ChildItem $localeDir -Filter *.yml | Sort-Object Name) {
     if ($file.Name -eq $Baseline) { continue }
     $locale = Read-Locale $file.FullName
@@ -109,6 +114,11 @@ foreach ($file in Get-ChildItem $localeDir -Filter *.yml | Sort-Object Name) {
         }
 
         $value = $locale.Entries[$key]
+        if ([String]::IsNullOrWhiteSpace($value)) {
+            $allErrors += "$($file.Name): 空译文 $key"
+            continue
+        }
+
         $expected = Get-Placeholders $key
         $actual = Get-Placeholders $value
         if (!$expected.SetEquals($actual)) {
