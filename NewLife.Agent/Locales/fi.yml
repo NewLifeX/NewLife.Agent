@@ -1,5 +1,6 @@
 # Suomi 词表（fi）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
 "Cross-platform Service Agent": "Alustojen välinen palveluagentti"
+"Cross-platform system service and daemon management framework with install, monitoring, and auto-restart support.": "Alustojen välinen järjestelmäpalvelujen ja taustaprosessien hallintakehys, jossa on asennus-, seuranta- ja automaattinen uudelleenkäynnistystuki."
 "Simulation is running...": "Simulaatio on käynnissä..."
 "Press any key to stop the simulation.": "Pysäytä simulaatio painamalla mitä tahansa näppäintä."
 "Service {0} was not found; is it installed?": "Palvelua {0} ei löytynyt; onko se asennettu?"

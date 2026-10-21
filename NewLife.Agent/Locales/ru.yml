@@ -1,5 +1,6 @@
 # Русский 词表（ru）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
 "Cross-platform Service Agent": "Кроссплатформенный агент службы"
+"Cross-platform system service and daemon management framework with install, monitoring, and auto-restart support.": "Кроссплатформенная платформа управления системными службами и демонами с поддержкой установки, мониторинга и автоматического перезапуска."
 "Simulation is running...": "Идёт симуляция..."
 "Press any key to stop the simulation.": "Нажмите любую клавишу, чтобы остановить симуляцию."
 "Service {0} was not found; is it installed?": "Служба {0} не найдена; она установлена?"

@@ -1,5 +1,6 @@
 # 繁體中文譯文。鍵為英文源文，缺失時執行期回退英文。
 "Cross-platform Service Agent": "跨平台服務守護"
+"Cross-platform system service and daemon management framework with install, monitoring, and auto-restart support.": "跨平台系統服務與守護進程管理框架，支援安裝、監控與自動重啟。"
 "Simulation is running...": "正在模擬運行……"
 "Press any key to stop the simulation.": "任意鍵結束模擬運行！"
 "Service {0} was not found; is it installed?": "未發現服務{0}，是否已安裝？"

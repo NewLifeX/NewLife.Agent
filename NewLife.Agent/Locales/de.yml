@@ -1,5 +1,6 @@
 # Deutsch 词表（de）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
 "Cross-platform Service Agent": "Plattformübergreifender Dienstagent"
+"Cross-platform system service and daemon management framework with install, monitoring, and auto-restart support.": "Plattformübergreifendes Framework zur Verwaltung von Systemdiensten und Daemons mit Unterstützung für Installation, Überwachung und automatischen Neustart."
 "Simulation is running...": "Simulation läuft..."
 "Press any key to stop the simulation.": "Drücken Sie eine beliebige Taste, um die Simulation zu beenden."
 "Service {0} was not found; is it installed?": "Dienst {0} wurde nicht gefunden; ist er installiert?"

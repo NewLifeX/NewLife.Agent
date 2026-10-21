@@ -32,8 +32,12 @@ public abstract class ServiceBase : DisposeBase
     public String DisplayName { get; set; }
 
     /// <summary>用于界面显示的服务标题。按当前语言翻译</summary>
-    /// <remarks>只用于控制台与 Web 面板显示，不改变原始 DisplayName；服务注册（Windows SCM/systemd 等）仍使用原始值</remarks>
+    /// <remarks>只用于显示与安装注册，不改变原始 DisplayName；服务名仍是原始值</remarks>
     public String DisplayTitle => DisplayName.IsNullOrEmpty() ? DisplayName : L.T(DisplayName);
+
+    /// <summary>用于界面显示和安装注册的服务描述。按当前语言翻译</summary>
+    /// <remarks>只用于显示与安装注册，不改变原始 Description</remarks>
+    public String DisplayDescription => Description.IsNullOrEmpty() ? Description : L.T(Description);
 
     /// <summary>描述</summary>
     public String Description { get; set; }

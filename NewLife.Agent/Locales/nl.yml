@@ -1,5 +1,6 @@
 # Nederlands 词表（nl）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
 "Cross-platform Service Agent": "Platformonafhankelijke serviceagent"
+"Cross-platform system service and daemon management framework with install, monitoring, and auto-restart support.": "Platformonafhankelijk framework voor beheer van systeemservices en daemons met ondersteuning voor installatie, monitoring en automatisch herstarten."
 "Simulation is running...": "De simulatie wordt uitgevoerd..."
 "Press any key to stop the simulation.": "Druk op een willekeurige toets om de simulatie te stoppen."
 "Service {0} was not found; is it installed?": "Service {0} is niet gevonden; is deze geïnstalleerd?"

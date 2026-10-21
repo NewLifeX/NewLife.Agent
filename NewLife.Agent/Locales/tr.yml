@@ -1,5 +1,6 @@
 # Türkçe 词表（tr）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
 "Cross-platform Service Agent": "Platformlar arası hizmet aracısı"
+"Cross-platform system service and daemon management framework with install, monitoring, and auto-restart support.": "Kurulum, izleme ve otomatik yeniden başlatma desteğine sahip platformlar arası sistem hizmeti ve arka plan programı yönetim çerçevesi."
 "Simulation is running...": "Simülasyon çalışıyor..."
 "Press any key to stop the simulation.": "Simülasyonu durdurmak için herhangi bir tuşa basın."
 "Service {0} was not found; is it installed?": "{0} hizmeti bulunamadı; yüklü mü?"

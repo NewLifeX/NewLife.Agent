@@ -1,5 +1,6 @@
 # Română 词表（ro）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
 "Cross-platform Service Agent": "Agent de serviciu multiplatformă"
+"Cross-platform system service and daemon management framework with install, monitoring, and auto-restart support.": "Cadru de gestionare a serviciilor de sistem și a demonilor multiplatformă, cu suport pentru instalare, monitorizare și repornire automată."
 "Simulation is running...": "Simularea rulează..."
 "Press any key to stop the simulation.": "Apăsați orice tastă pentru a opri simularea."
 "Service {0} was not found; is it installed?": "Serviciul {0} nu a fost găsit; este instalat?"

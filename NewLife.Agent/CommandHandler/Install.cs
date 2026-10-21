@@ -56,8 +56,8 @@ public class Install : BaseCommandHandler
         var service = new ServiceModel
         {
             ServiceName = Service.ServiceName,
-            DisplayName = Service.DisplayName,
-            Description = Service.Description,
+            DisplayName = Service.DisplayTitle,
+            Description = Service.DisplayDescription,
             FileName = exe
         };
 

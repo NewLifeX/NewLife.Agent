@@ -1,5 +1,6 @@
 # ไทย 词表（th）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
 "Cross-platform Service Agent": "เอเจนต์บริการข้ามแพลตฟอร์ม"
+"Cross-platform system service and daemon management framework with install, monitoring, and auto-restart support.": "กรอบการจัดการบริการระบบและแดมอนข้ามแพลตฟอร์มพร้อมการสนับสนุนการติดตั้ง การตรวจสอบ และการรีสตาร์ตอัตโนมัติ"
 "Simulation is running...": "กำลังจำลองสถานการณ์..."
 "Press any key to stop the simulation.": "กดปุ่มใดก็ได้เพื่อหยุดการจำลอง"
 "Service {0} was not found; is it installed?": "ไม่พบบริการ {0} ติดตั้งแล้วหรือไม่"

@@ -1,5 +1,6 @@
 # Dansk 词表（da）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
 "Cross-platform Service Agent": "Tværplatforms serviceagent"
+"Cross-platform system service and daemon management framework with install, monitoring, and auto-restart support.": "Tværplatformsrammeværk til håndtering af systemtjenester og daemons med understøttelse af installation, overvågning og automatisk genstart."
 "Simulation is running...": "Simuleringen kører..."
 "Press any key to stop the simulation.": "Tryk på en vilkårlig tast for at stoppe simuleringen."
 "Service {0} was not found; is it installed?": "Tjenesten {0} blev ikke fundet; er den installeret?"

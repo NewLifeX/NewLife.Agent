@@ -1,5 +1,6 @@
 # Bahasa Indonesia 词表（id）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
 "Cross-platform Service Agent": "Agen layanan lintas platform"
+"Cross-platform system service and daemon management framework with install, monitoring, and auto-restart support.": "Kerangka kerja manajemen layanan sistem dan daemon lintas platform dengan dukungan instalasi, pemantauan, dan mulai ulang otomatis."
 "Simulation is running...": "Simulasi sedang berjalan..."
 "Press any key to stop the simulation.": "Tekan tombol apa saja untuk menghentikan simulasi."
 "Service {0} was not found; is it installed?": "Layanan {0} tidak ditemukan; apakah sudah terpasang?"

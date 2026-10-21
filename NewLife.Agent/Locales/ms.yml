@@ -1,5 +1,6 @@
 # Bahasa Melayu 词表（ms）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
 "Cross-platform Service Agent": "Ejen perkhidmatan merentas platform"
+"Cross-platform system service and daemon management framework with install, monitoring, and auto-restart support.": "Rangka kerja pengurusan perkhidmatan sistem dan daemon merentas platform dengan sokongan pemasangan, pemantauan dan permulaan semula automatik."
 "Simulation is running...": "Simulasi sedang berjalan..."
 "Press any key to stop the simulation.": "Tekan mana-mana kekunci untuk menghentikan simulasi."
 "Service {0} was not found; is it installed?": "Perkhidmatan {0} tidak ditemui; adakah ia dipasang?"

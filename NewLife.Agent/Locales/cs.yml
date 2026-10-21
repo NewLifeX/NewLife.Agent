@@ -1,5 +1,6 @@
 # Čeština 词表（cs）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
 "Cross-platform Service Agent": "Multiplatformní servisní agent"
+"Cross-platform system service and daemon management framework with install, monitoring, and auto-restart support.": "Multiplatformní rámec pro správu systémových služeb a démonů s podporou instalace, monitorování a automatického restartu."
 "Simulation is running...": "Simulace běží..."
 "Press any key to stop the simulation.": "Simulaci zastavíte stisknutím libovolné klávesy."
 "Service {0} was not found; is it installed?": "Služba {0} nebyla nalezena; je nainstalována?"

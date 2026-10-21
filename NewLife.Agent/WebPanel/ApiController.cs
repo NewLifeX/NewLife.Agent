@@ -139,7 +139,7 @@ public class ApiController : IHttpController
             {
                 ServiceName = Service.ServiceName,
                 DisplayName = Service.DisplayTitle,
-                Description = Service.Description,
+                Description = Service.DisplayDescription,
                 Running = Service.Running,
                 Uptime = uptime.ToString(@"d\.hh\:mm\:ss"),
                 UptimeSeconds = (Int64)uptime.TotalSeconds,

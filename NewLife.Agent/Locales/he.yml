@@ -1,5 +1,6 @@
 # עברית 词表（he）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
 "Cross-platform Service Agent": "סוכן שירות חוצה פלטפורמות"
+"Cross-platform system service and daemon management framework with install, monitoring, and auto-restart support.": "מסגרת לניהול שירותי מערכת ותהליכי רקע חוצת פלטפורמות עם תמיכה בהתקנה, ניטור והפעלה מחדש אוטומטית."
 "Simulation is running...": "ההדמיה פועלת..."
 "Press any key to stop the simulation.": "לחץ על מקש כלשהו כדי לעצור את ההדמיה."
 "Service {0} was not found; is it installed?": "השירות {0} לא נמצא; האם הוא מותקן?"

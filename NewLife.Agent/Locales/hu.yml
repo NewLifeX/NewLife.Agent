@@ -1,5 +1,6 @@
 # Magyar 词表（hu）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
 "Cross-platform Service Agent": "Többplatformos szolgáltatásügynök"
+"Cross-platform system service and daemon management framework with install, monitoring, and auto-restart support.": "Többplatformos rendszerszolgáltatás- és démonkezelő keretrendszer telepítési, megfigyelési és automatikus újraindítási támogatással."
 "Simulation is running...": "A szimuláció fut..."
 "Press any key to stop the simulation.": "A szimuláció leállításához nyomjon meg egy billentyűt."
 "Service {0} was not found; is it installed?": "A(z) {0} szolgáltatás nem található; telepítve van?"

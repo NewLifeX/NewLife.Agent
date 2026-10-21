@@ -1,5 +1,6 @@
 # 한국어 词表（ko）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
 "Cross-platform Service Agent": "크로스 플랫폼 서비스 에이전트"
+"Cross-platform system service and daemon management framework with install, monitoring, and auto-restart support.": "설치, 모니터링 및 자동 재시작을 지원하는 크로스 플랫폼 시스템 서비스 및 데몬 관리 프레임워크."
 "Simulation is running...": "시뮬레이션이 실행 중입니다..."
 "Press any key to stop the simulation.": "아무 키나 누르면 시뮬레이션이 중지됩니다."
 "Service {0} was not found; is it installed?": "서비스 {0}을(를) 찾을 수 없습니다. 설치되어 있습니까?"

@@ -1,5 +1,6 @@
 # فارسی 词表（fa）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
 "Cross-platform Service Agent": "عامل سرویس چندسکویی"
+"Cross-platform system service and daemon management framework with install, monitoring, and auto-restart support.": "چارچوب مدیریت سرویس‌های سیستمی و دیمن‌ها به‌صورت چندسکویی با پشتیبانی از نصب، پایش و راه‌اندازی مجدد خودکار."
 "Simulation is running...": "شبیه‌سازی در حال اجرا است..."
 "Press any key to stop the simulation.": "برای توقف شبیه‌سازی هر کلیدی را فشار دهید."
 "Service {0} was not found; is it installed?": "سرویس {0} یافت نشد؛ آیا نصب شده است؟"

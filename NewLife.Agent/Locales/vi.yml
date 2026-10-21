@@ -1,5 +1,6 @@
 # Tiếng Việt 词表（vi）。键为英文源文，与源码字符串逐字一致；缺少的键运行时回退英文。
 "Cross-platform Service Agent": "Tác nhân dịch vụ đa nền tảng"
+"Cross-platform system service and daemon management framework with install, monitoring, and auto-restart support.": "Khung quản lý dịch vụ hệ thống và tiến trình nền đa nền tảng, hỗ trợ cài đặt, giám sát và tự động khởi động lại."
 "Simulation is running...": "Mô phỏng đang chạy..."
 "Press any key to stop the simulation.": "Nhấn phím bất kỳ để dừng mô phỏng."
 "Service {0} was not found; is it installed?": "Không tìm thấy dịch vụ {0}; dịch vụ đã được cài đặt chưa?"
