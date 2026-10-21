@@ -12,6 +12,7 @@
   "❌ Failed to load": "❌ הטעינה נכשלה",
   "❌ Network error": "❌ שגיאת רשת",
   "❌ Request failed": "❌ הבקשה נכשלה",
+  "🌐 Auto": "🌐 אוטומטי",
   "🐕 Watchdog": "🐕 כלב שמירה",
   "💚 Resource monitoring": "💚 ניטור משאבים",
   "💾 Save configuration": "💾 שמור תצורה",
@@ -57,6 +58,7 @@
   "Host name": "שם מארח",
   "Host running": "המארח פועל",
   "Incorrect user name or password": "שם משתמש או סיסמה שגויים",
+  "Language": "שפה",
   "Listening port": "פורט האזנה",
   "Loading...": "טוען...",
   "Make sure a .log file exists in the Log directory": "ודאו שקיים קובץ .log בספריית Log",
@@ -113,6 +115,5 @@
   "Uptime: ": "זמן פעילות: ",
   "Used": "בשימוש",
   "User name": "שם משתמש",
-  "Your session has expired. Please sign in again.": "ההפעלה פגה. התחברו שוב",
-  "Language": "שפה"
+  "Your session has expired. Please sign in again.": "ההפעלה פגה. התחברו שוב"
 }

@@ -12,6 +12,7 @@
   "❌ Failed to load": "❌ Tải không thành công",
   "❌ Network error": "❌ Lỗi mạng",
   "❌ Request failed": "❌ Yêu cầu thất bại",
+  "🌐 Auto": "🌐 Tự động",
   "🐕 Watchdog": "🐕 Watchdog",
   "💚 Resource monitoring": "💚 Giám sát tài nguyên",
   "💾 Save configuration": "💾 Lưu cấu hình",
@@ -57,6 +58,7 @@
   "Host name": "Tên máy chủ",
   "Host running": "Máy chủ đang chạy",
   "Incorrect user name or password": "Tên người dùng hoặc mật khẩu không đúng",
+  "Language": "Ngôn ngữ",
   "Listening port": "Cổng lắng nghe",
   "Loading...": "Đang tải...",
   "Make sure a .log file exists in the Log directory": "Hãy chắc chắn có tệp .log trong thư mục Log",
@@ -113,6 +115,5 @@
   "Uptime: ": "Thời gian hoạt động: ",
   "Used": "Đã dùng",
   "User name": "Tên người dùng",
-  "Your session has expired. Please sign in again.": "Phiên đã hết hạn. Vui lòng đăng nhập lại",
-  "Language": "Ngôn ngữ"
+  "Your session has expired. Please sign in again.": "Phiên đã hết hạn. Vui lòng đăng nhập lại"
 }

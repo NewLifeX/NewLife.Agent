@@ -12,6 +12,7 @@
   "❌ Failed to load": "❌ 読み込みに失敗しました",
   "❌ Network error": "❌ ネットワークエラー",
   "❌ Request failed": "❌ リクエストに失敗しました",
+  "🌐 Auto": "🌐 自動",
   "🐕 Watchdog": "🐕 ウォッチドッグ",
   "💚 Resource monitoring": "💚 リソース監視",
   "💾 Save configuration": "💾 設定を保存",
@@ -57,6 +58,7 @@
   "Host name": "ホスト名",
   "Host running": "ホスト稼働中",
   "Incorrect user name or password": "ユーザー名またはパスワードが正しくありません",
+  "Language": "言語",
   "Listening port": "待ち受けポート",
   "Loading...": "読み込み中...",
   "Make sure a .log file exists in the Log directory": "Log ディレクトリに .log ファイルがあることを確認してください",
@@ -113,6 +115,5 @@
   "Uptime: ": "稼働時間：",
   "Used": "使用中",
   "User name": "ユーザー名",
-  "Your session has expired. Please sign in again.": "ログインの有効期限が切れました。再度ログインしてください",
-  "Language": "言語"
+  "Your session has expired. Please sign in again.": "ログインの有効期限が切れました。再度ログインしてください"
 }

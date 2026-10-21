@@ -12,6 +12,7 @@
   "❌ Failed to load": "❌ লোড করা যায়নি",
   "❌ Network error": "❌ নেটওয়ার্ক ত্রুটি",
   "❌ Request failed": "❌ অনুরোধ ব্যর্থ",
+  "🌐 Auto": "🌐 স্বয়ংক্রিয়",
   "🐕 Watchdog": "🐕 ওয়াচডগ",
   "💚 Resource monitoring": "💚 সম্পদ পর্যবেক্ষণ",
   "💾 Save configuration": "💾 কনফিগারেশন সংরক্ষণ করুন",
@@ -57,6 +58,7 @@
   "Host name": "হোস্ট নাম",
   "Host running": "হোস্ট চলছে",
   "Incorrect user name or password": "ব্যবহারকারীর নাম বা পাসওয়ার্ড ভুল",
+  "Language": "ভাষা",
   "Listening port": "শোনার পোর্ট",
   "Loading...": "লোড হচ্ছে...",
   "Make sure a .log file exists in the Log directory": "Log ডিরেক্টরিতে .log ফাইল আছে কিনা নিশ্চিত করুন",
@@ -113,6 +115,5 @@
   "Uptime: ": "চালু সময়: ",
   "Used": "ব্যবহৃত",
   "User name": "ব্যবহারকারীর নাম",
-  "Your session has expired. Please sign in again.": "সেশন মেয়াদোত্তীর্ণ হয়েছে। আবার লগইন করুন",
-  "Language": "ভাষা"
+  "Your session has expired. Please sign in again.": "সেশন মেয়াদোত্তীর্ণ হয়েছে। আবার লগইন করুন"
 }

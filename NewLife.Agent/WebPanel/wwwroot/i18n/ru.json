@@ -12,6 +12,7 @@
   "❌ Failed to load": "❌ Не удалось загрузить",
   "❌ Network error": "❌ Ошибка сети",
   "❌ Request failed": "❌ Ошибка запроса",
+  "🌐 Auto": "🌐 Авто",
   "🐕 Watchdog": "🐕 Сторожевой таймер",
   "💚 Resource monitoring": "💚 Мониторинг ресурсов",
   "💾 Save configuration": "💾 Сохранить конфигурацию",
@@ -57,6 +58,7 @@
   "Host name": "Имя хоста",
   "Host running": "Хост работает",
   "Incorrect user name or password": "Неверное имя пользователя или пароль",
+  "Language": "Язык",
   "Listening port": "Порт прослушивания",
   "Loading...": "Загрузка...",
   "Make sure a .log file exists in the Log directory": "Убедитесь, что в каталоге Log есть файл .log",
@@ -113,6 +115,5 @@
   "Uptime: ": "Время работы: ",
   "Used": "Использовано",
   "User name": "Имя пользователя",
-  "Your session has expired. Please sign in again.": "Сеанс истёк. Войдите снова",
-  "Language": "Язык"
+  "Your session has expired. Please sign in again.": "Сеанс истёк. Войдите снова"
 }

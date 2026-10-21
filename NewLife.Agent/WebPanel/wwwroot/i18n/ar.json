@@ -12,6 +12,7 @@
   "❌ Failed to load": "❌ فشل التحميل",
   "❌ Network error": "❌ خطأ في الشبكة",
   "❌ Request failed": "❌ فشل الطلب",
+  "🌐 Auto": "🌐 تلقائي",
   "🐕 Watchdog": "🐕 المراقب",
   "💚 Resource monitoring": "💚 مراقبة الموارد",
   "💾 Save configuration": "💾 حفظ التكوين",
@@ -57,6 +58,7 @@
   "Host name": "اسم المضيف",
   "Host running": "المضيف قيد التشغيل",
   "Incorrect user name or password": "اسم المستخدم أو كلمة المرور غير صحيحة",
+  "Language": "اللغة",
   "Listening port": "منفذ الاستماع",
   "Loading...": "جارٍ التحميل...",
   "Make sure a .log file exists in the Log directory": "تأكد من وجود ملف .log في دليل Log",
@@ -113,6 +115,5 @@
   "Uptime: ": "مدة التشغيل: ",
   "Used": "مستخدم",
   "User name": "اسم المستخدم",
-  "Your session has expired. Please sign in again.": "انتهت الجلسة. سجّل الدخول مرة أخرى",
-  "Language": "اللغة"
+  "Your session has expired. Please sign in again.": "انتهت الجلسة. سجّل الدخول مرة أخرى"
 }

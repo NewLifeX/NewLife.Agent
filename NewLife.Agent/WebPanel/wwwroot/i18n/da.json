@@ -12,6 +12,7 @@
   "❌ Failed to load": "❌ Indlæsning mislykkedes",
   "❌ Network error": "❌ Netværksfejl",
   "❌ Request failed": "❌ Anmodning mislykkedes",
+  "🌐 Auto": "🌐 Automatisk",
   "🐕 Watchdog": "🐕 Watchdog",
   "💚 Resource monitoring": "💚 Ressourceovervågning",
   "💾 Save configuration": "💾 Gem konfiguration",
@@ -57,6 +58,7 @@
   "Host name": "Værtsnavn",
   "Host running": "Vært kører",
   "Incorrect user name or password": "Brugernavn eller adgangskode er forkert",
+  "Language": "Sprog",
   "Listening port": "Lytteport",
   "Loading...": "Indlæser...",
   "Make sure a .log file exists in the Log directory": "Sørg for, at der findes en .log-fil i Log-mappen",
@@ -113,6 +115,5 @@
   "Uptime: ": "Driftstid: ",
   "Used": "Brugt",
   "User name": "Brugernavn",
-  "Your session has expired. Please sign in again.": "Din session er udløbet. Log ind igen",
-  "Language": "Sprog"
+  "Your session has expired. Please sign in again.": "Din session er udløbet. Log ind igen"
 }

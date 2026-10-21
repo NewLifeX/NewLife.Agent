@@ -12,6 +12,7 @@
   "❌ Failed to load": "❌ Încărcarea a eșuat",
   "❌ Network error": "❌ Eroare de rețea",
   "❌ Request failed": "❌ Cererea a eșuat",
+  "🌐 Auto": "🌐 Automat",
   "🐕 Watchdog": "🐕 Câine de pază",
   "💚 Resource monitoring": "💚 Monitorizarea resurselor",
   "💾 Save configuration": "💾 Salvează configurația",
@@ -57,6 +58,7 @@
   "Host name": "Nume gazdă",
   "Host running": "Gazda rulează",
   "Incorrect user name or password": "Nume de utilizator sau parolă incorecte",
+  "Language": "Limbă",
   "Listening port": "Port de ascultare",
   "Loading...": "Se încarcă...",
   "Make sure a .log file exists in the Log directory": "Asigurați-vă că există un fișier .log în directorul Log",
@@ -113,6 +115,5 @@
   "Uptime: ": "Durată de funcționare: ",
   "Used": "Utilizat",
   "User name": "Nume de utilizator",
-  "Your session has expired. Please sign in again.": "Sesiunea a expirat. Autentificați-vă din nou",
-  "Language": "Limbă"
+  "Your session has expired. Please sign in again.": "Sesiunea a expirat. Autentificați-vă din nou"
 }

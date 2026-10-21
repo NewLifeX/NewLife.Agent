@@ -12,6 +12,7 @@
   "❌ Failed to load": "❌ 불러오지 못했습니다",
   "❌ Network error": "❌ 네트워크 오류",
   "❌ Request failed": "❌ 요청이 실패했습니다",
+  "🌐 Auto": "🌐 자동",
   "🐕 Watchdog": "🐕 워치독",
   "💚 Resource monitoring": "💚 리소스 모니터링",
   "💾 Save configuration": "💾 구성 저장",
@@ -57,6 +58,7 @@
   "Host name": "호스트 이름",
   "Host running": "호스트 실행 중",
   "Incorrect user name or password": "사용자 이름 또는 비밀번호가 올바르지 않습니다",
+  "Language": "언어",
   "Listening port": "수신 포트",
   "Loading...": "불러오는 중...",
   "Make sure a .log file exists in the Log directory": "Log 디렉터리에 .log 파일이 있는지 확인하세요",
@@ -113,6 +115,5 @@
   "Uptime: ": "가동 시간: ",
   "Used": "사용 중",
   "User name": "사용자 이름",
-  "Your session has expired. Please sign in again.": "로그인이 만료되었습니다. 다시 로그인하세요",
-  "Language": "언어"
+  "Your session has expired. Please sign in again.": "로그인이 만료되었습니다. 다시 로그인하세요"
 }

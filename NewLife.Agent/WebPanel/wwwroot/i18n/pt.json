@@ -12,6 +12,7 @@
   "❌ Failed to load": "❌ Falha ao carregar",
   "❌ Network error": "❌ Erro de rede",
   "❌ Request failed": "❌ Falha na solicitação",
+  "🌐 Auto": "🌐 Automático",
   "🐕 Watchdog": "🐕 Watchdog",
   "💚 Resource monitoring": "💚 Monitoramento de recursos",
   "💾 Save configuration": "💾 Salvar configuração",
@@ -57,6 +58,7 @@
   "Host name": "Nome do host",
   "Host running": "Host em execução",
   "Incorrect user name or password": "Nome de usuário ou senha incorretos",
+  "Language": "Idioma",
   "Listening port": "Porta de escuta",
   "Loading...": "Carregando...",
   "Make sure a .log file exists in the Log directory": "Certifique-se de que existe um arquivo .log no diretório Log",
@@ -113,6 +115,5 @@
   "Uptime: ": "Tempo de atividade: ",
   "Used": "Em uso",
   "User name": "Nome de usuário",
-  "Your session has expired. Please sign in again.": "Sua sessão expirou. Faça login novamente",
-  "Language": "Idioma"
+  "Your session has expired. Please sign in again.": "Sua sessão expirou. Faça login novamente"
 }

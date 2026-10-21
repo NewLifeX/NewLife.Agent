@@ -285,6 +285,8 @@ public class LocalizationTests
                 Assert.Contains("Service status", en);
                 Assert.DoesNotMatch("[\\u4e00-\\u9fff]", en);
                 Assert.Contains("<html lang=\"en\">", en);
+                Assert.Contains("🌐 Auto", en);
+                Assert.Contains("window.__panelLanguage", en);
 
                 Localization.Culture = CultureInfo.GetCultureInfo("ja-JP");
                 var ja = Visible(await GetIndex(client));
@@ -300,6 +302,7 @@ public class LocalizationTests
                 Assert.Contains("服务状态", zh);
                 Assert.DoesNotContain("Service status", zh);
                 Assert.Contains("<html lang=\"zh-Hans\">", zh);
+                Assert.Contains("🌐 自动", zh);
             }
             finally
             {
@@ -450,6 +453,80 @@ public class LocalizationTests
         Assert.Contains("function freeMemory", page);
         Assert.Contains("changeLanguage", page);
         Assert.Contains("oldPassword", page);
+    }
+
+    [Fact]
+    [DisplayName("Web面板_全部语言词表_逐一套用渲染通过")]
+    public void UiLocalization_AllLanguages_Render()
+    {
+        var assembly = typeof(AgentWebPanel).Assembly;
+        const String prefix = "NewLife.Agent.WebPanel.wwwroot";
+        using var stream = assembly.GetManifestResourceStream($"{prefix}.index.html");
+        Assert.NotNull(stream);
+        using var reader = new StreamReader(stream);
+        var html = reader.ReadToEnd();
+        const String sentinel = "📊 Service status";
+
+        foreach (var name in assembly.GetManifestResourceNames())
+        {
+            if (!name.StartsWith($"{prefix}.i18n.") || !name.EndsWith(".json")) continue;
+
+            var language = name[(name.IndexOf(".i18n.", StringComparison.Ordinal) + 6)..^5];
+            if (language == "en") continue;
+
+            var map = UiLocalization.LoadDictionary(assembly, prefix, language);
+            Assert.False(String.IsNullOrWhiteSpace(map[sentinel]), $"{language} 缺少哨兵译文");
+
+            var page = UiLocalization.Localize(html, assembly, prefix, new CultureInfo(language));
+            Assert.Contains($"<html lang=\"{language}\"", page);
+            Assert.Contains(map[sentinel], page);
+            Assert.DoesNotContain(sentinel, page);
+
+            if (language is "ar" or "he" or "fa") Assert.Contains("dir=\"rtl\"", page);
+        }
+    }
+
+    [Fact]
+    [DisplayName("Web面板_语言状态注入_供前端首屏使用")]
+    public async Task WebPanel_Index_InjectsLanguageState()
+    {
+        using var scope = new SettingScope();
+        var panelSet = Setting.Current;
+        var prevPort = panelSet.WebPort;
+        var prevEnable = panelSet.EnableWebPanel;
+        var coreSet = NewLife.Setting.Current;
+        var prevLanguage = coreSet.Language;
+        try
+        {
+            panelSet.WebPort = 0;
+            panelSet.EnableWebPanel = false;
+            coreSet.Language = "";
+            coreSet.Save();
+            Localization.Culture = CultureInfo.GetCultureInfo("en-US");
+
+            var svc = new Mock<ServiceBase> { CallBase = true }.Object;
+            svc.ServiceName = "LangState";
+            var panel = new AgentWebPanel(svc) { Level = AuthLevel.None };
+            panel.Start();
+            try
+            {
+                using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{panel.Port}") };
+                var html = await client.GetStringAsync("/");
+                Assert.Contains("window.__panelLanguage={selected:'',effective:'en-US',forced:false}", html);
+            }
+            finally
+            {
+                panel.Stop("TestDone");
+            }
+        }
+        finally
+        {
+            panelSet.WebPort = prevPort;
+            panelSet.EnableWebPanel = prevEnable;
+            coreSet.Language = prevLanguage;
+            coreSet.Save();
+            Localization.Culture = null;
+        }
     }
 
     [Fact]

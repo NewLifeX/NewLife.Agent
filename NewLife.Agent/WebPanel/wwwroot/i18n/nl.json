@@ -12,6 +12,7 @@
   "❌ Failed to load": "❌ Laden mislukt",
   "❌ Network error": "❌ Netwerkfout",
   "❌ Request failed": "❌ Verzoek mislukt",
+  "🌐 Auto": "🌐 Automatisch",
   "🐕 Watchdog": "🐕 Watchdog",
   "💚 Resource monitoring": "💚 Resourcebewaking",
   "💾 Save configuration": "💾 Configuratie opslaan",
@@ -57,6 +58,7 @@
   "Host name": "Hostnaam",
   "Host running": "Host actief",
   "Incorrect user name or password": "Gebruikersnaam of wachtwoord is onjuist",
+  "Language": "Taal",
   "Listening port": "Luisterpoort",
   "Loading...": "Laden...",
   "Make sure a .log file exists in the Log directory": "Zorg dat er een .log-bestand in de map Log staat",
@@ -113,6 +115,5 @@
   "Uptime: ": "Uptime: ",
   "Used": "In gebruik",
   "User name": "Gebruikersnaam",
-  "Your session has expired. Please sign in again.": "Uw sessie is verlopen. Meld u opnieuw aan",
-  "Language": "Taal"
+  "Your session has expired. Please sign in again.": "Uw sessie is verlopen. Meld u opnieuw aan"
 }

@@ -12,6 +12,7 @@
   "❌ Failed to load": "❌ Не вдалося завантажити",
   "❌ Network error": "❌ Помилка мережі",
   "❌ Request failed": "❌ Помилка запиту",
+  "🌐 Auto": "🌐 Авто",
   "🐕 Watchdog": "🐕 Вартовий",
   "💚 Resource monitoring": "💚 Моніторинг ресурсів",
   "💾 Save configuration": "💾 Зберегти конфігурацію",
@@ -57,6 +58,7 @@
   "Host name": "Ім’я хоста",
   "Host running": "Хост працює",
   "Incorrect user name or password": "Неправильне ім’я користувача або пароль",
+  "Language": "Мова",
   "Listening port": "Порт прослуховування",
   "Loading...": "Завантаження...",
   "Make sure a .log file exists in the Log directory": "Переконайтеся, що в каталозі Log є файл .log",
@@ -113,6 +115,5 @@
   "Uptime: ": "Час роботи: ",
   "Used": "Використано",
   "User name": "Ім’я користувача",
-  "Your session has expired. Please sign in again.": "Сеанс завершився. Увійдіть знову",
-  "Language": "Мова"
+  "Your session has expired. Please sign in again.": "Сеанс завершився. Увійдіть знову"
 }

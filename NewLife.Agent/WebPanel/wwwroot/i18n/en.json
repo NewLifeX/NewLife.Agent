@@ -12,6 +12,7 @@
   "❌ Failed to load": "❌ Failed to load",
   "❌ Network error": "❌ Network error",
   "❌ Request failed": "❌ Request failed",
+  "🌐 Auto": "🌐 Auto",
   "🐕 Watchdog": "🐕 Watchdog",
   "💚 Resource monitoring": "💚 Resource monitoring",
   "💾 Save configuration": "💾 Save configuration",
@@ -57,6 +58,7 @@
   "Host name": "Host name",
   "Host running": "Host running",
   "Incorrect user name or password": "Incorrect user name or password",
+  "Language": "Language",
   "Listening port": "Listening port",
   "Loading...": "Loading...",
   "Make sure a .log file exists in the Log directory": "Make sure a .log file exists in the Log directory",
@@ -113,6 +115,5 @@
   "Uptime: ": "Uptime: ",
   "Used": "Used",
   "User name": "User name",
-  "Your session has expired. Please sign in again.": "Your session has expired. Please sign in again.",
-  "Language": "Language"
+  "Your session has expired. Please sign in again.": "Your session has expired. Please sign in again."
 }

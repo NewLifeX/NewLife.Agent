@@ -12,6 +12,7 @@
   "❌ Failed to load": "❌ بارگذاری ناموفق بود",
   "❌ Network error": "❌ خطای شبکه",
   "❌ Request failed": "❌ درخواست ناموفق بود",
+  "🌐 Auto": "🌐 خودکار",
   "🐕 Watchdog": "🐕 نگهبان",
   "💚 Resource monitoring": "💚 پایش منابع",
   "💾 Save configuration": "💾 ذخیره پیکربندی",
@@ -57,6 +58,7 @@
   "Host name": "نام میزبان",
   "Host running": "میزبان در حال اجرا",
   "Incorrect user name or password": "نام کاربری یا گذرواژه نادرست است",
+  "Language": "زبان",
   "Listening port": "پورت شنود",
   "Loading...": "در حال بارگذاری...",
   "Make sure a .log file exists in the Log directory": "مطمئن شوید فایل .log در پوشه Log وجود دارد",
@@ -113,6 +115,5 @@
   "Uptime: ": "مدت اجرا: ",
   "Used": "استفاده‌شده",
   "User name": "نام کاربری",
-  "Your session has expired. Please sign in again.": "نشست منقضی شد. دوباره وارد شوید",
-  "Language": "زبان"
+  "Your session has expired. Please sign in again.": "نشست منقضی شد. دوباره وارد شوید"
 }

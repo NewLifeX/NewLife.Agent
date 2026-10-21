@@ -58,7 +58,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .btn-ghost:hover:not(:disabled){background:var(--surface-2);color:var(--text-primary)}
 .btn-sm{padding:6px 12px;font-size:12px;border-radius:var(--radius-sm)}
 .btn-lg{padding:14px 28px;font-size:16px;border-radius:var(--radius-lg)}
-.lang-select{padding:6px 10px;border:1px solid var(--border-default);border-radius:var(--radius-sm);background:var(--surface-2);color:var(--text-secondary);font-size:12px;font-weight:600;cursor:pointer;outline:none;max-width:150px}
+.lang-select{padding:6px 10px;border:1px solid var(--border-default);border-radius:var(--radius-sm);background:var(--surface-2);color:var(--text-secondary);font-size:12px;font-weight:600;cursor:pointer;outline:none;max-width:220px}
 .lang-select:hover{background:var(--surface-3);color:var(--text-primary)}
 input[type=text],input[type=password],input[type=number],input[type=search]{padding:10px 12px;border:1px solid var(--border-default);border-radius:var(--radius-sm);background:var(--surface-2);color:var(--text-primary);font-size:13px;outline:none;transition:border-color var(--duration-fast),box-shadow var(--duration-fast);width:100%}
 input:focus{border-color:var(--brand-500);box-shadow:0 0 0 3px rgba(91,91,255,0.2)}
@@ -66,15 +66,16 @@ input[type=number]{font-family:var(--font-mono);max-width:140px}
 .toggle{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}
 .toggle input{opacity:0;width:0;height:0;position:absolute}
 .toggle .track{position:absolute;inset:0;background:var(--surface-3);border-radius:24px;cursor:pointer;transition:background var(--duration-normal)}
-.toggle .thumb{position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:transform var(--duration-normal) var(--ease-out-quart);box-shadow:0 1px 3px rgba(0,0,0,0.3)}
+.toggle .thumb{position:absolute;top:2px;inset-inline-start:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:transform var(--duration-normal) var(--ease-out-quart);box-shadow:0 1px 3px rgba(0,0,0,0.3)}
 .toggle input:checked+.track{background:var(--gradient-brand);box-shadow:0 2px 8px rgba(91,91,255,0.45)}
 .toggle input:checked+.track .thumb{transform:translateX(20px)}
+[dir="rtl"] .toggle input:checked+.track .thumb{transform:translateX(-20px)}
 .toggle input:focus-visible+.track{box-shadow:0 0 0 3px rgba(91,91,255,0.4)}
 header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;position:sticky;top:0;z-index:100}
 header .logo{display:flex;align-items:center;gap:10px}
 header .logo .dot{width:10px;height:10px;border-radius:50%;background:var(--gradient-brand);box-shadow:var(--shadow-glow)}
 header h1{font-size:17px;font-weight:700;background:var(--gradient-brand);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-header .meta{font-size:11px;color:var(--text-tertiary);margin-left:4px}
+header .meta{font-size:11px;color:var(--text-tertiary);margin-inline-start:4px}
 nav{display:flex;gap:2px;padding:6px 16px;overflow-x:auto;position:sticky;top:60px;z-index:99}
 nav a{position:relative;color:var(--text-secondary);text-decoration:none;padding:10px 18px;border-radius:var(--radius-md);font-size:13px;font-weight:500;white-space:nowrap;cursor:pointer;transition:all var(--duration-normal)}
 nav a:hover{color:var(--text-primary);background:rgba(255,255,255,0.04)}
@@ -136,7 +137,8 @@ main{padding:20px 24px;max-width:1320px;margin:0 auto;position:relative;z-index:
 .modal-box h3{font-size:17px;font-weight:700;margin-bottom:10px}
 .modal-box p{font-size:13px;color:var(--text-secondary);margin-bottom:22px;line-height:1.6}
 .modal-box .modal-actions{display:flex;gap:10px;justify-content:flex-end}
-.toast{position:fixed;top:20px;right:20px;padding:14px 22px;border-radius:var(--radius-lg);font-size:13px;font-weight:600;z-index:9999;box-shadow:var(--shadow-modal);animation:slideInRight var(--duration-slow) var(--ease-out-expo);display:none;max-width:380px}
+.toast{position:fixed;top:20px;inset-inline-end:20px;padding:14px 22px;border-radius:var(--radius-lg);font-size:13px;font-weight:600;z-index:9999;box-shadow:var(--shadow-modal);animation:slideInRight var(--duration-slow) var(--ease-out-expo);display:none;max-width:380px}
+[dir="rtl"] .toast{animation-name:slideInLeft}
 .toast.success{background:#065f46;color:#d1fae5;border:1px solid rgba(34,197,94,0.3)}
 .toast.error{background:#7f1d1d;color:#fecaca;border:1px solid rgba(239,68,68,0.3)}
 .toast.info{background:#1e3a5f;color:#dbeafe;border:1px solid rgba(59,130,246,0.3)}
@@ -160,6 +162,7 @@ main{padding:20px 24px;max-width:1320px;margin:0 auto;position:relative;z-index:
 .collapse-body.open{display:block;animation:fadeIn var(--duration-normal) ease-out}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes slideInRight{from{transform:translateX(24px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes slideInLeft{from{transform:translateX(-24px);opacity:0}to{transform:translateX(0);opacity:1}}
 @keyframes scaleIn{from{transform:scale(0.96);opacity:0}to{transform:scale(1);opacity:1}}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.6;transform:scale(0.85)}}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -196,7 +199,7 @@ html.light nav a.active{color:var(--brand-700)}
 html.light .info-table td{border-bottom-color:rgba(0,0,0,0.06)}
 .info-table{width:100%;border-collapse:collapse}
 .info-table td{padding:10px 14px;border-bottom:1px solid var(--border-subtle);vertical-align:middle}
-.info-table td:first-child{font-size:13px;font-weight:600;color:var(--text-secondary);white-space:nowrap;width:200px;padding-right:20px}
+.info-table td:first-child{font-size:13px;font-weight:600;color:var(--text-secondary);white-space:nowrap;width:200px;padding-inline-end:20px}
 .info-table td:last-child{font-size:13px;color:var(--text-primary);word-break:break-all}
 .info-table tr:last-child td{border-bottom:none}
 </style>
@@ -271,6 +274,36 @@ document.getElementById('lpass').addEventListener('keydown', e => {
 let token='',timer=null,statusData=null,logFiles=[],currentLogFile=null;
 let cmdHistory=JSON.parse(sessionStorage.getItem('agent_cmd_history')||'[]');
 const $=id=>document.getElementById(id);
+// 服务端注入的当前语言；缺失时退回浏览器语言
+const panelLang=(window.__panelLanguage&&window.__panelLanguage.effective)||document.documentElement.lang||navigator.language||'en';
+
+// 固定语言与页面语言不一致时只切换一次，避免刷新循环
+function switchLanguageIfNeeded(selected){
+ if(!selected)return false;
+ const current=(document.documentElement.lang||'').toLowerCase(),target=selected.toLowerCase();
+ if(current&&current.split('-')[0]===target.split('-')[0]){
+  try{sessionStorage.removeItem('agent_lang_switch:'+target)}catch(e){}
+  return false
+ }
+ const key='agent_lang_switch:'+target;
+ try{
+  if(sessionStorage.getItem(key)==='1')return false;
+  sessionStorage.setItem(key,'1')
+ }catch(e){return false}
+ location.reload();
+ return true
+}
+
+// 旧版/自定义页面没有注入语言状态时，登录页主动向后端确认一次；超时或 auto 不处理
+(function syncPanelLanguage(){
+ if(window.__panelLanguage)return;
+ const ctrl=typeof AbortController!=='undefined'?new AbortController():null;
+ const tid=setTimeout(()=>ctrl&&ctrl.abort(),1500);
+ fetch('/api/languages',{cache:'no-store',signal:ctrl?ctrl.signal:undefined})
+  .then(r=>r.json())
+  .then(j=>{clearTimeout(tid);if(j&&j.code===0&&j.data)switchLanguageIfNeeded(j.data.selected||'')})
+  .catch(()=>clearTimeout(tid))
+})();
 
 async function doLogin(){
  const u=$('luser').value,p=$('lpass').value,e=$('lerr');
@@ -303,13 +336,20 @@ function showApp(){
  loadExtensions().then(()=>{loadDashboard();timer=setInterval(loadDashboard,10000)});
 }
 
-// 语言列表填充主界面上拉框；选择写入 Core 全局配置，未配置时跟随浏览器 Accept-Language
+// 语言列表填充主界面上拉框；选中值必须与 NewLife.Setting.Language 一致，空值表示 Auto
 async function loadLanguages(){
  try{
-  const j=await api('/api/languages');if(j.code!==0)return;
-  const items=j.data.items||[],cur=j.data.current||'';
-  let html='<option value="">🌐</option>';
-  items.forEach(it=>{html+=`<option value="${escAttr(it.code)}"${it.code===cur?' selected':''}>${esc(it.name)}</option>`});
+  const ctrl=typeof AbortController!=='undefined'?new AbortController():null;
+  const tid=setTimeout(()=>ctrl&&ctrl.abort(),3000);
+  const headers=token?{'Authorization':'Bearer '+token}:{};
+  const r=await fetch('/api/languages',{cache:'no-store',headers,signal:ctrl?ctrl.signal:undefined});
+  clearTimeout(tid);
+  const j=await r.json();if(j.code!==0)return;
+  const items=j.data.items||[],sel=j.data.selected||'',eff=j.data.effective||'';
+  if(switchLanguageIfNeeded(sel))return;
+  const autoName=(items.find(it=>it.code===eff)||{}).name||eff;
+  let html='<option value=""'+(sel?'':' selected')+'>🌐 Auto'+(autoName?' ('+esc(autoName)+')':'')+'</option>';
+  items.forEach(it=>{html+=`<option value="${escAttr(it.code)}"${it.code===sel?' selected':''}>${esc(it.name)}</option>`});
 
   const header=$('lang-select');if(header)header.innerHTML=html;
  }catch(e){}
@@ -429,7 +469,7 @@ function buildDashboard(d,health){
   html+=`<div class="collapse-body" id="gc-body"><div class="gc-stats">`;
   html+=gcStat('Gen 0',health.gcCollections.gen0,'gc-gen0')+gcStat('Gen 1',health.gcCollections.gen1,'gc-gen1')+gcStat('Gen 2',health.gcCollections.gen2,'gc-gen2');
   html+=gcStat('GC memory',health.gcTotalMemory+' MB','gc-mem')+gcStat('CPU time',health.totalProcessorTime+'s','gc-cpu');
-  html+=`<div style="margin-top:12px;text-align:right"><button class="btn btn-ghost btn-sm" onclick="freeMemory()">🗑 Release memory</button></div>`;
+  html+=`<div style="margin-top:12px;text-align:end"><button class="btn btn-ghost btn-sm" onclick="freeMemory()">🗑 Release memory</button></div>`;
   html+=`</div></div></div>`;
  }
  html+=`</div>`;
@@ -609,7 +649,7 @@ async function doControl(action){
  showModal(titles[action],confirms[action],labels[action],async()=>{
   try{
    const j=await api('/api/control',{method:'POST',body:JSON.stringify({action})});
-   cmdHistory.push({time:new Date().toLocaleString(),action:labels[action],result:j.message||'Done'});
+   cmdHistory.push({time:new Date().toLocaleString(panelLang),action:labels[action],result:j.message||'Done'});
    sessionStorage.setItem('agent_cmd_history',JSON.stringify(cmdHistory));
    showToast(j.message||'Operation submitted',j.code?'error':'success');
    setTimeout(()=>{updateControlStatus();loadDashboard();},2000);
@@ -625,7 +665,7 @@ async function loadConfig(){
   items.forEach(item=>{
    html+=`<tr><td>${esc(item.displayName)}</td><td>${renderConfigInput(item)}</td><td>${esc(item.description)}</td></tr>`;
   });
-  html+=`</tbody></table><div class="mt-16"><button class="btn btn-primary" onclick="saveConfig()">💾 Save configuration</button> <span style="font-size:12px;color:var(--text-muted);margin-left:12px">Some settings take effect after the service restarts</span></div></div>`;
+  html+=`</tbody></table><div class="mt-16"><button class="btn btn-primary" onclick="saveConfig()">💾 Save configuration</button> <span style="font-size:12px;color:var(--text-muted);margin-inline-start:12px">Some settings take effect after the service restarts</span></div></div>`;
 
   // 修改密码卡片
   html+=`<div class="glass-card card" style="margin-top:16px"><h2>🔑 Change password</h2>`;

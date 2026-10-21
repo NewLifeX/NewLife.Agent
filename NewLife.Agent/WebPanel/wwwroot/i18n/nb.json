@@ -12,6 +12,7 @@
   "❌ Failed to load": "❌ Kunne ikke laste inn",
   "❌ Network error": "❌ Nettverksfeil",
   "❌ Request failed": "❌ Forespørselen mislyktes",
+  "🌐 Auto": "🌐 Automatisk",
   "🐕 Watchdog": "🐕 Watchdog",
   "💚 Resource monitoring": "💚 Ressursovervåking",
   "💾 Save configuration": "💾 Lagre konfigurasjon",
@@ -57,6 +58,7 @@
   "Host name": "Vertsnavn",
   "Host running": "Vert kjører",
   "Incorrect user name or password": "Brukernavnet eller passordet er feil",
+  "Language": "Språk",
   "Listening port": "Lyttende port",
   "Loading...": "Laster inn...",
   "Make sure a .log file exists in the Log directory": "Sørg for at det finnes en .log-fil i Log-mappen",
@@ -113,6 +115,5 @@
   "Uptime: ": "Driftstid: ",
   "Used": "Brukt",
   "User name": "Brukernavn",
-  "Your session has expired. Please sign in again.": "Økten er utløpt. Logg inn på nytt",
-  "Language": "Språk"
+  "Your session has expired. Please sign in again.": "Økten er utløpt. Logg inn på nytt"
 }

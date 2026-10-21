@@ -12,6 +12,7 @@
   "❌ Failed to load": "❌ Det gick inte att läsa in",
   "❌ Network error": "❌ Nätverksfel",
   "❌ Request failed": "❌ Begäran misslyckades",
+  "🌐 Auto": "🌐 Automatisk",
   "🐕 Watchdog": "🐕 Watchdog",
   "💚 Resource monitoring": "💚 Resursövervakning",
   "💾 Save configuration": "💾 Spara konfiguration",
@@ -57,6 +58,7 @@
   "Host name": "Värdnamn",
   "Host running": "Värden körs",
   "Incorrect user name or password": "Användarnamnet eller lösenordet är fel",
+  "Language": "Språk",
   "Listening port": "Lyssnande port",
   "Loading...": "Läser in...",
   "Make sure a .log file exists in the Log directory": "Se till att det finns en .log-fil i Log-katalogen",
@@ -113,6 +115,5 @@
   "Uptime: ": "Drifttid: ",
   "Used": "Använt",
   "User name": "Användarnamn",
-  "Your session has expired. Please sign in again.": "Sessionen har gått ut. Logga in igen",
-  "Language": "Språk"
+  "Your session has expired. Please sign in again.": "Sessionen har gått ut. Logga in igen"
 }

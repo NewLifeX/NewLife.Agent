@@ -12,6 +12,7 @@
   "❌ Failed to load": "❌ โหลดไม่สำเร็จ",
   "❌ Network error": "❌ ข้อผิดพลาดของเครือข่าย",
   "❌ Request failed": "❌ คำขอล้มเหลว",
+  "🌐 Auto": "🌐 อัตโนมัติ",
   "🐕 Watchdog": "🐕 วอทช์ด็อก",
   "💚 Resource monitoring": "💚 การตรวจสอบทรัพยากร",
   "💾 Save configuration": "💾 บันทึกการกำหนดค่า",
@@ -57,6 +58,7 @@
   "Host name": "ชื่อโฮสต์",
   "Host running": "โฮสต์กำลังทำงาน",
   "Incorrect user name or password": "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง",
+  "Language": "ภาษา",
   "Listening port": "พอร์ตรับฟัง",
   "Loading...": "กำลังโหลด...",
   "Make sure a .log file exists in the Log directory": "โปรดตรวจสอบว่ามีไฟล์ .log ในไดเรกทอรี Log",
@@ -113,6 +115,5 @@
   "Uptime: ": "ระยะเวลาทำงาน: ",
   "Used": "ใช้ไปแล้ว",
   "User name": "ชื่อผู้ใช้",
-  "Your session has expired. Please sign in again.": "เซสชันหมดอายุ โปรดเข้าสู่ระบบอีกครั้ง",
-  "Language": "ภาษา"
+  "Your session has expired. Please sign in again.": "เซสชันหมดอายุ โปรดเข้าสู่ระบบอีกครั้ง"
 }

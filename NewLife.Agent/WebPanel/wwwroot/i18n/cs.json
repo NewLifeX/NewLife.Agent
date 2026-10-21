@@ -12,6 +12,7 @@
   "❌ Failed to load": "❌ Načtení se nezdařilo",
   "❌ Network error": "❌ Chyba sítě",
   "❌ Request failed": "❌ Požadavek se nezdařil",
+  "🌐 Auto": "🌐 Automaticky",
   "🐕 Watchdog": "🐕 Hlídací pes",
   "💚 Resource monitoring": "💚 Sledování prostředků",
   "💾 Save configuration": "💾 Uložit konfiguraci",
@@ -57,6 +58,7 @@
   "Host name": "Název hostitele",
   "Host running": "Hostitel běží",
   "Incorrect user name or password": "Nesprávné uživatelské jméno nebo heslo",
+  "Language": "Jazyk",
   "Listening port": "Naslouchající port",
   "Loading...": "Načítání...",
   "Make sure a .log file exists in the Log directory": "Ujistěte se, že v adresáři Log existuje soubor .log",
@@ -113,6 +115,5 @@
   "Uptime: ": "Doba běhu: ",
   "Used": "Použito",
   "User name": "Uživatelské jméno",
-  "Your session has expired. Please sign in again.": "Relace vypršela. Přihlaste se znovu",
-  "Language": "Jazyk"
+  "Your session has expired. Please sign in again.": "Relace vypršela. Přihlaste se znovu"
 }

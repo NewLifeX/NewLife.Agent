@@ -12,6 +12,7 @@
   "❌ Failed to load": "❌ Lataus epäonnistui",
   "❌ Network error": "❌ Verkkovirhe",
   "❌ Request failed": "❌ Pyyntö epäonnistui",
+  "🌐 Auto": "🌐 Automaattinen",
   "🐕 Watchdog": "🐕 Watchdog",
   "💚 Resource monitoring": "💚 Resurssien seuranta",
   "💾 Save configuration": "💾 Tallenna määritykset",
@@ -57,6 +58,7 @@
   "Host name": "Isäntänimi",
   "Host running": "Isäntä käynnissä",
   "Incorrect user name or password": "Käyttäjätunnus tai salasana on virheellinen",
+  "Language": "Kieli",
   "Listening port": "Kuunteluportti",
   "Loading...": "Ladataan...",
   "Make sure a .log file exists in the Log directory": "Varmista, että Log-kansiossa on .log-tiedosto",
@@ -113,6 +115,5 @@
   "Uptime: ": "Käyntiaika: ",
   "Used": "Käytössä",
   "User name": "Käyttäjätunnus",
-  "Your session has expired. Please sign in again.": "Istunto on vanhentunut. Kirjaudu uudelleen",
-  "Language": "Kieli"
+  "Your session has expired. Please sign in again.": "Istunto on vanhentunut. Kirjaudu uudelleen"
 }

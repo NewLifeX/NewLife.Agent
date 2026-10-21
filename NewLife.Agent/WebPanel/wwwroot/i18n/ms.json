@@ -12,6 +12,7 @@
   "❌ Failed to load": "❌ Gagal memuatkan",
   "❌ Network error": "❌ Ralat rangkaian",
   "❌ Request failed": "❌ Permintaan gagal",
+  "🌐 Auto": "🌐 Automatik",
   "🐕 Watchdog": "🐕 Pengawas",
   "💚 Resource monitoring": "💚 Pemantauan sumber",
   "💾 Save configuration": "💾 Simpan konfigurasi",
@@ -57,6 +58,7 @@
   "Host name": "Nama hos",
   "Host running": "Hos berjalan",
   "Incorrect user name or password": "Nama pengguna atau kata laluan salah",
+  "Language": "Bahasa",
   "Listening port": "Port mendengar",
   "Loading...": "Memuatkan...",
   "Make sure a .log file exists in the Log directory": "Pastikan fail .log wujud dalam direktori Log",
@@ -113,6 +115,5 @@
   "Uptime: ": "Masa operasi: ",
   "Used": "Digunakan",
   "User name": "Nama pengguna",
-  "Your session has expired. Please sign in again.": "Sesi anda telah tamat. Sila log masuk semula",
-  "Language": "Bahasa"
+  "Your session has expired. Please sign in again.": "Sesi anda telah tamat. Sila log masuk semula"
 }

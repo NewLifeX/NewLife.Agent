@@ -12,6 +12,7 @@
   "❌ Failed to load": "❌ लोड नहीं हो सका",
   "❌ Network error": "❌ नेटवर्क त्रुटि",
   "❌ Request failed": "❌ अनुरोध विफल",
+  "🌐 Auto": "🌐 स्वचालित",
   "🐕 Watchdog": "🐕 वॉचडॉग",
   "💚 Resource monitoring": "💚 संसाधन निगरानी",
   "💾 Save configuration": "💾 कॉन्फ़िगरेशन सहेजें",
@@ -57,6 +58,7 @@
   "Host name": "होस्ट नाम",
   "Host running": "होस्ट चल रहा है",
   "Incorrect user name or password": "उपयोगकर्ता नाम या पासवर्ड गलत है",
+  "Language": "भाषा",
   "Listening port": "सुनने का पोर्ट",
   "Loading...": "लोड हो रहा है...",
   "Make sure a .log file exists in the Log directory": "सुनिश्चित करें कि Log निर्देशिका में .log फ़ाइल मौजूद है",
@@ -113,6 +115,5 @@
   "Uptime: ": "चालू अवधि: ",
   "Used": "उपयोग में",
   "User name": "उपयोगकर्ता नाम",
-  "Your session has expired. Please sign in again.": "आपका सत्र समाप्त हो गया। कृपया फिर से साइन इन करें",
-  "Language": "भाषा"
+  "Your session has expired. Please sign in again.": "आपका सत्र समाप्त हो गया। कृपया फिर से साइन इन करें"
 }

@@ -12,6 +12,7 @@
   "❌ Failed to load": "❌ A betöltés nem sikerült",
   "❌ Network error": "❌ Hálózati hiba",
   "❌ Request failed": "❌ A kérés nem sikerült",
+  "🌐 Auto": "🌐 Automatikus",
   "🐕 Watchdog": "🐕 Őrkutya",
   "💚 Resource monitoring": "💚 Erőforrás-figyelés",
   "💾 Save configuration": "💾 Beállítások mentése",
@@ -57,6 +58,7 @@
   "Host name": "Gazdagépnév",
   "Host running": "Gazdagép fut",
   "Incorrect user name or password": "Hibás felhasználónév vagy jelszó",
+  "Language": "Nyelv",
   "Listening port": "Figyelő port",
   "Loading...": "Betöltés...",
   "Make sure a .log file exists in the Log directory": "Győződjön meg róla, hogy a Log könyvtárban van .log fájl",
@@ -113,6 +115,5 @@
   "Uptime: ": "Üzemidő: ",
   "Used": "Használt",
   "User name": "Felhasználónév",
-  "Your session has expired. Please sign in again.": "A munkamenet lejárt. Jelentkezzen be újra",
-  "Language": "Nyelv"
+  "Your session has expired. Please sign in again.": "A munkamenet lejárt. Jelentkezzen be újra"
 }

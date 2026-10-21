@@ -12,6 +12,7 @@
   "❌ Failed to load": "❌ Yüklenemedi",
   "❌ Network error": "❌ Ağ hatası",
   "❌ Request failed": "❌ İstek başarısız",
+  "🌐 Auto": "🌐 Otomatik",
   "🐕 Watchdog": "🐕 Bekçi",
   "💚 Resource monitoring": "💚 Kaynak izleme",
   "💾 Save configuration": "💾 Yapılandırmayı kaydet",
@@ -57,6 +58,7 @@
   "Host name": "Ana bilgisayar adı",
   "Host running": "Ana bilgisayar çalışıyor",
   "Incorrect user name or password": "Kullanıcı adı veya parola hatalı",
+  "Language": "Dil",
   "Listening port": "Dinleme bağlantı noktası",
   "Loading...": "Yükleniyor...",
   "Make sure a .log file exists in the Log directory": "Log dizininde bir .log dosyası olduğundan emin olun",
@@ -113,6 +115,5 @@
   "Uptime: ": "Çalışma süresi: ",
   "Used": "Kullanımda",
   "User name": "Kullanıcı adı",
-  "Your session has expired. Please sign in again.": "Oturumunuzun süresi doldu. Lütfen yeniden oturum açın",
-  "Language": "Dil"
+  "Your session has expired. Please sign in again.": "Oturumunuzun süresi doldu. Lütfen yeniden oturum açın"
 }

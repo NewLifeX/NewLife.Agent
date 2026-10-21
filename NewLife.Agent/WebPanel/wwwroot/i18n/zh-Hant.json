@@ -12,6 +12,7 @@
   "❌ Failed to load": "❌ 載入失敗",
   "❌ Network error": "❌ 網路錯誤",
   "❌ Request failed": "❌ 請求失敗",
+  "🌐 Auto": "🌐 自動",
   "🐕 Watchdog": "🐕 看門狗",
   "💚 Resource monitoring": "💚 資源監控",
   "💾 Save configuration": "💾 儲存設定",
@@ -57,6 +58,7 @@
   "Host name": "主機名",
   "Host running": "主機執行",
   "Incorrect user name or password": "使用者名稱或密碼錯誤",
+  "Language": "語言",
   "Listening port": "監聽埠",
   "Loading...": "載入中...",
   "Make sure a .log file exists in the Log directory": "請確保 Log 目錄中存在 .log 檔案",
@@ -113,6 +115,5 @@
   "Uptime: ": "執行時間：",
   "Used": "已使用",
   "User name": "使用者名稱",
-  "Your session has expired. Please sign in again.": "登入已過期，請重新登入",
-  "Language": "語言"
+  "Your session has expired. Please sign in again.": "登入已過期，請重新登入"
 }

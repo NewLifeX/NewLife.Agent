@@ -12,6 +12,7 @@
   "❌ Failed to load": "❌ Η φόρτωση απέτυχε",
   "❌ Network error": "❌ Σφάλμα δικτύου",
   "❌ Request failed": "❌ Το αίτημα απέτυχε",
+  "🌐 Auto": "🌐 Αυτόματο",
   "🐕 Watchdog": "🐕 Φύλακας",
   "💚 Resource monitoring": "💚 Παρακολούθηση πόρων",
   "💾 Save configuration": "💾 Αποθήκευση διαμόρφωσης",
@@ -57,6 +58,7 @@
   "Host name": "Όνομα κεντρικού υπολογιστή",
   "Host running": "Ο κεντρικός υπολογιστής εκτελείται",
   "Incorrect user name or password": "Λανθασμένο όνομα χρήστη ή κωδικός",
+  "Language": "Γλώσσα",
   "Listening port": "Θύρα ακρόασης",
   "Loading...": "Φόρτωση...",
   "Make sure a .log file exists in the Log directory": "Βεβαιωθείτε ότι υπάρχει αρχείο .log στον κατάλογο Log",
@@ -113,6 +115,5 @@
   "Uptime: ": "Χρόνος λειτουργίας: ",
   "Used": "Σε χρήση",
   "User name": "Όνομα χρήστη",
-  "Your session has expired. Please sign in again.": "Η συνεδρία έληξε. Συνδεθείτε ξανά",
-  "Language": "Γλώσσα"
+  "Your session has expired. Please sign in again.": "Η συνεδρία έληξε. Συνδεθείτε ξανά"
 }
