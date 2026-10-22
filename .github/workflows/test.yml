@@ -137,11 +137,11 @@ jobs:
         Get-ChildItem -Path . -Recurse -Directory -Filter Locales | ForEach-Object {
           if (Test-Path (Join-Path $_.FullName 'zh-Hans.yml')) {
             # 词表跨项目共用，孤儿键扫描以仓库根目录为源，覆盖主库与 Hosting 扩展
-            pwsh -File ./check-locales.ps1 -LocaleDir $_.FullName -Baseline zh-Hans.yml -SourceDir .
+            pwsh -File ./tools/check-locales.ps1 -LocaleDir $_.FullName -Baseline zh-Hans.yml -SourceDir .
             if ($LASTEXITCODE -ne 0) { $failed = $true }
           }
         }
         if ($failed) { exit 1 }
     - name: Check README languages
       shell: pwsh
-      run: pwsh -File ./sync-readme-languages.ps1 -Check
+      run: pwsh -File ./tools/sync-readme-languages.ps1 -Check

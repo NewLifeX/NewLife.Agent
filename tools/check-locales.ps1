@@ -2,13 +2,13 @@
 # 以基准语言文件（默认 zh-Hans.yml）为准，所有语言必须提供完全相同的键集合
 #
 # 用法：
-#   pwsh -File check-locales.ps1                                      # Core 默认目录
-#   pwsh -File check-locales.ps1 -LocaleDir src\Lib\Locales -SourceDir src\Lib
-#   pwsh -File check-locales.ps1 -LocaleDir src\Lib\Locales -SkipOrphan   # 下游只想校验词表内部一致性
+#   pwsh -File tools/check-locales.ps1                                      # Agent 默认目录
+#   pwsh -File tools/check-locales.ps1 -LocaleDir src\Lib\Locales -SourceDir src\Lib
+#   pwsh -File tools/check-locales.ps1 -LocaleDir src\Lib\Locales -SkipOrphan   # 下游只想校验词表内部一致性
 param(
-    [String]$LocaleDir = "NewLife.Core\Locales",
+    [String]$LocaleDir = "NewLife.Agent\Locales",
     [String]$Baseline = "zh-Hans.yml",
-    [String[]]$SourceDir = @("NewLife.Core", "NewLife.Core.SourceGenerator"),
+    [String[]]$SourceDir = @("."),
     [Switch]$SkipOrphan
 )
 
@@ -17,7 +17,7 @@ $ErrorActionPreference = "Stop"
 # 支持 -SourceDir A,B 形式（pwsh -File 传参时数组会被当作单个字符串）
 $SourceDir = @($SourceDir | ForEach-Object { $_ -split '[;,]' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 
-$root = $PSScriptRoot
+$root = Split-Path -Parent $PSScriptRoot
 $localeDir = if ([IO.Path]::IsPathRooted($LocaleDir)) { $LocaleDir } else { Join-Path $root $LocaleDir }
 if (!(Test-Path $localeDir)) {
     Write-Host "未找到语言目录：$localeDir" -ForegroundColor Red
