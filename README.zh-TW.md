@@ -36,6 +36,7 @@ service.Start(args);
 - 跨平台支援 Windows、Linux、macOS 與 ARM64/LoongArch64
 - 日誌、鏈路追蹤與執行診斷完善
 - 與 NewLife 生態（XCode/Cube/Remoting）無縫整合
+- 內建命令、設定描述、Hosting 訊息與 Web 管理面板支援 31 種語言，支援語言切換與 RTL
 
 ## 文件
 

@@ -36,6 +36,7 @@ service.Start(args);
 - 크로스 플랫폼: Windows, Linux, macOS, ARM64/LoongArch64
 - 로깅, 추적, 런타임 진단 지원
 - NewLife 생태계(XCode/Cube/Remoting)와 원활한 통합
+- 기본 제공 명령, 구성 설명, Hosting 메시지 및 웹 패널을 31개 언어로 지원하며 언어 전환과 RTL을 제공
 
 ## 문서
 

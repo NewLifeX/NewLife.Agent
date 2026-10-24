@@ -7,7 +7,7 @@
     <Description>为ASP.NET Core与Worker提供Agent托管集成，支持服务化部署与运维。</Description>
     <Company>新生命开发团队</Company>
     <Copyright>©2002-2026 NewLife</Copyright>
-    <VersionPrefix>10.17</VersionPrefix>
+    <VersionPrefix>10.18</VersionPrefix>
     <VersionSuffix>$([System.DateTime]::Now.ToString(`yyyy.MMdd`))</VersionSuffix>
     <Version>$(VersionPrefix).$(VersionSuffix)</Version>
     <FileVersion>$(Version)</FileVersion>
@@ -39,7 +39,7 @@
     <RepositoryUrl>https://github.com/NewLifeX/NewLife.Agent</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>新生命团队;X组件;NewLife;$(AssemblyName)</PackageTags>
-    <PackageReleaseNotes>新增 HealthMonitor 健康监控组件，支持内存/线程/句柄超标判断与自动重启时间解析；新增跨平台磁盘 IOPS 采集，增强仪表盘指标；重构 Web 面板鉴权，支持 Token 与爆破防护；新增安全密码修改与释放内存功能；大幅补全单元测试提升覆盖率</PackageReleaseNotes>
+    <PackageReleaseNotes>新增 31 种语言本地化，内建命令/配置描述/Hosting 消息/Web 面板全面多语言化并支持 RTL；Web 面板新增 WebBind 绑定配置与语言切换；NativeAOT 全面适配并覆盖 12 个 RID 发布冒烟；新增多架构单元测试矩阵与 riscv64/s390x 指令集冒烟；修复 SysVinit 路径查询与 UseAgentService 无参调用问题；升级 NewLife.Core 至 12.0.2026.1024</PackageReleaseNotes>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>

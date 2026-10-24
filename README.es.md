@@ -36,6 +36,7 @@ service.Start(args);
 - Multiplataforma: Windows, Linux, macOS y ARM64/LoongArch64
 - Registro, trazabilidad y diagnóstico en tiempo de ejecución completos
 - Integración perfecta con el ecosistema NewLife (XCode/Cube/Remoting)
+- Comandos integrados, descripciones de configuración, mensajes de Hosting y panel web en 31 idiomas, con cambio de idioma y RTL
 
 ## Documentación
 

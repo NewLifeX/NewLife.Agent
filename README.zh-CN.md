@@ -42,6 +42,7 @@
 
 - **开发与运维一体化**：继承 `ServiceBase` 即可获得服务治理能力。
 - **内置 Web 管理面板**：轻量级管理面板，可通过浏览器查看状态、执行运维操作，支持扩展面板与主题切换，内置 Token 鉴权与爆破防护；默认仅本机监听（`WebBind` 可开放局域网）。
+- **31 种语言本地化**：内建命令、配置项描述、Hosting 消息与 Web 管理面板支持 31 种语言，支持语言切换与 RTL；请求语言由 NewLife.Core 自动识别。
 - **跨平台自动适配**：按系统自动选择最合适宿主实现。
 - **NativeAOT 原生发布支持**：内建命令与 Web 面板全链路适配裁剪，`net8.0+` 构建期 `IsAotCompatible` 0 告警，CI 覆盖 12 个 RID：其中 9 个目标执行真实运行冒烟（8 个原生目标 + linux-loongarch64 经 QEMU 用户态仿真），交叉目标（linux-arm/linux-musl-arm/linux-musl-arm64）做发布验证。
 - **多架构单元测试**：win-x64 / linux-x64 / linux-arm64 原生运行，linux-loongarch64（龙芯）经 QEMU 用户态仿真运行完整用例集，push/PR 触发并支持手动运行。

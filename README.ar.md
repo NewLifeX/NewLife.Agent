@@ -36,6 +36,7 @@ service.Start(args);
 - متعدد المنصات: Windows وLinux وmacOS وARM64/LoongArch64
 - تسجيل وتتبع وتشخيص شامل أثناء التشغيل
 - تكامل سلس مع منظومة NewLife (XCode/Cube/Remoting)
+- أوامر مدمجة وأوصاف إعدادات ورسائل Hosting ولوحة ويب بـ 31 لغة، مع تبديل اللغة ودعم RTL
 
 ## التوثيق
 

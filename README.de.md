@@ -36,6 +36,7 @@ service.Start(args);
 - Plattformübergreifend: Windows, Linux, macOS und ARM64/LoongArch64
 - Umfassendes Logging, Tracing und Laufzeitdiagnose
 - Nahtlose Integration in das NewLife-Ökosystem (XCode/Cube/Remoting)
+- Integrierte Befehle, Konfigurationsbeschreibungen, Hosting-Meldungen und Webpanel in 31 Sprachen, mit Sprachumschaltung und RTL
 
 ## Dokumentation
 

@@ -41,6 +41,7 @@ Supported frameworks:
 
 - **Integrated Development and Operations**: Inherit `ServiceBase` to gain full service governance capabilities.
 - **Built-in Web Dashboard**: A lightweight management panel for viewing status and performing operations in a browser, with extension panels and theme switching, built-in token authentication and brute-force protection; it listens on localhost by default (`WebBind` can expose it to the LAN).
+- **31-Language Localization**: Built-in commands, configuration descriptions, Hosting messages and the Web dashboard support 31 languages with language switching and RTL; request culture is resolved automatically by NewLife.Core.
 - **Cross-Platform Auto-Adaptation**: Automatically selects the most suitable host implementation per operating system.
 - **NativeAOT Native Publishing Support**: Built-in commands and the Web dashboard are fully adapted for trimming/AOT; `net8.0+` builds produce zero `IsAotCompatible` warnings, and CI covers 12 RIDs: 9 targets run real smoke tests (8 native targets + linux-loongarch64 under QEMU user-mode emulation), while cross targets (linux-arm/linux-musl-arm/linux-musl-arm64) get publish verification.
 - **Multi-Architecture Unit Tests**: win-x64 / linux-x64 / linux-arm64 run natively, and linux-loongarch64 (Loongson) runs the full test suite under QEMU user-mode emulation; triggered by push/PR and supports manual runs.

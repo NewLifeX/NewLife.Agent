@@ -1,5 +1,37 @@
 # NewLife.Agent Changelog
 
+## v10.18.2026.1024 (2026-10-24)
+
+### Localization
+- **31-language runtime dictionaries**: Adopted NewLife.Core 12 localization, covering built-in commands, configuration descriptions and Hosting messages, with `Locales/*.yml` dictionaries for 31 languages.
+- **Localized Web dashboard**: Dashboard sources switched to English, with 31-language UI, language switching API and RTL support; custom panels fall back to the main dictionary when their own is missing.
+- **Unified language settings**: Language settings moved to `NewLife.Setting`, and request culture is resolved automatically by NewLife.Core; application titles and descriptions use English sources and are translated at display/registration time.
+- **Localized configuration comments**: XML configuration comments are saved in the current language; prefixed log output helps locate the source module.
+
+### Web Management Panel
+- **WebBind Configuration**: New `WebBind` setting; listens on localhost by default and can expose to the LAN on demand.
+- **Port Conflict Warning**: A single-line warning is emitted when the panel port is occupied, avoiding false alarms of a service crash.
+- **Language Status API**: Backend exposes a unified dashboard language status; frontend shows the current language and adapts to RTL.
+
+### NativeAOT & Cross-Platform
+- **Full NativeAOT Adaptation**: Built-in commands use static factories, panel responses are DTO-based with AOT serialization metadata preserved, fixing lost commands and empty JSON objects under AOT; `net8.0+` permanently enables the `IsAotCompatible` analyzer with zero warnings as a build gate.
+- **Publish Smoke Matrix**: CI covers 12 RIDs, with 8 native targets plus loongarch64 (QEMU) running real smoke tests and cross targets verified by publish.
+- **Unit Test Matrix**: win-x64 / linux-x64 / linux-arm64 run natively, and linux-loongarch64 runs the full suite under QEMU user-mode emulation.
+- **Instruction-Set Smoke**: Added riscv64 / s390x smoke project and CI to verify niche architectures and big-endian byte order.
+
+### Stability & Fixes
+- **[fix]** Fixed SysVinit path lookup throwing when init.d is missing.
+- **[fix]** Fixed `UseAgentService()` throwing when called without arguments.
+- **[fix]** Command discovery now skips dynamic assemblies and tolerates unloadable types.
+- **[fix]** Made Systemd/Install unit tests platform-independent.
+
+### Dependencies & Build
+- **NewLife.Core 12**: Upgraded to 12.x (stable 12.0.2026.1024) with v12 compatibility adaptations.
+- **Dependency Upgrades**: NewLife.XCode, NewLife.Stardust and others upgraded to the latest versions.
+- **CI Publishing**: The publish workflow now pushes to both GitHub Packages and NuGet.org, and creates a GitHub Release on tag push using this changelog as release notes.
+
+---
+
 ## v10.17.2026.0802 (2026-08-02)
 
 ### Health Monitoring

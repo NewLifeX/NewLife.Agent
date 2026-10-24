@@ -13,6 +13,11 @@ on:
         - 'NewLife.Extensions.Hosting.AgentService/**'
   workflow_dispatch:
 
+# GitHub Packages 推送需要 packages: write，否则 403
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build-publish:
     runs-on: ubuntu-latest
@@ -29,16 +34,38 @@ jobs:
           9.x
           10.x
     - name: Get Version
-      run: echo "VERSION=$(date '+%Y.%m%d-beta%H%M')" >> $GITHUB_ENV
-    - name: Build
+      shell: pwsh
       run: |
-        dotnet build -c Release --version-suffix ${{ env.VERSION }}
+        $now = Get-Date
+        $version = $now.ToString('yyyy.MMdd') + '-beta' + $now.ToString('HHmm')
+        "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        Write-Host "VersionSuffix = $version"
     - name: Pack
       run: |
-        dotnet pack --no-build --version-suffix ${{ env.VERSION }} -o out NewLife.Agent/NewLife.Agent.csproj
-        dotnet pack --no-build --version-suffix ${{ env.VERSION }} -o out NewLife.Extensions.Hosting.AgentService/NewLife.Extensions.Hosting.AgentService.csproj
-
-    - name: Publish
+        dotnet pack -c Release --version-suffix ${{ env.VERSION }} -o out NewLife.Agent/NewLife.Agent.csproj
+        dotnet pack -c Release --version-suffix ${{ env.VERSION }} -o out NewLife.Extensions.Hosting.AgentService/NewLife.Extensions.Hosting.AgentService.csproj
+    - name: Publish to GitHub Packages
+      id: ghpackages
+      # 备用镜像渠道，失败只告警，不阻断 NuGet.org beta 发布
+      continue-on-error: true
       run: |
         dotnet nuget push ./out/*.nupkg --skip-duplicate --source https://nuget.pkg.github.com/NewLifeX/index.json --api-key ${{ github.token }}
+    - name: Publish to NuGet.org
+      id: nuget
+      run: |
         dotnet nuget push ./out/*.nupkg --skip-duplicate --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.nugetKey }}
+    - name: Publish Summary
+      if: always()
+      shell: pwsh
+      run: |
+        $rows = [ordered]@{
+          'GitHub Packages' = '${{ steps.ghpackages.outcome }}'
+          'NuGet.org'       = '${{ steps.nuget.outcome }}'
+        }
+        $marks = @{ success = '✅'; failure = '⚠️'; skipped = '⏭'; cancelled = '⛔' }
+        $lines = @('### Beta 发布结果', '', '| 渠道 | 结果 |', '| --- | --- |')
+        foreach ($k in $rows.Keys) {
+          $o = $rows[$k]
+          $lines += "| $k | $($marks[$o]) $o |"
+        }
+        $lines | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
