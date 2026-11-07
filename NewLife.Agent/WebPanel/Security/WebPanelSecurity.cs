@@ -1,10 +1,10 @@
 #if !NET40
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-#if NET6_0_OR_GREATER
-using System.Net;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+#if NET6_0_OR_GREATER
+using System.Net;
 #endif
 using NewLife.Configuration;
 using NewLife.Log;
@@ -94,9 +94,11 @@ public static class WebPanelSecurity
     /// <param name="password">PFX 保护口令</param>
     /// <param name="allowCreate">文件不存在或无法加载时是否允许生成自签证书。用户提供的证书必须传 false，避免覆盖</param>
     /// <returns>证书；无法加载且不允许生成时返回 null</returns>
-    public static System.Security.Cryptography.X509Certificates.X509Certificate CreateSelfSigned(String file, String password, Boolean allowCreate = true)
+    public static X509Certificate CreateSelfSigned(String file, String password, Boolean allowCreate = true)
     {
-#if NET6_0_OR_GREATER
+        if (file.IsNullOrEmpty()) return null;
+
+        // 已存在的证书在任意目标框架下都可以加载，保证用户提供的 PFX 可用
         if (File.Exists(file))
         {
             try
@@ -107,7 +109,7 @@ public static class WebPanelSecurity
                 return new X509Certificate2(file, password);
 #endif
             }
-            catch (CryptographicException ex)
+            catch (Exception ex) when (ex is CryptographicException || ex is IOException)
             {
                 if (!allowCreate)
                 {
@@ -126,6 +128,7 @@ public static class WebPanelSecurity
             return null;
         }
 
+#if NET6_0_OR_GREATER
         try
         {
             var host = Environment.MachineName;
