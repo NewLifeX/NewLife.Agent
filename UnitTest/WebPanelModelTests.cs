@@ -1,5 +1,7 @@
 using System.ComponentModel;
+using System.Net;
 using NewLife.Agent.WebPanel;
+using Xunit;
 
 namespace UnitTest;
 
@@ -7,88 +9,43 @@ namespace UnitTest;
 /// <remarks>测试不依赖 HttpServer 的 WebPanel 组件</remarks>
 public class WebPanelModelTests
 {
+    #region 绑定地址
     [Fact]
-    [DisplayName("AuthLevel_None_解析正确")]
-    public void ParseAuthLevel_None_ReturnsNone()
+    [DisplayName("绑定地址_空值与空串_回退本机回环")]
+    public void ParseBindAddress_Empty_Loopback()
     {
-        var level = AgentWebPanel.ParseAuthLevel("none");
-        Assert.Equal(AuthLevel.None, level);
+        Assert.Equal(IPAddress.Loopback, AgentWebPanel.ParseBindAddress(""));
+        Assert.Equal(IPAddress.Loopback, AgentWebPanel.ParseBindAddress(null));
     }
 
     [Fact]
-    [DisplayName("AuthLevel_Full_解析正确")]
-    public void ParseAuthLevel_Full_ReturnsFull()
+    [DisplayName("绑定地址_星号与0.0.0.0_监听所有网卡")]
+    public void ParseBindAddress_Any_ReturnsNull()
     {
-        var level = AgentWebPanel.ParseAuthLevel("full");
-        Assert.Equal(AuthLevel.Full, level);
+        Assert.Null(AgentWebPanel.ParseBindAddress("*"));
+        Assert.Null(AgentWebPanel.ParseBindAddress("0.0.0.0"));
     }
 
     [Fact]
-    [DisplayName("AuthLevel_LocalOnly_解析正确")]
-    public void ParseAuthLevel_LocalOnly_ReturnsLocalOnly()
+    [DisplayName("绑定地址_具体IP_原样返回")]
+    public void ParseBindAddress_Concrete_ReturnsAddress()
     {
-        var level = AgentWebPanel.ParseAuthLevel("LocalOnly");
-        Assert.Equal(AuthLevel.LocalOnly, level);
+        Assert.Equal(IPAddress.Parse("192.168.1.10"), AgentWebPanel.ParseBindAddress("192.168.1.10"));
+        Assert.Equal(IPAddress.Loopback, AgentWebPanel.ParseBindAddress("127.0.0.1"));
     }
 
     [Fact]
-    [DisplayName("AuthLevel_未知值_默认LocalOnly")]
-    public void ParseAuthLevel_Unknown_DefaultsToLocalOnly()
-    {
-        var level = AgentWebPanel.ParseAuthLevel("invalid");
-        Assert.Equal(AuthLevel.LocalOnly, level);
-    }
+    [DisplayName("绑定地址_无法识别_回退本机回环")]
+    public void ParseBindAddress_Invalid_Loopback() => Assert.Equal(IPAddress.Loopback, AgentWebPanel.ParseBindAddress("not-an-ip"));
 
     [Fact]
-    [DisplayName("AuthLevel_空值_默认LocalOnly")]
-    public void ParseAuthLevel_Empty_DefaultsToLocalOnly()
+    [DisplayName("绑定地址_回环判断")]
+    public void IsLoopbackBind_Detects()
     {
-        var level = AgentWebPanel.ParseAuthLevel("");
-        Assert.Equal(AuthLevel.LocalOnly, level);
+        Assert.True(AgentWebPanel.IsLoopbackBind("127.0.0.1"));
+        Assert.True(AgentWebPanel.IsLoopbackBind(""));
+        Assert.False(AgentWebPanel.IsLoopbackBind("*"));
+        Assert.False(AgentWebPanel.IsLoopbackBind("192.168.1.10"));
     }
-
-    [Fact]
-    [DisplayName("AuthLevel_大小写不敏感")]
-    public void ParseAuthLevel_CaseInsensitive()
-    {
-        Assert.Equal(AuthLevel.None, AgentWebPanel.ParseAuthLevel("NONE"));
-        Assert.Equal(AuthLevel.None, AgentWebPanel.ParseAuthLevel("None"));
-        Assert.Equal(AuthLevel.Full, AgentWebPanel.ParseAuthLevel("FULL"));
-    }
-
-    [Fact]
-    [DisplayName("PanelExtension_构造_默认值正确")]
-    public void PanelExtension_Defaults()
-    {
-        var ext = new PanelExtension();
-
-        Assert.Equal("", ext.Id);
-        Assert.Equal("", ext.Name);
-        Assert.Equal("", ext.Icon);
-        Assert.Equal("", ext.ApiEndpoint);
-        Assert.Equal(0, ext.Order);
-        Assert.Equal("data", ext.Mode);
-    }
-
-    [Fact]
-    [DisplayName("PanelExtension_属性可读写")]
-    public void PanelExtension_ReadWrite()
-    {
-        var ext = new PanelExtension
-        {
-            Id = "my-panel",
-            Name = "我的面板",
-            Icon = "🔧",
-            ApiEndpoint = "/api/my-panel",
-            Order = 1,
-            Mode = "html"
-        };
-
-        Assert.Equal("my-panel", ext.Id);
-        Assert.Equal("我的面板", ext.Name);
-        Assert.Equal("🔧", ext.Icon);
-        Assert.Equal("/api/my-panel", ext.ApiEndpoint);
-        Assert.Equal(1, ext.Order);
-        Assert.Equal("html", ext.Mode);
-    }
+    #endregion
 }

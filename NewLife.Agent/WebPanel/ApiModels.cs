@@ -43,12 +43,32 @@ internal class LoginData
 {
     /// <summary>访问令牌</summary>
     public String Token { get; set; }
+}
 
-    /// <summary>当前认证模式名称（Password/OsAccount），供界面提示</summary>
-    public String AuthMode { get; set; }
+/// <summary>配置更新后的面板地址载荷（绑定地址或端口变更时下发，供前端跳转）</summary>
+internal class ConfigUpdateData
+{
+    /// <summary>新的监听端口（重启后生效的实际端口）</summary>
+    public Int32 Port { get; set; }
 
-    /// <summary>是否允许在面板内修改口令</summary>
-    public Boolean CanChangePassword { get; set; }
+    /// <summary>是否监听所有网卡</summary>
+    public Boolean ListenAll { get; set; }
+
+    /// <summary>具体监听地址；监听所有网卡时为空</summary>
+    public String Address { get; set; }
+}
+
+/// <summary>配置更新结果（code + message + data）</summary>
+internal class ConfigUpdateResult
+{
+    /// <summary>状态码，0 表示成功</summary>
+    public Int32 Code { get; set; }
+
+    /// <summary>消息文本</summary>
+    public String Message { get; set; }
+
+    /// <summary>新地址载荷；未变更监听地址/端口时为空</summary>
+    public ConfigUpdateData Data { get; set; }
 }
 
 /// <summary>服务状态载荷</summary>

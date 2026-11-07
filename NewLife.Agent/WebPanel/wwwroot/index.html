@@ -734,7 +734,21 @@ async function saveConfig(){
  });
  try{
   const j=await api('/api/updateConfig',{method:'POST',body:JSON.stringify(updates)});
-  if(j.code===0){dirtyFields.clear();showToast(j.message,'success');loadConfig()}
+  if(j.code===0){
+   dirtyFields.clear();showToast(j.message,'success');
+   const d=j.data;
+   if(d&&d.port){
+    // 监听端口变化意味着 origin 变化，跳到新地址重新登录
+    const curPort=location.port||(location.protocol==='https:'?'443':'80');
+    const reachable=String(d.port)===curPort&&(d.listenAll||d.address===location.hostname);
+    if(!reachable){
+     const host=d.listenAll?location.hostname:(d.address||location.hostname);
+     setTimeout(()=>{location.replace(location.protocol+'//'+host+':'+d.port+'/')},1500);
+     return;
+    }
+   }
+   loadConfig()
+  }
   else showToast(j.message,'error');
  }catch(e){showToast('Failed to save','error')}
 }

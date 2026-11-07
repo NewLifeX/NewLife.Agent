@@ -228,8 +228,6 @@ public class LoginRateLimiterTests
 [Collection("WebPanel")]
 public class AgentWebPanelTests
 {
-    // ParseAuthLevel 的完整用例已集中在 WebPanelModelTests（大小写/空值/未知值），此处不重复
-
     #region ParseBindAddress 测试
     [Fact]
     [DisplayName("ParseBindAddress_空值_回退本机环回")]
@@ -286,7 +284,6 @@ public class AgentWebPanelTests
             var panel = new AgentWebPanel(mockSvc.Object);
             Assert.NotNull(panel);
             Assert.NotNull(panel.Server);
-            Assert.Equal(AuthLevel.LocalOnly, panel.Level);
             Assert.Same(mockSvc.Object, panel.Service);
             Assert.False(panel.Active);
             Assert.Equal(0, panel.Port); // 未启动时端口为0
@@ -298,14 +295,13 @@ public class AgentWebPanelTests
     }
 
     [Fact]
-    [DisplayName("构造_从配置读取鉴权参数")]
+    [DisplayName("构造_从配置读取用户名与口令")]
     public void Constructor_ReadsAuthConfigFromSetting()
     {
         var mockSvc = new Mock<ServiceBase> { CallBase = true };
         mockSvc.Object.ServiceName = "AuthSvc";
 
         var set = Setting.Current;
-        var prevLevel = set.WebAuthLevel;
         var prevUser = set.WebUserName;
         var prevPass = set.WebPassword;
         var prevPort = set.WebPort;
@@ -313,20 +309,17 @@ public class AgentWebPanelTests
 
         try
         {
-            set.WebAuthLevel = "full";
             set.WebUserName = "testadmin";
             set.WebPassword = "secret123";
             set.WebPort = 0;
             set.EnableWebPanel = false;
 
             var panel = new AgentWebPanel(mockSvc.Object);
-            Assert.Equal(AuthLevel.Full, panel.Level);
             Assert.Equal("testadmin", panel.UserName);
             Assert.Equal("secret123", panel.Password);
         }
         finally
         {
-            set.WebAuthLevel = prevLevel;
             set.WebUserName = prevUser;
             set.WebPassword = prevPass;
             set.WebPort = prevPort;
@@ -538,7 +531,7 @@ public class AgentWebPanelTests
         set.WebBind = "127.0.0.1";
         set.EnableWebPanel = false;
 
-        var first = new AgentWebPanel(mockSvc.Object) { Level = AuthLevel.None };
+        var first = new AgentWebPanel(mockSvc.Object);
         AgentWebPanel second = null;
         try
         {
@@ -550,7 +543,7 @@ public class AgentWebPanelTests
             Assert.NotEqual(0, port);
 
             set.WebPort = port;
-            second = new AgentWebPanel(mockSvc.Object) { Level = AuthLevel.None };
+            second = new AgentWebPanel(mockSvc.Object);
             second.Server.ReuseAddress = true;
             second.Start();
             Assert.True(second.Active);
@@ -658,8 +651,8 @@ public class AgentWebPanelTests
             panel.UpdateCredentials("newadmin", "newpass");
 
             Assert.Equal("newadmin", panel.UserName);
-            Assert.True(NewLife.Agent.WebPanel.Security.PanelPasswordHash.IsHash(panel.Password));
-            Assert.True(NewLife.Agent.WebPanel.Security.PanelPasswordHash.Verify("newpass", panel.Password));
+            Assert.NotEqual("newpass", panel.Password);
+            Assert.True(panel.Authenticate("newadmin", "newpass"));
         }
         finally
         {
@@ -723,7 +716,8 @@ public class AgentWebPanelTests
             panel.UpdateCredentials("", "newpass");
 
             Assert.Equal("admin", panel.UserName);
-            Assert.True(NewLife.Agent.WebPanel.Security.PanelPasswordHash.Verify("newpass", panel.Password));
+            Assert.NotEqual("newpass", panel.Password);
+            Assert.True(panel.Authenticate("admin", "newpass"));
         }
         finally
         {
@@ -1072,7 +1066,8 @@ public class WebPanelE2ETests : IDisposable
         var response = await client.GetAsync($"{_baseUrl}/api/status");
         var json = await response.Content.ReadAsStringAsync();
 
-        Assert.Equal(200, (Int32)response.StatusCode);
+        // 鉴权中间件直接以 HTTP 401 拦截，响应体仍为统一 JSON 结果
+        Assert.Equal(401, (Int32)response.StatusCode);
         Assert.Contains("\"code\":401", json);
     }
 }

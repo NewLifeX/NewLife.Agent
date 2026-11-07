@@ -262,7 +262,7 @@ public class LocalizationTests
             var svc = new Mock<ServiceBase> { CallBase = true }.Object;
             svc.ServiceName = "LocTest";
 
-            var panel = new AgentWebPanel(svc) { Level = AuthLevel.None };
+            var panel = new AgentWebPanel(svc) ;
             panel.Start();
             try
             {
@@ -337,7 +337,7 @@ public class LocalizationTests
             var svc = new Mock<ServiceBase> { CallBase = true }.Object;
             svc.ServiceName = "LocTest";
 
-            var panel = new AgentWebPanel(svc) { Level = AuthLevel.Full, UserName = "admin", Password = "123456" };
+            var panel = new AgentWebPanel(svc) { UserName = "admin", Password = "123456" };
             panel.Start();
             try
             {
@@ -508,7 +508,7 @@ public class LocalizationTests
 
             var svc = new Mock<ServiceBase> { CallBase = true }.Object;
             svc.ServiceName = "LangState";
-            var panel = new AgentWebPanel(svc) { Level = AuthLevel.None };
+            var panel = new AgentWebPanel(svc) ;
             panel.Start();
             try
             {

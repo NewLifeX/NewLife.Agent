@@ -21,6 +21,8 @@ internal static class AotRoots
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(ApiResult<>))]
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(FreeMemoryResult))]
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(LoginData))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(ConfigUpdateData))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(ConfigUpdateResult))]
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(StatusData))]
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(FreeMemoryData))]
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(ConfigItem))]

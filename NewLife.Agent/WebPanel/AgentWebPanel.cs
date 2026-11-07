@@ -2,29 +2,16 @@
 using System.Net;
 using System.Globalization;
 using System.Security.Authentication;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using NewLife.Agent.WebPanel.Security;
 using NewLife.Data;
 using NewLife.Http;
 using NewLife.Log;
+using NewLife.Security;
 using NewLife.Serialization;
 using NewLife;
 
 namespace NewLife.Agent.WebPanel;
-
-/// <summary>Web面板鉴权级别</summary>
-public enum AuthLevel
-{
-    /// <summary>不鉴权</summary>
-    None,
-
-    /// <summary>本地免鉴权，远程需鉴权</summary>
-    LocalOnly,
-
-    /// <summary>全部鉴权</summary>
-    Full
-}
 
 /// <summary>Agent Web管理面板</summary>
 /// <remarks>基于 HttpServer 提供轻量级 Web 管理界面，支持服务状态查看、启停控制、配置管理、日志查看等功能</remarks>
@@ -40,17 +27,27 @@ public class AgentWebPanel
     /// <summary>所属服务</summary>
     public ServiceBase Service { get; }
 
-    /// <summary>鉴权级别。已废弃，所有请求统一要求登录</summary>
-    public AuthLevel Level { get; set; }
+    /// <summary>口令哈希提供者。默认加盐 SHA512，可在启动前替换为更强的算法实现</summary>
+    public IPasswordProvider PasswordProvider { get; set; } = new SaltPasswordProvider();
 
-    /// <summary>登录认证器。默认本地口令，可切换为操作系统账号</summary>
-    public IPanelAuthenticator Authenticator { get; set; }
+    /// <summary>当前口令是否仍为默认值（空或 admin）</summary>
+    public Boolean IsDefaultPassword
+    {
+        get
+        {
+            if (Password.IsNullOrEmpty()) return true;
 
-    /// <summary>是否支持在面板内修改口令</summary>
-    public Boolean CanChangePassword => Authenticator?.CanChangePassword == true;
-
-    /// <summary>当前认证模式名称，供界面展示</summary>
-    public String AuthModeName => Authenticator?.Name ?? "Password";
+            try
+            {
+                return PasswordProvider.Verify("admin", Password);
+            }
+            catch
+            {
+                // 历史哈希格式（如已废除的 PBKDF2 串）当前提供者无法识别，不按默认口令处理
+                return false;
+            }
+        }
+    }
 
     /// <summary>用户名</summary>
     public String UserName { get; set; }
@@ -100,37 +97,11 @@ public class AgentWebPanel
         var address = ParseBindAddress(bind);
         if (address != null) Server.Local.Address = address;
 
-        Level = ParseAuthLevel(set.WebAuthLevel);
         UserName = set.WebUserName;
         Password = set.WebPassword;
-        Authenticator = CreateAuthenticator(set.WebAuthMode);
 
         RegisterRoutes();
-    }
-
-    /// <summary>根据配置创建认证器</summary>
-    /// <param name="mode">认证模式，Password 或 OsAccount</param>
-    /// <returns>认证器实例</returns>
-    public static IPanelAuthenticator CreateAuthenticator(String mode)
-    {
-        return mode?.ToLower() switch
-        {
-            "osaccount" => new OsAccountAuthenticator(),
-            _ => new LocalPasswordAuthenticator()
-        };
-    }
-
-    /// <summary>解析鉴权级别字符串</summary>
-    /// <param name="level">鉴权级别字符串</param>
-    /// <returns>鉴权级别枚举</returns>
-    public static AuthLevel ParseAuthLevel(String level)
-    {
-        return level?.ToLower() switch
-        {
-            "none" => AuthLevel.None,
-            "full" => AuthLevel.Full,
-            _ => AuthLevel.LocalOnly
-        };
+        UseAuthentication();
     }
 
     /// <summary>解析面板绑定地址</summary>
@@ -147,6 +118,16 @@ public class AgentWebPanel
         if (IPAddress.TryParse(bind, out var address)) return address.IsAny() ? null : address;
 
         return IPAddress.Loopback;
+    }
+
+    /// <summary>判断绑定地址是否仅本机回环</summary>
+    /// <param name="bind">绑定地址。支持具体IP、* 表示所有网卡</param>
+    /// <returns>是否仅本机回环</returns>
+    public static Boolean IsLoopbackBind(String bind)
+    {
+        var address = ParseBindAddress(bind);
+
+        return address != null && IPAddress.IsLoopback(address);
     }
     #endregion
 
@@ -241,35 +222,33 @@ public class AgentWebPanel
     {
         if (Server.Active) return;
 
-        // 本地口令模式下，空口令先生成随机初始口令，再进行安全检查
-        EnsureInitialPassword();
-
         if (!CheckSecurity()) return;
 
         Server.Start();
 
         var scheme = Server.SslProtocol != SslProtocols.None ? "https" : "http";
         XTrace.Log.WriteLogPrefixed(LogLevel.Info, "[WebPanel]", "The web management panel started on {0} port {1}.", scheme, Server.Port);
+
+        // 仍在使用默认口令时给出警告，便于用户及时修改
+        if (IsDefaultPassword)
+            XTrace.Log.WriteLogPrefixed(LogLevel.Warn, "[WebPanel]", "Security warning: the web panel is still using the default password. Change it from the panel or set WebPassword in the configuration file.");
     }
 
-    /// <summary>启动前的安全检查。不允许在未加密或使用默认口令的情况下把面板暴露到网络</summary>
+    /// <summary>启动前的安全检查。非本机监听且仍使用默认口令时拒绝启动</summary>
+    /// <remarks>
+    /// 面板具备服务控制与配置查看能力，等同于管理员权限。默认口令一旦暴露到网络，任何人都可以先登录并改掉口令。
+    /// 需要远程访问时，应先修改口令，或改用反向代理/SSH隧道仅暴露本机回环端口。子类可重写本方法放开限制。
+    /// </remarks>
     /// <returns>是否允许启动</returns>
-    private Boolean CheckSecurity()
+    protected virtual Boolean CheckSecurity()
     {
-        var set = Setting.Current;
-        var loopback = IsLoopbackBinding();
+        if (IsLoopbackBinding()) return true;
 
-        if (!PrepareTransport(loopback, set)) return false;
+        if (!IsDefaultPassword) return true;
 
-        // 本地口令模式：非本机监听时，空口令或默认口令一律拒绝启动
-        if (!loopback && Authenticator is LocalPasswordAuthenticator && IsDefaultPassword())
-        {
-            XTrace.Log.WriteLogPrefixed(LogLevel.Error, "[WebPanel]", "Refusing to start: the web panel listens on a non-loopback address with an empty or default password. Set WebPassword or switch WebAuthMode to OsAccount.");
+        XTrace.Log.WriteLogPrefixed(LogLevel.Error, "[WebPanel]", "Refusing to start: the web panel listens on a non-loopback address while still using the default password. Set WebPassword in the configuration file (plain text is accepted and upgraded to a hash after sign-in), or sign in on 127.0.0.1 and change it first.");
 
-            return false;
-        }
-
-        return true;
+        return false;
     }
 
     /// <summary>当前绑定地址是否仅本机回环</summary>
@@ -280,94 +259,93 @@ public class AgentWebPanel
         return address != null && IPAddress.IsLoopback(address);
     }
 
-    /// <summary>判断当前口令是否为空或仍是默认的 admin</summary>
-    private Boolean IsDefaultPassword() => Password.IsNullOrEmpty() || PanelPasswordHash.Verify("admin", Password);
-
-    /// <summary>按配置准备传输安全（TLS）</summary>
-    /// <param name="loopback">是否仅本机监听</param>
-    /// <param name="set">当前配置</param>
-    /// <returns>是否允许继续启动</returns>
-    private Boolean PrepareTransport(Boolean loopback, Setting set)
+    /// <summary>变更监听地址与端口并热重启Http服务器，无需重启应用</summary>
+    /// <remarks>
+    /// 先返回响应再重启，避免当前请求的连接被自己断开。重启失败时回滚到原有监听，配置不落盘。
+    /// </remarks>
+    /// <param name="bind">绑定地址。空或 * 表示监听所有网卡，其它值支持具体IP。null 表示不修改</param>
+    /// <param name="port">端口，0 表示随机分配，null 表示不修改</param>
+    /// <returns>是否已受理重启请求</returns>
+    public Boolean RequestRebind(String bind, Int32? port)
     {
-        var mode = (set.WebTls ?? "").Trim();
-        if (mode.IsNullOrEmpty() || mode.EqualIgnoreCase("Auto"))
-            mode = loopback ? "Off" : "SelfSigned";
-
-        if (mode.EqualIgnoreCase("Off"))
-            return AllowInsecure(loopback, set, "TLS is disabled");
-
-        String file;
-        if (mode.EqualIgnoreCase("Pfx"))
+        if (Interlocked.CompareExchange(ref _rebinding, 1, 0) != 0)
         {
-            file = set.WebCertificate;
-            if (file.IsNullOrEmpty() || !File.Exists(file))
-            {
-                XTrace.Log.WriteLogPrefixed(LogLevel.Error, "[WebPanel]", "Refusing to start: WebTls is Pfx but WebCertificate [{0}] does not exist.", file);
-
-                return false;
-            }
-        }
-        else
-        {
-            file = Path.Combine(WebPanelSecurity.GetConfigDirectory(), "panel.pfx");
-        }
-
-        if (!LoadCertificate(file, set.WebCertificatePassword, !mode.EqualIgnoreCase("Pfx")))
-            return AllowInsecure(loopback, set, "TLS could not be enabled");
-
-        return true;
-    }
-
-    /// <summary>加载或生成证书并启用到服务器</summary>
-    /// <param name="file">证书文件</param>
-    /// <param name="password">证书口令</param>
-    /// <param name="allowCreate">文件不存在或无法读取时是否生成自签证书</param>
-    private Boolean LoadCertificate(String file, String password, Boolean allowCreate)
-    {
-        try
-        {
-            var cert = WebPanelSecurity.CreateSelfSigned(file, password ?? "", allowCreate);
-
-            return EnableTls(cert);
-        }
-        catch (Exception ex)
-        {
-            XTrace.Log.WriteLogPrefixed(LogLevel.Warn, "[WebPanel]", "Failed to enable TLS: {0}", ex.Message);
+            XTrace.Log.WriteLogPrefixed(LogLevel.Warn, "[WebPanel]", "The web panel is already rebinding, ignore this request.");
 
             return false;
         }
-    }
 
-    /// <summary>启用 TLS。证书为空表示运行时无法生成自签证书</summary>
-    private Boolean EnableTls(X509Certificate cert)
-    {
-        if (cert == null) return false;
+        // 延迟重启：当前响应需要先写回客户端
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(800).ConfigureAwait(false);
 
-#if NET5_0_OR_GREATER
-        Server.SslProtocol = SslProtocols.Tls12 | SslProtocols.Tls13;
-#else
-        Server.SslProtocol = SslProtocols.Tls12;
-#endif
-        Server.Certificate = cert;
+                Rebind(bind, port);
+            }
+            catch (Exception ex)
+            {
+                XTrace.WriteException(ex);
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _rebinding, 0);
+            }
+        });
 
         return true;
     }
 
-    /// <summary>未启用 TLS 时的处置。本机回环直接放行；网络监听只允许显式放开</summary>
-    private static Boolean AllowInsecure(Boolean loopback, Setting set, String reason)
+    private Int32 _rebinding;
+
+    /// <summary>执行监听地址与端口的热重启</summary>
+    /// <param name="bind">绑定地址</param>
+    /// <param name="port">端口</param>
+    private void Rebind(String bind, Int32? port)
     {
-        if (loopback) return true;
+        var oldAddress = Server.Local.Address;
+        var oldPort = Server.Port;
 
-        if (set.WebAllowInsecureRemote)
+        Server.Stop("Rebind");
+
+        if (!bind.IsNullOrEmpty()) Server.Local.Address = ParseBindAddress(bind) ?? IPAddress.Any;
+        if (port != null) Server.Port = port.Value > 0 ? port.Value : 0;
+
+        try
         {
-            XTrace.Log.WriteLogPrefixed(LogLevel.Warn, "[WebPanel]", "Security warning: the web panel listens on a non-loopback address without TLS because WebAllowInsecureRemote is enabled ({0}).", reason);
+            Server.Start();
+        }
+        catch (Exception ex)
+        {
+            XTrace.Log.WriteLogPrefixed(LogLevel.Error, "[WebPanel]", "Failed to listen on the new address, rolling back: {0}", ex.Message);
 
-            return true;
+            Server.Stop("RebindRollback");
+            Server.Local.Address = oldAddress ?? IPAddress.Any;
+            Server.Port = oldPort;
+
+            try
+            {
+                Server.Start();
+            }
+            catch (Exception ex2)
+            {
+                XTrace.Log.WriteLogPrefixed(LogLevel.Error, "[WebPanel]", "Failed to restore the previous address, the web panel is unavailable until the service restarts: {0}", ex2.Message);
+
+                throw;
+            }
+
+            return;
         }
 
-        XTrace.Log.WriteLogPrefixed(LogLevel.Error, "[WebPanel]", "Refusing to start: the web panel listens on a non-loopback address while {0}. Configure WebTls or enable WebAllowInsecureRemote explicitly.", reason);
+        // 启动成功后再落盘，保证配置文件与实际监听一致
+        var set = Setting.Current;
+        if (!bind.IsNullOrEmpty()) set.WebBind = bind.Trim();
+        set.WebPort = Server.Port;
+        set.Save();
 
-        return false;
+        var scheme = Server.SslProtocol != SslProtocols.None ? "https" : "http";
+        XTrace.Log.WriteLogPrefixed(LogLevel.Info, "[WebPanel]", "The web management panel has moved to {0}://{1}:{2}.", scheme, Server.Local.Host, Server.Port);
     }
 
     /// <summary>停止Web面板</summary>
@@ -379,6 +357,100 @@ public class AgentWebPanel
         Server.Stop(reason ?? "ServiceStop");
 
         XTrace.Log.WriteLogPrefixed(LogLevel.Info, "[WebPanel]", "The web management panel has stopped: {0}", reason);
+    }
+    #endregion
+
+    #region 请求鉴权
+    /// <summary>注册默认全量鉴权中间件</summary>
+    /// <remarks>
+    /// 面板与下游扩展的全部接口默认要求登录，只有登录页、静态资源和少量公开接口例外。
+    /// 这样下游追加的控制器（如 /star/*）无需自行实现鉴权，避免漏写导致管理员权限接口裸奔。
+    /// </remarks>
+    private void UseAuthentication() => Server.Use(async (ctx, next) =>
+    {
+        var request = ctx.Request;
+        var (path, query) = SplitRequestUri(request);
+
+        if (IsPublicPath(path) || IsStaticResource(path, request))
+        {
+            await next().ConfigureAwait(false);
+
+            return;
+        }
+
+        if (ValidateToken(ExtractToken(request, query)))
+        {
+            await next().ConfigureAwait(false);
+
+            return;
+        }
+
+        var json = JsonHelper.ToJson(new Models.ApiResult { Code = 401, Message = L.T("Unauthorized") });
+        ctx.Response.StatusCode = HttpStatusCode.Unauthorized;
+        ctx.Response.ContentType = "application/json; charset=utf-8";
+        ctx.Response.Body = new ArrayPacket(json.GetBytes());
+    });
+
+    /// <summary>判断是否为公开路径。子类可重写以放开更多匿名接口</summary>
+    /// <param name="path">请求路径（不含查询字符串）</param>
+    /// <returns>是否无需登录</returns>
+    protected virtual Boolean IsPublicPath(String path)
+    {
+        if (path.IsNullOrEmpty()) return true;
+
+        // 登录页与前端词表必须在未登录时可访问
+        if (path.EqualIgnoreCase("/", "/index.html", "/favicon.ico")) return true;
+        if (path.StartsWithIgnoreCase("/i18n/")) return true;
+
+        // 登录与语言列表是登录前的必需接口
+        if (path.EqualIgnoreCase("/api/Login", "/api/Languages")) return true;
+
+        return false;
+    }
+
+    /// <summary>判断请求是否命中静态资源处理器</summary>
+    private Boolean IsStaticResource(String path, HttpRequest request)
+    {
+        if (path.IsNullOrEmpty()) return false;
+
+        return Server.MatchHandler(path, request) is StaticFilesHandler or EmbeddedFileHandler;
+    }
+
+    /// <summary>拆分请求地址为路径与查询字符串</summary>
+    /// <remarks>请求侧的 Uri 是相对地址，读取 AbsolutePath/Query 会抛异常，只能从原始字符串拆分</remarks>
+    private static (String path, String query) SplitRequestUri(HttpRequest request)
+    {
+        var raw = request.RequestUri?.OriginalString;
+        if (raw.IsNullOrEmpty()) return (null, null);
+
+        // 经反向代理转发时可能是完整地址，先取其中的路径与查询
+        if (raw.StartsWithIgnoreCase("http://") || raw.StartsWithIgnoreCase("https://"))
+        {
+            if (Uri.TryCreate(raw, UriKind.Absolute, out var abs))
+                return (abs.AbsolutePath, abs.Query.IsNullOrEmpty() ? null : abs.Query.TrimStart('?'));
+        }
+
+        var index = raw.IndexOf('?');
+
+        return index < 0 ? (raw, null) : (raw[..index], raw[(index + 1)..]);
+    }
+
+    /// <summary>从请求头或查询字符串中提取访问令牌</summary>
+    /// <remarks>WebSocket/EventSource 无法自定义请求头，因此额外支持 access_token 查询参数</remarks>
+    private static String ExtractToken(HttpRequest request, String query)
+    {
+        var auth = request.Headers["Authorization"];
+        if (!auth.IsNullOrEmpty() && auth.StartsWithIgnoreCase("Bearer ")) return auth.Substring("Bearer ".Length).Trim();
+
+        if (!query.IsNullOrEmpty())
+        {
+            foreach (var item in query.Split('&'))
+            {
+                if (item.StartsWithIgnoreCase("access_token=")) return Uri.UnescapeDataString(item["access_token=".Length..]);
+            }
+        }
+
+        return null;
     }
     #endregion
 
@@ -466,12 +538,9 @@ public class AgentWebPanel
     /// <returns>认证是否通过</returns>
     public Boolean Authenticate(String user, String password, String remoteIp = null)
     {
-        var authenticator = Authenticator;
-        if (authenticator == null) return false;
-
         try
         {
-            return authenticator.Authenticate(this, user, password, remoteIp);
+            return OnAuthenticate(user, password, remoteIp);
         }
         catch (Exception ex)
         {
@@ -479,6 +548,22 @@ public class AgentWebPanel
 
             return false;
         }
+    }
+
+    /// <summary>验证用户凭据。子类可重写以接入域账号、单点登录等外部认证</summary>
+    /// <param name="user">用户名</param>
+    /// <param name="password">口令明文</param>
+    /// <param name="remoteIp">客户端地址，仅用于审计</param>
+    /// <returns>认证是否通过</returns>
+    protected virtual Boolean OnAuthenticate(String user, String password, String remoteIp)
+    {
+        if (user.IsNullOrEmpty() || password.IsNullOrEmpty()) return false;
+        if (UserName.IsNullOrEmpty() || Password.IsNullOrEmpty()) return false;
+
+        // 用户名不区分大小写，与历史行为保持一致
+        if (!user.EqualIgnoreCase(UserName)) return false;
+
+        return PasswordProvider.Verify(password, Password);
     }
 
     /// <summary>运行时更新凭据，立即生效无需重启</summary>
@@ -491,33 +576,34 @@ public class AgentWebPanel
         if (!password.IsNullOrEmpty()) SetPassword(password);
     }
 
-    /// <summary>设置新口令。加盐哈希后写入配置并立即生效</summary>
+    /// <summary>设置新口令。哈希后写入配置并立即生效</summary>
     /// <param name="password">口令明文</param>
     public void SetPassword(String password)
     {
         if (password.IsNullOrEmpty()) return;
 
-        Password = PanelPasswordHash.Hash(password);
+        Password = PasswordProvider.Hash(password);
 
         var set = Setting.Current;
         set.WebPassword = Password;
         set.Save();
 
         WebPanelSecurity.ProtectConfigFile();
-
-        // 引导口令文件在首次成功登录后作废
-        TryDeleteInitialPasswordFile();
     }
 
-    /// <summary>历史明文口令升级为哈希。仅当面板口令来自配置文件时执行，避免改写调用方临时设置的值</summary>
+    /// <summary>历史明文口令升级为哈希。仅当口令来自配置文件时执行，避免改写调用方临时设置的值</summary>
     /// <param name="password">刚刚验证通过的明文口令</param>
     private void MigrateLegacyPassword(String password)
     {
-        if (Authenticator is not LocalPasswordAuthenticator) return;
-        if (!PanelPasswordHash.IsLegacy(Password)) return;
+        if (!String.Equals(Password, password, StringComparison.Ordinal)) return;
         if (!String.Equals(Password, Setting.Current.WebPassword, StringComparison.Ordinal)) return;
 
-        Password = PanelPasswordHash.Hash(password);
+        var hash = PasswordProvider.Hash(password);
+
+        // 口令提供者若不散列（如默认 PasswordProvider），不必拆腾配置
+        if (String.Equals(hash, Password, StringComparison.Ordinal)) return;
+
+        Password = hash;
 
         var set = Setting.Current;
         set.WebPassword = Password;
@@ -526,64 +612,6 @@ public class AgentWebPanel
         WebPanelSecurity.ProtectConfigFile();
 
         XTrace.Log.WriteLogPrefixed(LogLevel.Info, "[WebPanel]", "The web panel password has been upgraded to a salted hash.");
-    }
-
-    /// <summary>首次启动时生成随机初始口令</summary>
-    /// <remarks>仅本地口令模式需要。口令明文只写入日志与仅本机可读的引导文件，登录成功后删除引导文件</remarks>
-    private void EnsureInitialPassword()
-    {
-        if (Authenticator is not LocalPasswordAuthenticator) return;
-        if (!Password.IsNullOrEmpty()) return;
-
-        // 仅在由服务托管启用面板时自动生成，避免手工构造面板（测试/嵌入）产生副作用
-        if (!Setting.Current.EnableWebPanel) return;
-
-        var password = PanelPasswordHash.CreateRandomPassword();
-        Password = PanelPasswordHash.Hash(password);
-
-        try
-        {
-            var set = Setting.Current;
-            set.WebPassword = Password;
-            set.Save();
-
-            WebPanelSecurity.ProtectConfigFile();
-            WriteInitialPasswordFile(password);
-        }
-        catch (Exception ex)
-        {
-            // 配置不可写时仍允许本次运行，只是重启后会重新生成
-            XTrace.Log.WriteLogPrefixed(LogLevel.Warn, "[WebPanel]", "Failed to persist the initial password: {0}", ex.Message);
-        }
-
-        XTrace.Log.WriteLogPrefixed(LogLevel.Warn, "[WebPanel]", "Generated an initial web panel password: {0}. Sign in and change it as soon as possible.", password);
-    }
-
-    private static String InitialPasswordFile => Path.Combine(WebPanelSecurity.GetConfigDirectory(), "panel.initial-password.txt");
-
-    private static void WriteInitialPasswordFile(String password)
-    {
-        try
-        {
-            var file = InitialPasswordFile;
-            file.EnsureDirectory(true);
-            File.WriteAllText(file, password);
-            WebPanelSecurity.ProtectFile(file);
-        }
-        catch (Exception ex)
-        {
-            XTrace.Log.WriteLogPrefixed(LogLevel.Warn, "[WebPanel]", "Failed to write the initial password file: {0}", ex.Message);
-        }
-    }
-
-    private static void TryDeleteInitialPasswordFile()
-    {
-        try
-        {
-            var file = InitialPasswordFile;
-            if (File.Exists(file)) File.Delete(file);
-        }
-        catch { }
     }
     #endregion
 

@@ -52,17 +52,7 @@ public class ApiController : IHttpController
 
         LoginRateLimiter.RecordSuccess(ip);
 
-        var panel = AgentWebPanel.Current;
-        return new ApiResult<LoginData>
-        {
-            Code = 0,
-            Data = new LoginData
-            {
-                Token = token,
-                AuthMode = panel?.AuthModeName ?? "Password",
-                CanChangePassword = panel?.CanChangePassword == true,
-            }
-        };
+        return new ApiResult<LoginData> { Code = 0, Data = new LoginData { Token = token } };
     }
 
     /// <summary>注销登录，吊销当前Token</summary>
@@ -357,6 +347,7 @@ public class ApiController : IHttpController
     /// <remarks>
     /// 接收 JSON 对象，key 为属性名，value 为新值。
     /// 安全字段白名单：不更新密码字段（请使用 ChangePassword 接口）。
+    /// 修改监听地址或端口时热重启面板（无需重启服务），并把新地址回传给前端跳转。
     /// </remarks>
     /// <returns>更新结果</returns>
     public Object UpdateConfig(IDictionary<String, Object> updates)
@@ -366,10 +357,12 @@ public class ApiController : IHttpController
         if (updates == null || updates.Count == 0)
             return new ApiResult { Code = 400, Message = L.T("Missing config") };
 
+        var set = Setting.Current;
+        var oldBind = set.WebBind;
+        var oldPort = set.WebPort;
+
         try
         {
-            var set = Setting.Current;
-
             foreach (var kv in updates)
             {
                 var prop = typeof(Setting).GetProperty(kv.Key, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
@@ -384,15 +377,72 @@ public class ApiController : IHttpController
 
                 prop.SetValue(set, value, null);
             }
+        }
+        catch (Exception ex)
+        {
+            RestoreBinding(set, oldBind, oldPort);
 
+            return new ApiResult { Code = 500, Message = ex.Message };
+        }
+
+        var bindChanged = !String.Equals(oldBind?.Trim(), set.WebBind?.Trim(), StringComparison.OrdinalIgnoreCase);
+        var portChanged = oldPort != set.WebPort;
+        var panel = AgentWebPanel.Current;
+
+        // 未涉及监听地址/端口，直接落盘
+        if ((!bindChanged && !portChanged) || panel == null)
+        {
             set.Save();
 
             return new ApiResult { Code = 0, Message = L.T("Configuration updated; some settings take effect after the service restarts.") };
         }
-        catch (Exception ex)
+
+        // 端口必须是明确值，0 会让面板落到随机端口而无法回传
+        if (set.WebPort < 1 || set.WebPort > 65535)
         {
-            return new ApiResult { Code = 500, Message = ex.Message };
+            RestoreBinding(set, oldBind, oldPort);
+
+            return new ApiResult { Code = 400, Message = L.T("Invalid port. Use a value between 1 and 65535.") };
         }
+
+        // 默认口令下不允许把面板暴露到网络，必须先改口令
+        if (!AgentWebPanel.IsLoopbackBind(set.WebBind) && panel.IsDefaultPassword)
+        {
+            RestoreBinding(set, oldBind, oldPort);
+
+            return new ApiResult { Code = 400, Message = L.T("Change the web panel password before exposing the panel to the network.") };
+        }
+
+        if (!panel.RequestRebind(bindChanged ? set.WebBind : null, portChanged ? set.WebPort : null))
+        {
+            RestoreBinding(set, oldBind, oldPort);
+
+            return new ApiResult { Code = 429, Message = L.T("The web panel is restarting; try again later.") };
+        }
+
+        var address = AgentWebPanel.ParseBindAddress(set.WebBind);
+
+        return new ConfigUpdateResult
+        {
+            Code = 0,
+            Message = L.T("The web panel is moving to the new address and will reopen shortly. Sign in again if prompted."),
+            Data = new ConfigUpdateData
+            {
+                Port = set.WebPort,
+                ListenAll = address == null,
+                Address = address?.ToString(),
+            }
+        };
+    }
+
+    /// <summary>回滚监听地址与端口的内存改动</summary>
+    /// <param name="set">配置实例</param>
+    /// <param name="bind">原绑定地址</param>
+    /// <param name="port">原端口</param>
+    private static void RestoreBinding(Setting set, String bind, Int32 port)
+    {
+        set.WebBind = bind;
+        set.WebPort = port;
     }
 
     /// <summary>修改密码。校验旧密码后更新为新密码，立即生效无需重启</summary>
@@ -408,10 +458,6 @@ public class ApiController : IHttpController
 
         var panel = AgentWebPanel.Current;
         if (panel == null) return new ApiResult { Code = 500, Message = L.T("Panel not available") };
-
-        // 操作系统账号认证模式下，口令由系统维护
-        if (!panel.CanChangePassword)
-            return new ApiResult { Code = 403, Message = L.T("Password change is disabled in the current authentication mode.") };
 
         if (newPassword.Length < 4)
             return new ApiResult { Code = 400, Message = L.T("The new password must be at least 4 characters.") };

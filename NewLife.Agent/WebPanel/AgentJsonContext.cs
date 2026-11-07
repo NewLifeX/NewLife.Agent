@@ -11,6 +11,7 @@ namespace NewLife.Agent.WebPanel;
 /// </remarks>
 [JsonSerializable(typeof(ApiResult))]
 [JsonSerializable(typeof(ApiResult<LoginData>))]
+[JsonSerializable(typeof(ConfigUpdateResult))]
 [JsonSerializable(typeof(ApiResult<StatusData>))]
 [JsonSerializable(typeof(ApiResult<ConfigMetadataData>))]
 [JsonSerializable(typeof(ApiResult<LogContentData>))]
@@ -21,6 +22,7 @@ namespace NewLife.Agent.WebPanel;
 [JsonSerializable(typeof(ApiResult<LanguagesData>))]
 [JsonSerializable(typeof(FreeMemoryResult))]
 [JsonSerializable(typeof(LoginData))]
+[JsonSerializable(typeof(ConfigUpdateData))]
 [JsonSerializable(typeof(StatusData))]
 [JsonSerializable(typeof(FreeMemoryData))]
 [JsonSerializable(typeof(ConfigItem))]

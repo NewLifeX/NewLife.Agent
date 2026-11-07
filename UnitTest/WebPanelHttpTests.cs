@@ -38,8 +38,6 @@ public class WebPanelHttpTests
 
             var panel = new AgentWebPanel(mockSvc.Object)
             {
-                // Full 让所有请求都走鉴权，便于验证 Token 流程（LocalOnly 会放行本机）
-                Level = AuthLevel.Full,
                 UserName = "admin",
                 Password = "123456"
             };
@@ -107,9 +105,9 @@ public class WebPanelHttpTests
             using var client = CreateClient(panel);
 
             var res = await client.GetAsync("/api/status");
-            Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, res.StatusCode);
 
-            // 命中 ApiController（若被 /* 静态兜底抢走，这里会是 404 且无 code 字段）
+            // 未登录由鉴权中间件直接拦截，响应体仍为统一 JSON 结果
             var body = await res.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(body);
             Assert.Equal(401, doc.RootElement.GetProperty("code").GetInt32());
@@ -179,7 +177,7 @@ public class WebPanelHttpTests
             for (var i = 0; i < 5; i++)
             {
                 var res = await client.GetAsync("/api/status");
-                Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+                Assert.Equal(HttpStatusCode.Unauthorized, res.StatusCode);
 
                 var body = await res.Content.ReadAsStringAsync();
                 using var doc = JsonDocument.Parse(body);

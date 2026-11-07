@@ -453,8 +453,8 @@ public class ApiControllerTests
 
             Assert.Equal(0, GetCode(result));
             // 内存凭据立即生效（哈希存储），无需重启
-            Assert.True(NewLife.Agent.WebPanel.Security.PanelPasswordHash.IsHash(panel.Password));
-            Assert.True(NewLife.Agent.WebPanel.Security.PanelPasswordHash.Verify("newpass123", panel.Password));
+            Assert.NotEqual("newpass123", panel.Password);
+            Assert.True(panel.Authenticate(panel.UserName, "newpass123"));
             Assert.Equal(panel.Password, set.WebPassword);
         }
         finally
