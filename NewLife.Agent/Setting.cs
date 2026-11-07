@@ -73,16 +73,40 @@ public class Setting : Config<Setting>
     [Description("Web panel bind address. Default 127.0.0.1 for local access only; set to * to listen on all interfaces, or specify an IP address.")]
     public String WebBind { get; set; } = "127.0.0.1";
 
-    /// <summary>Web面板鉴权级别。None不鉴权，LocalOnly本地免鉴权，Full全部鉴权。默认LocalOnly</summary>
-    [Description("Web panel authentication level. None: no authentication; LocalOnly: local requests bypass authentication; Full: always authenticate. Default LocalOnly.")]
+    /// <summary>Web面板鉴权级别。已废弃并忽略，所有请求统一要求登录，不再支持本地免鉴权</summary>
+    [Description("Web panel authentication level. Deprecated and ignored; every request requires sign-in.")]
     public String WebAuthLevel { get; set; } = "LocalOnly";
 
     /// <summary>Web面板用户名</summary>
     [Description("Web panel user name.")]
     public String WebUserName { get; set; } = "admin";
 
-    /// <summary>Web面板密码</summary>
+    /// <summary>Web面板口令。保存为加盐哈希，历史明文会在首次登录成功后自动升级；为空时首次启动生成随机口令</summary>
     [Description("Web panel password.")]
-    public String WebPassword { get; set; } = "admin";
+    public String WebPassword { get; set; } = "";
+
+    /// <summary>Web面板认证模式。Password本地口令（哈希保存），OsAccount操作系统账号（仅管理员组）。默认Password</summary>
+    [Description("Web panel authentication mode. Password: local password stored as a salted hash; OsAccount: operating system account limited to the administrator group. Default Password.")]
+    public String WebAuthMode { get; set; } = "Password";
+
+    /// <summary>Web面板管理员组。操作系统账号认证模式下允许登录的组，逗号分隔，留空使用平台默认值（Windows: Administrators；Linux: root,sudo,wheel,admin）</summary>
+    [Description("Web panel administrator groups for the OS account mode, separated by commas. Empty uses the platform default (Administrators on Windows; root, sudo, wheel, admin on Linux).")]
+    public String WebAdminGroups { get; set; } = "";
+
+    /// <summary>Web面板传输安全。Auto按绑定地址自动决定（本机关闭，其它自签证书），Off关闭TLS，SelfSigned自签证书，Pfx使用WebCertificate指定证书</summary>
+    [Description("Web panel transport security. Auto: off for loopback and self-signed otherwise; Off: no TLS; SelfSigned: generate a self-signed certificate; Pfx: use the certificate specified by WebCertificate.")]
+    public String WebTls { get; set; } = "Auto";
+
+    /// <summary>Web面板PFX证书文件。为空时自动生成到配置目录</summary>
+    [Description("Web panel PFX certificate file. Empty means a self-signed certificate is generated in the configuration directory.")]
+    public String WebCertificate { get; set; } = "";
+
+    /// <summary>Web面板PFX证书口令</summary>
+    [Description("Web panel PFX certificate password.")]
+    public String WebCertificatePassword { get; set; } = "";
+
+    /// <summary>允许非本机监听且不启用TLS。默认false，此时面板拒绝在没有TLS的情况下暴露到网络</summary>
+    [Description("Allow listening on non-loopback addresses without TLS. Default false, in which case the panel refuses to expose itself to the network without TLS.")]
+    public Boolean WebAllowInsecureRemote { get; set; }
     #endregion
 }

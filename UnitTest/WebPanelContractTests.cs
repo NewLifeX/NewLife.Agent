@@ -116,8 +116,10 @@ public class WebPanelContractTests
         Assert.Equal(0, root.GetProperty("code").GetInt32());
 
         var data = root.GetProperty("data");
-        AssertExactKeys(data, "token");
+        AssertExactKeys(data, "token", "authMode", "canChangePassword");
         Assert.False(data.GetProperty("token").GetString().IsNullOrEmpty());
+        Assert.Equal("Password", data.GetProperty("authMode").GetString());
+        Assert.True(data.GetProperty("canChangePassword").GetBoolean());
     }
 
     [Fact]

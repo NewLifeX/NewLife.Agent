@@ -43,7 +43,7 @@ public class ApiController : IHttpController
         if (LoginRateLimiter.IsBlocked(ip))
             return new ApiResult { Code = 429, Message = L.T("Too many failed attempts. Try again later.") };
 
-        var token = AgentWebPanel.Current?.IssueToken(user, password);
+        var token = AgentWebPanel.Current?.IssueToken(user, password, ip);
         if (token == null)
         {
             LoginRateLimiter.RecordFailure(ip);
@@ -51,7 +51,18 @@ public class ApiController : IHttpController
         }
 
         LoginRateLimiter.RecordSuccess(ip);
-        return new ApiResult<LoginData> { Code = 0, Data = new LoginData { Token = token } };
+
+        var panel = AgentWebPanel.Current;
+        return new ApiResult<LoginData>
+        {
+            Code = 0,
+            Data = new LoginData
+            {
+                Token = token,
+                AuthMode = panel?.AuthModeName ?? "Password",
+                CanChangePassword = panel?.CanChangePassword == true,
+            }
+        };
     }
 
     /// <summary>注销登录，吊销当前Token</summary>
@@ -265,7 +276,7 @@ public class ApiController : IHttpController
         foreach (var prop in typeof(Setting).GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
             if (!prop.CanRead || !prop.CanWrite) continue;
-            if (prop.Name.EqualIgnoreCase(nameof(Setting.WebPassword))) continue;
+            if (IsSensitive(prop.Name)) continue;
 
             var description = prop.GetCustomAttribute<System.ComponentModel.DescriptionAttribute>()?.Description ?? "";
 
@@ -286,6 +297,17 @@ public class ApiController : IHttpController
             });
         }
         return list.ToArray();
+    }
+
+    /// <summary>判断配置项是否属于敏感字段（密码、密钥），敏感字段只写不读</summary>
+    /// <param name="name">配置项名称</param>
+    /// <returns>是否敏感</returns>
+    internal static Boolean IsSensitive(String name)
+    {
+        if (name.IsNullOrEmpty()) return false;
+
+        return name.EndsWith("Password", StringComparison.OrdinalIgnoreCase) ||
+               name.EndsWith("Secret", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>获取配置元数据（DisplayName + Description + Type + Value），供前端三列布局渲染</summary>
@@ -353,8 +375,8 @@ public class ApiController : IHttpController
                 var prop = typeof(Setting).GetProperty(kv.Key, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
                 if (prop == null || !prop.CanWrite) continue;
 
-                // 安全字段白名单：密码须走 ChangePassword 接口（校验旧密码）
-                if (kv.Key.EqualIgnoreCase(nameof(set.WebPassword))) continue;
+                // 安全字段白名单：密码/密钥只能通过专用接口写入，不允许从配置面板回写
+                if (IsSensitive(kv.Key)) continue;
 
                 var value = kv.Value;
                 if (value != null && value.GetType() != prop.PropertyType)
@@ -387,17 +409,19 @@ public class ApiController : IHttpController
         var panel = AgentWebPanel.Current;
         if (panel == null) return new ApiResult { Code = 500, Message = L.T("Panel not available") };
 
+        // 操作系统账号认证模式下，口令由系统维护
+        if (!panel.CanChangePassword)
+            return new ApiResult { Code = 403, Message = L.T("Password change is disabled in the current authentication mode.") };
+
+        if (newPassword.Length < 4)
+            return new ApiResult { Code = 400, Message = L.T("The new password must be at least 4 characters.") };
+
         // 验证旧密码
-        if (oldPassword != panel.Password)
+        if (!panel.Authenticate(panel.UserName, oldPassword))
             return new ApiResult { Code = 403, Message = L.T("Old password is incorrect") };
 
-        // 更新配置文件
-        var set = Setting.Current;
-        set.WebPassword = newPassword;
-        set.Save();
-
-        // 更新面板内存中的密码（立即生效，无需重启）
-        panel.UpdateCredentials(null, newPassword);
+        // 加盐哈希后写入配置并立即生效
+        panel.SetPassword(newPassword);
 
         XTrace.Log.WriteLogPrefixed(LogLevel.Info, "[WebPanel]", "The web panel password has been changed.");
 

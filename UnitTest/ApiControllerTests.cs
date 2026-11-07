@@ -452,9 +452,10 @@ public class ApiControllerTests
             var result = controller.ChangePassword("123456", "newpass123");
 
             Assert.Equal(0, GetCode(result));
-            // 内存凭据立即生效，无需重启
-            Assert.Equal("newpass123", panel.Password);
-            Assert.Equal("newpass123", set.WebPassword);
+            // 内存凭据立即生效（哈希存储），无需重启
+            Assert.True(NewLife.Agent.WebPanel.Security.PanelPasswordHash.IsHash(panel.Password));
+            Assert.True(NewLife.Agent.WebPanel.Security.PanelPasswordHash.Verify("newpass123", panel.Password));
+            Assert.Equal(panel.Password, set.WebPassword);
         }
         finally
         {

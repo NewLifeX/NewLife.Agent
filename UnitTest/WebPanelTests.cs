@@ -658,7 +658,8 @@ public class AgentWebPanelTests
             panel.UpdateCredentials("newadmin", "newpass");
 
             Assert.Equal("newadmin", panel.UserName);
-            Assert.Equal("newpass", panel.Password);
+            Assert.True(NewLife.Agent.WebPanel.Security.PanelPasswordHash.IsHash(panel.Password));
+            Assert.True(NewLife.Agent.WebPanel.Security.PanelPasswordHash.Verify("newpass", panel.Password));
         }
         finally
         {
@@ -722,7 +723,7 @@ public class AgentWebPanelTests
             panel.UpdateCredentials("", "newpass");
 
             Assert.Equal("admin", panel.UserName);
-            Assert.Equal("newpass", panel.Password);
+            Assert.True(NewLife.Agent.WebPanel.Security.PanelPasswordHash.Verify("newpass", panel.Password));
         }
         finally
         {

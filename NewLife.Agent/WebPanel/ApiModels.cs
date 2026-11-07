@@ -43,6 +43,12 @@ internal class LoginData
 {
     /// <summary>访问令牌</summary>
     public String Token { get; set; }
+
+    /// <summary>当前认证模式名称（Password/OsAccount），供界面提示</summary>
+    public String AuthMode { get; set; }
+
+    /// <summary>是否允许在面板内修改口令</summary>
+    public Boolean CanChangePassword { get; set; }
 }
 
 /// <summary>服务状态载荷</summary>

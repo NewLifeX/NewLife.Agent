@@ -147,11 +147,35 @@ public class SettingTests
     }
 
     [Fact]
-    [DisplayName("Setting_WebPassword_默认admin")]
-    public void Setting_WebPassword_DefaultAdmin()
+    [DisplayName("Setting_WebPassword_默认空（首次启动生成随机口令）")]
+    public void Setting_WebPassword_DefaultEmpty()
     {
         var set = new Setting();
-        Assert.Equal("admin", set.WebPassword);
+        Assert.Equal("", set.WebPassword);
+    }
+
+    [Fact]
+    [DisplayName("Setting_WebAuthMode_默认Password")]
+    public void Setting_WebAuthMode_DefaultPassword()
+    {
+        var set = new Setting();
+        Assert.Equal("Password", set.WebAuthMode);
+    }
+
+    [Fact]
+    [DisplayName("Setting_WebTls_默认Auto")]
+    public void Setting_WebTls_DefaultAuto()
+    {
+        var set = new Setting();
+        Assert.Equal("Auto", set.WebTls);
+    }
+
+    [Fact]
+    [DisplayName("Setting_WebAllowInsecureRemote_默认false")]
+    public void Setting_WebAllowInsecureRemote_DefaultFalse()
+    {
+        var set = new Setting();
+        Assert.False(set.WebAllowInsecureRemote);
     }
 
     [Fact]
