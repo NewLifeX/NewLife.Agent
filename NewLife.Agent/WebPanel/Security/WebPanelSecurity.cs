@@ -92,8 +92,9 @@ public static class WebPanelSecurity
     /// <summary>加载或生成面板自签证书</summary>
     /// <param name="file">PFX 文件路径</param>
     /// <param name="password">PFX 保护口令</param>
-    /// <returns>证书；当前框架不支持自动生成时返回 null</returns>
-    public static System.Security.Cryptography.X509Certificates.X509Certificate CreateSelfSigned(String file, String password)
+    /// <param name="allowCreate">文件不存在或无法加载时是否允许生成自签证书。用户提供的证书必须传 false，避免覆盖</param>
+    /// <returns>证书；无法加载且不允许生成时返回 null</returns>
+    public static System.Security.Cryptography.X509Certificates.X509Certificate CreateSelfSigned(String file, String password, Boolean allowCreate = true)
     {
 #if NET6_0_OR_GREATER
         if (File.Exists(file))
@@ -108,8 +109,21 @@ public static class WebPanelSecurity
             }
             catch (CryptographicException ex)
             {
+                if (!allowCreate)
+                {
+                    XTrace.Log.WriteLogPrefixed(LogLevel.Error, "[WebPanel]", "Failed to load the panel certificate {0}: {1}", file, ex.Message);
+
+                    return null;
+                }
+
                 XTrace.Log.WriteLogPrefixed(LogLevel.Warn, "[WebPanel]", "Failed to load the panel certificate {0}, regenerating: {1}", file, ex.Message);
             }
+        }
+        else if (!allowCreate)
+        {
+            XTrace.Log.WriteLogPrefixed(LogLevel.Error, "[WebPanel]", "The panel certificate {0} does not exist.", file);
+
+            return null;
         }
 
         try

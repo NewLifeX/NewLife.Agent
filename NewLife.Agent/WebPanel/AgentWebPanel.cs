@@ -312,18 +312,21 @@ public class AgentWebPanel
             file = Path.Combine(WebPanelSecurity.GetConfigDirectory(), "panel.pfx");
         }
 
-        if (!LoadCertificate(file, set.WebCertificatePassword))
+        if (!LoadCertificate(file, set.WebCertificatePassword, !mode.EqualIgnoreCase("Pfx")))
             return AllowInsecure(loopback, set, "TLS could not be enabled");
 
         return true;
     }
 
     /// <summary>加载或生成证书并启用到服务器</summary>
-    private Boolean LoadCertificate(String file, String password)
+    /// <param name="file">证书文件</param>
+    /// <param name="password">证书口令</param>
+    /// <param name="allowCreate">文件不存在或无法读取时是否生成自签证书</param>
+    private Boolean LoadCertificate(String file, String password, Boolean allowCreate)
     {
         try
         {
-            var cert = WebPanelSecurity.CreateSelfSigned(file, password ?? "");
+            var cert = WebPanelSecurity.CreateSelfSigned(file, password ?? "", allowCreate);
 
             return EnableTls(cert);
         }
@@ -538,12 +541,20 @@ public class AgentWebPanel
         var password = PanelPasswordHash.CreateRandomPassword();
         Password = PanelPasswordHash.Hash(password);
 
-        var set = Setting.Current;
-        set.WebPassword = Password;
-        set.Save();
+        try
+        {
+            var set = Setting.Current;
+            set.WebPassword = Password;
+            set.Save();
 
-        WebPanelSecurity.ProtectConfigFile();
-        WriteInitialPasswordFile(password);
+            WebPanelSecurity.ProtectConfigFile();
+            WriteInitialPasswordFile(password);
+        }
+        catch (Exception ex)
+        {
+            // 配置不可写时仍允许本次运行，只是重启后会重新生成
+            XTrace.Log.WriteLogPrefixed(LogLevel.Warn, "[WebPanel]", "Failed to persist the initial password: {0}", ex.Message);
+        }
 
         XTrace.Log.WriteLogPrefixed(LogLevel.Warn, "[WebPanel]", "Generated an initial web panel password: {0}. Sign in and change it as soon as possible.", password);
     }

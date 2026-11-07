@@ -88,6 +88,45 @@ public class PanelSecurityTests
     }
     #endregion
 
+    #region 证书
+    [Fact]
+    [DisplayName("证书_用户提供的Pfx不存在时不生成也不创建文件")]
+    public void CreateSelfSigned_DisallowedCreate_MissingFile()
+    {
+        var file = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pfx");
+        try
+        {
+            Assert.Null(WebPanelSecurity.CreateSelfSigned(file, "", false));
+            Assert.False(File.Exists(file));
+        }
+        finally
+        {
+            if (File.Exists(file)) File.Delete(file);
+        }
+    }
+
+    [Fact]
+    [DisplayName("证书_自签生成后可重复加载且指纹一致")]
+    public void CreateSelfSigned_GeneratesAndReloads()
+    {
+        var file = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pfx");
+        try
+        {
+            var first = WebPanelSecurity.CreateSelfSigned(file, "");
+            Assert.NotNull(first);
+            Assert.True(File.Exists(file));
+
+            var second = WebPanelSecurity.CreateSelfSigned(file, "", false);
+            Assert.NotNull(second);
+            Assert.Equal(first.GetCertHashString(), second.GetCertHashString());
+        }
+        finally
+        {
+            if (File.Exists(file)) File.Delete(file);
+        }
+    }
+    #endregion
+
     #region 认证器
     [Fact]
     [DisplayName("认证器_按配置创建本地口令或系统账号")]
