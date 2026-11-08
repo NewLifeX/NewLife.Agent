@@ -30,6 +30,25 @@ public class CommandFactory
         s => new WatchDog(s),
     ];
 
+    private static readonly List<Func<ServiceBase, BaseCommandHandler>> _customFactories = [];
+
+    /// <summary>静态注册自定义命令处理器工厂</summary>
+    /// <param name="factory">处理器工厂，入参为当前服务实例</param>
+    /// <remarks>
+    /// 应用必须在创建服务实例之前调用本方法登记自己的命令处理器。
+    /// NativeAOT 与裁剪下程序集类型枚举不可靠，反射扫描会静默丢命令；静态注册不依赖任何反射，行为稳定。
+    /// 已静态注册时，不再扫描服务程序集自身的处理器（避免同一命令重复登记）。
+    /// </remarks>
+    public static void RegisterCustomFactory(Func<ServiceBase, BaseCommandHandler> factory)
+    {
+        if (factory == null) return;
+
+        lock (_customFactories)
+        {
+            _customFactories.Add(factory);
+        }
+    }
+
     /// <summary>
     /// 命令工厂
     /// </summary>
@@ -45,11 +64,19 @@ public class CommandFactory
             AddCommandHandler(commandHandlers, factory(service));
         }
 
+        // 自定义命令：优先使用应用静态注册的工厂（NativeAOT 友好）
+        var customFactories = _customFactories.ToArray();
+        foreach (var factory in customFactories)
+        {
+            AddCommandHandler(commandHandlers, factory(service));
+        }
+
         var assemblies = new Dictionary<String, Assembly>();
         var baseAssembly = Assembly.GetExecutingAssembly();
         var serviceAssembly = Assembly.GetAssembly(service.GetType());
         assemblies[baseAssembly.FullName] = baseAssembly;
-        assemblies[serviceAssembly.FullName] = serviceAssembly;
+        // 已静态注册时不再扫描服务程序集，避免同一命令重复登记导致异常
+        if (customFactories.Length == 0) assemblies[serviceAssembly.FullName] = serviceAssembly;
         if (customCommandHandlerAssembly?.Length > 0)
         {
             foreach (var assembly in customCommandHandlerAssembly)

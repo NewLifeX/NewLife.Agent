@@ -74,7 +74,18 @@
       <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)'!='net40'">
+  <!-- 本地联调：加 -p:UseLocalNewLifeSource=true 改为项目引用 NewLife.Core 源码，便于 AOT 适配期间同步修改上游 -->
+  <PropertyGroup>
+    <NewLifeSourceRoot Condition="'$(NewLifeSourceRoot)' == ''">$(MSBuildProjectDirectory)\..\..</NewLifeSourceRoot>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(TargetFramework)'!='net40' and '$(UseLocalNewLifeSource)' == 'true'">
+    <ProjectReference Include="$(NewLifeSourceRoot)\NewLife.Core\NewLife.Core\NewLife.Core.csproj" GlobalPropertiesToRemove="PublishAot;PublishTrimmed;SelfContained" />
+    <!-- 项目引用不会像 NuGet 包那样把 analyzers 传递下来，本地联调需显式挂上 Core 源生成器 -->
+    <ProjectReference Include="$(NewLifeSourceRoot)\NewLife.Core\NewLife.Core.SourceGenerator\NewLife.Core.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" SetTargetFramework="TargetFramework=netstandard2.0" Private="false" AdditionalProperties="PublishAot=false" GlobalPropertiesToRemove="PublishAot;PublishTrimmed;SelfContained;RuntimeIdentifier;RuntimeIdentifiers" />
+    <!-- Core 包的 props 会把 Locales\*.yml 挂成 AdditionalFiles，项目引用模式需自行挂载 -->
+    <AdditionalFiles Include="$(MSBuildProjectDirectory)/Locales/*.yml" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)'!='net40' and '$(UseLocalNewLifeSource)' != 'true'">
     <PackageReference Include="NewLife.Core" Version="12.0.2026.1024" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'=='net40'">
