@@ -82,6 +82,10 @@
     <ProjectReference Include="$(NewLifeSourceRoot)\NewLife.Core\NewLife.Core\NewLife.Core.csproj" GlobalPropertiesToRemove="PublishAot;PublishTrimmed;SelfContained" />
     <!-- 项目引用不会像 NuGet 包那样把 analyzers 传递下来，本地联调需显式挂上 Core 源生成器 -->
     <ProjectReference Include="$(NewLifeSourceRoot)\NewLife.Core\NewLife.Core.SourceGenerator\NewLife.Core.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" SetTargetFramework="TargetFramework=netstandard2.0" Private="false" AdditionalProperties="PublishAot=false" GlobalPropertiesToRemove="PublishAot;PublishTrimmed;SelfContained;RuntimeIdentifier;RuntimeIdentifiers" />
+    <!-- 项目引用模式缺少 Core 包的 props，显式声明源生成器可见属性 -->
+    <CompilerVisibleProperty Include="NewLifeLocalizationGenerateL" />
+    <CompilerVisibleProperty Include="NewLifeLocalizationOverwrite" />
+    <CompilerVisibleProperty Include="NewLifeLocalizationLanguages" />
     <!-- Core 包的 props 会把 Locales\*.yml 挂成 AdditionalFiles，项目引用模式需自行挂载 -->
     <AdditionalFiles Include="$(MSBuildProjectDirectory)/Locales/*.yml" />
   </ItemGroup>

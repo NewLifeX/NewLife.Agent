@@ -478,6 +478,7 @@ public class ApiController : IHttpController
     #region 语言
     /// <summary>获取可用界面语言</summary>
     /// <returns>语言代码、显示名称、配置选中语言与实际生效语言；语言列表不敏感，未登录也可读取</returns>
+    /// <remarks>只列出真正有词表的语言。裁剪过语言词表的小体积发布（如 NativeAOT）会因此只返回少数语言</remarks>
     public Object Languages()
     {
         var items = new List<LanguageItem>();
