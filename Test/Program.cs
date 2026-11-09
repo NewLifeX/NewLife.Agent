@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
+using NewLife;
 using NewLife.Agent.Windows;
 using NewLife.Log;
 
@@ -12,6 +14,13 @@ public class Program
         Environment.SetEnvironmentVariable("DOTNET_SYSTEM_GLOBALIZATION_INVARIANT", "1");
 
         XTrace.UseConsole();
+
+        // NativeAOT 冒烟：自检 Web 面板（内嵌资源、i18n 词表、JSON 源生成与全局配置反射）
+        if (args != null && args.Any(e => e.EqualIgnoreCase("-panel")))
+        {
+            Environment.ExitCode = PanelSmoke.Run();
+            return;
+        }
 
         //var power = new PowerStatus();
         //for (var i = 0; i < 10; i++)

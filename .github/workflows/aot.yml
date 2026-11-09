@@ -143,6 +143,10 @@ jobs:
         out=$("$exe" -status 2>&1)
         echo "$out"
         echo "$out" | grep -q "NewLife.Agent" || { echo "NativeAOT 冒烟未输出预期内容"; exit 1; }
+        # Web 面板冒烟：内嵌首页与 i18n 词表、面板 DTO 序列化、全局配置反射与语言切换落盘（AotRoots 保留）
+        panel=$("$exe" -panel 2>&1)
+        echo "$panel"
+        echo "$panel" | grep -q "AOT_PANEL_PROBE=OK" || { echo "NativeAOT Web 面板冒烟失败"; exit 1; }
 
   # LoongArch64：官方无该 RID 的 NativeAOT 目标包（loongnix 源仅有 net9 的 ILCompiler），
   # 分两层验证：① x64 宿主经 loongnix 源交叉发布自包含包（产物要求 Loongnix 的 glibc 版本节点，
