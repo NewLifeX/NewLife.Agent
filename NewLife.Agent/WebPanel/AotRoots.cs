@@ -13,13 +13,15 @@ namespace NewLife.Agent.WebPanel;
 /// 链接器不会因为源生成器（JsonMemberRegistrar）的静态 lambda 引用而保留"属性可枚举性"，
 /// 必须以 DynamicDependency 显式声明；特性需挂在必然被执行的方法上（实测：静态构造器无效，被调用的 NoInlining 方法有效）。
 /// 由 AgentWebPanel 构造函数调用 Ensure() 触发。新增响应 DTO 必须同步登记（UnitTest 有漂移防护测试）。
-/// 全局配置（NewLife.Setting）同样只在 Core 的配置绑定里被反射访问，AOT 下缺此根会丢失全部成员：
-/// 保存 Core.config 写不出 Language 等节点，语言切换既不持久化，遇到已有空配置节还会抛 XmlWriter 异常。
+/// 全局配置（NewLife.Setting）与网络配置（NewLife.Net.SocketSetting）同样只在 Core 的配置绑定里被反射访问，
+/// AOT 下缺此根会丢失全部成员：保存 Core.config/Socket.config 写不出任何节点，语言切换既不持久化，
+/// 遇到已有空配置节还会抛 XmlWriter 异常。
 /// </remarks>
 internal static class AotRoots
 {
 #if NET5_0_OR_GREATER
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields, typeof(NewLife.Setting))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields, typeof(NewLife.Net.SocketSetting))]
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(ApiResult))]
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(ApiResult<>))]
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(FreeMemoryResult))]

@@ -428,7 +428,7 @@ public class WebPanelContractTests
         // Core 配置绑定只按运行时类型反射属性；缺此根时 AOT 下语言等配置写不进 Core.config
         var memberTypes = method.GetCustomAttributes<DynamicDependencyAttribute>()
             .Where(e => e.Type == typeof(NewLife.Setting))
-            .Select(e => e.MemberTypes ?? DynamicallyAccessedMemberTypes.None)
+            .Select(e => e.MemberTypes)
             .ToList();
 
         Assert.True(memberTypes.Any(e => e.HasFlag(DynamicallyAccessedMemberTypes.PublicProperties)), "AotRoots 缺少 NewLife.Setting 公开属性保留");
