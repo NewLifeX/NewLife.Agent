@@ -415,5 +415,23 @@ public class WebPanelContractTests
             Assert.Contains(type, registered);
         }
     }
+
+    [Fact]
+    [DisplayName("AotRoots_全局配置模型_登记DynamicDependency")]
+    public void AotRoots_CoreSetting_Registered()
+    {
+        var assembly = typeof(ApiController).Assembly;
+        var method = assembly.GetType("NewLife.Agent.WebPanel.AotRoots")
+            ?.GetMethod("Ensure", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+        Assert.NotNull(method);
+
+        // Core 配置绑定只按运行时类型反射属性；缺此根时 AOT 下语言等配置写不进 Core.config
+        var memberTypes = method.GetCustomAttributes<DynamicDependencyAttribute>()
+            .Where(e => e.Type == typeof(NewLife.Setting))
+            .Select(e => e.MemberTypes ?? DynamicallyAccessedMemberTypes.None)
+            .ToList();
+
+        Assert.True(memberTypes.Any(e => e.HasFlag(DynamicallyAccessedMemberTypes.PublicProperties)), "AotRoots 缺少 NewLife.Setting 公开属性保留");
+    }
     #endregion
 }
