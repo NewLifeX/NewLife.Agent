@@ -17,7 +17,10 @@
   <!-- AOT 发布：net8.0+ 目标常驻启用，供 CI 发布冒烟（对齐 Core 的 AotSmoke 模式） -->
   <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
     <PublishAot>true</PublishAot>
-    <!--<InvariantGlobalization>true</InvariantGlobalization>-->
+  </PropertyGroup>
+  <!-- 静态 musl 无法加载系统 ICU，按 RID 在构建期固定 InvariantGlobalization，CI 与本地发布保持一致 -->
+  <PropertyGroup Condition="$(RuntimeIdentifier.StartsWith('linux-musl'))">
+    <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\NewLife.Agent\NewLife.Agent.csproj" />

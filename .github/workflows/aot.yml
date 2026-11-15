@@ -44,10 +44,10 @@ jobs:
           # 交叉产物为 ARM 架构，ubuntu x64 无法直接运行，仅做发布验证
           - { rid: linux-arm,   os: ubuntu-24.04, cross: armhf, smoke: false, args: "-p:LinkerFlavor=lld" }
           # Linux musl：交叉构建；x64 产物静态链接可在本机运行，其余仅做发布验证。
-          # 静态 musl 无法加载系统 ICU，构建期必须启用 InvariantGlobalization，否则 NativeAOT 冒烟启动即 SIGABRT(134)
-          - { rid: linux-musl-x64,   os: ubuntu-24.04, cross: musl-x64,   smoke: true,  args: "-p:CppLinker=/usr/local/bin/clang-musl -p:InvariantGlobalization=true" }
-          - { rid: linux-musl-arm64, os: ubuntu-24.04, cross: musl-arm64, smoke: false, args: "-p:CppLinker=/usr/local/bin/clang-musl -p:LinkerFlavor=lld -p:InvariantGlobalization=true" }
-          - { rid: linux-musl-arm,   os: ubuntu-24.04, cross: musl-arm,   smoke: false, args: "-p:CppLinker=/usr/local/bin/clang-musl -p:LinkerFlavor=lld -p:InvariantGlobalization=true" }
+          # 静态 musl 无法加载系统 ICU，InvariantGlobalization 已按 RID 在 Test.csproj 中固定
+          - { rid: linux-musl-x64,   os: ubuntu-24.04, cross: musl-x64,   smoke: true,  args: "-p:CppLinker=/usr/local/bin/clang-musl" }
+          - { rid: linux-musl-arm64, os: ubuntu-24.04, cross: musl-arm64, smoke: false, args: "-p:CppLinker=/usr/local/bin/clang-musl -p:LinkerFlavor=lld" }
+          - { rid: linux-musl-arm,   os: ubuntu-24.04, cross: musl-arm,   smoke: false, args: "-p:CppLinker=/usr/local/bin/clang-musl -p:LinkerFlavor=lld" }
           # macOS
           - { rid: osx-x64,   os: macos-15-intel, smoke: true }
           - { rid: osx-arm64, os: macos-15,       smoke: true }
