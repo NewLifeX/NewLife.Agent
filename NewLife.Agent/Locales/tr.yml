@@ -139,3 +139,6 @@
 "The web panel is moving to the new address and will reopen shortly. Sign in again if prompted.": "Web paneli yeni adrese taşınıyor ve kısa süre içinde yeniden açılacak. İstenirse tekrar oturum açın."
 "The web panel is restarting; try again later.": "Web paneli yeniden başlatılıyor; daha sonra tekrar deneyin."
 "The new password must be at least 4 characters.": "Yeni parola en az 4 karakter olmalıdır."
+"Failed to save the configuration.": "Yapılandırma kaydedilemedi."
+"Failed to save the web panel password: {0}": "Web paneli parolası kaydedilemedi: {0}"
+"Remote access requires AllowInsecureRemote=true in the configuration file.": "Uzak erişim için yapılandırma dosyasında AllowInsecureRemote=true gereklidir."

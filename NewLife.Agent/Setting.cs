@@ -73,6 +73,10 @@ public class Setting : Config<Setting>
     [Description("Web panel bind address. Default 127.0.0.1 for local access only; set to * to listen on all interfaces, or specify an IP address.")]
     public String WebBind { get; set; } = "127.0.0.1";
 
+    /// <summary>是否允许面板在非回环地址上以明文HTTP运行。默认false，远程访问请用反向代理终止TLS或SSH隧道</summary>
+    [Description("Allow the web panel to listen on a non-loopback address over plain HTTP. Default false; terminate TLS with a reverse proxy or use an SSH tunnel instead.")]
+    public Boolean AllowInsecureRemote { get; set; }
+
     /// <summary>Web面板用户名</summary>
     [Description("Web panel user name.")]
     public String WebUserName { get; set; } = "admin";

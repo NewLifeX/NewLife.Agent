@@ -262,7 +262,7 @@ public class LocalizationTests
             var svc = new Mock<ServiceBase> { CallBase = true }.Object;
             svc.ServiceName = "LocTest";
 
-            var panel = new AgentWebPanel(svc) ;
+            var panel = new AgentWebPanel(svc) { Password = "123456" };
             panel.Start();
             try
             {
@@ -508,7 +508,7 @@ public class LocalizationTests
 
             var svc = new Mock<ServiceBase> { CallBase = true }.Object;
             svc.ServiceName = "LangState";
-            var panel = new AgentWebPanel(svc) ;
+            var panel = new AgentWebPanel(svc) { Password = "123456" };
             panel.Start();
             try
             {

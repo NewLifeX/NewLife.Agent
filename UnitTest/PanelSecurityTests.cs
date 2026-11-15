@@ -7,6 +7,7 @@ using Moq;
 using NewLife;
 using NewLife.Agent;
 using NewLife.Agent.WebPanel;
+using NewLife.Agent.WebPanel.Security;
 using NewLife.Data;
 using NewLife.Http;
 using NewLife.Security;
@@ -92,6 +93,41 @@ public class PanelSecurityTests
 
         Assert.True(panel.Authenticate("admin", "123456"));
         Assert.False(panel.Authenticate("admin", "654321"));
+    }
+
+    [Fact]
+    [DisplayName("口令哈希_默认PBKDF2_格式与恒定校验")]
+    public void PasswordProvider_DefaultPbkdf2()
+    {
+        var panel = CreatePanel();
+        var provider = Assert.IsType<Pbkdf2PasswordProvider>(panel.PasswordProvider);
+
+        var stored = provider.Hash("P@ssw0rd");
+
+        Assert.StartsWith(Pbkdf2PasswordProvider.Prefix, stored);
+        Assert.True(provider.Verify("P@ssw0rd", stored));
+        Assert.False(provider.Verify("p@ssw0rd", stored));
+        Assert.False(provider.Verify("P@ssw0rd", stored + "x"));
+        Assert.False(provider.Verify("P@ssw0rd", "$pbkdf2-sha256$bad"));
+    }
+
+    [Fact]
+    [DisplayName("口令哈希_PBKDF2兼容旧加盐SHA512并登录后升级")]
+    public void PasswordProvider_LegacySha512_Migrates()
+    {
+        using var scope = new SettingScope();
+        var set = Setting.Current;
+        set.EnableWebPanel = false;
+        set.WebUserName = "admin";
+        set.WebPassword = new SaltPasswordProvider().Hash("legacy-pass");
+
+        var panel = CreatePanel();
+        Assert.False(panel.IsDefaultPassword);
+
+        Assert.NotNull(panel.IssueToken("admin", "legacy-pass"));
+        Assert.StartsWith(Pbkdf2PasswordProvider.Prefix, panel.Password);
+        Assert.StartsWith(Pbkdf2PasswordProvider.Prefix, set.WebPassword);
+        Assert.True(panel.PasswordProvider.Verify("legacy-pass", set.WebPassword));
     }
 
     private class StubPasswordProvider : IPasswordProvider
@@ -211,7 +247,7 @@ public class PanelSecurityTests
 
     #region 启动安全前置
     [Fact]
-    [DisplayName("启动检查_非本机监听且使用默认口令时拒绝启动")]
+    [DisplayName("启动检查_非本机监听且默认口令_拒绝明文远程并替换随机口令")]
     public void Start_NonLoopback_DefaultPassword_Refuses()
     {
         using var scope = new SettingScope();
@@ -220,6 +256,27 @@ public class PanelSecurityTests
         set.WebBind = "0.0.0.0";
         set.WebPort = 0;
         set.WebPassword = "admin";
+        set.AllowInsecureRemote = false;
+
+        var panel = CreatePanel();
+        panel.Start();
+
+        Assert.False(panel.Active);
+        // admin 已被随机口令替换，避免默认口令长期留在配置里
+        Assert.NotEqual("admin", set.WebPassword);
+    }
+
+    [Fact]
+    [DisplayName("启动检查_非本机监听未显式允许明文远程_拒绝")]
+    public void Start_NonLoopback_WithoutOptIn_Refuses()
+    {
+        using var scope = new SettingScope();
+        var set = Setting.Current;
+        set.EnableWebPanel = false;
+        set.WebBind = "0.0.0.0";
+        set.WebPort = 0;
+        set.WebPassword = "MyPass";
+        set.AllowInsecureRemote = false;
 
         var panel = CreatePanel();
         panel.Start();
@@ -228,7 +285,31 @@ public class PanelSecurityTests
     }
 
     [Fact]
-    [DisplayName("启动检查_本机回环使用默认口令仍可启动")]
+    [DisplayName("启动检查_非本机监听显式允许明文远程_可启动")]
+    public void Start_NonLoopback_WithOptIn_Starts()
+    {
+        using var scope = new SettingScope();
+        var set = Setting.Current;
+        set.EnableWebPanel = false;
+        set.WebBind = "0.0.0.0";
+        set.WebPort = 0;
+        set.WebPassword = "MyPass";
+        set.AllowInsecureRemote = true;
+
+        var panel = CreatePanel();
+        panel.Start();
+        try
+        {
+            Assert.True(panel.Active);
+        }
+        finally
+        {
+            panel.Stop("TestDone");
+        }
+    }
+
+    [Fact]
+    [DisplayName("启动检查_本机回环使用默认口令仍可启动且随机口令替换admin")]
     public void Start_Loopback_DefaultPassword_Starts()
     {
         using var scope = new SettingScope();
@@ -243,6 +324,11 @@ public class PanelSecurityTests
         try
         {
             Assert.True(panel.Active);
+
+            // 默认口令在启动时被随机口令替换，admin/admin 不再可用
+            Assert.False(panel.IsDefaultPassword);
+            Assert.NotEqual("admin", set.WebPassword);
+            Assert.Null(panel.IssueToken("admin", "admin"));
         }
         finally
         {

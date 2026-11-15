@@ -139,3 +139,6 @@
 "The web panel is moving to the new address and will reopen shortly. Sign in again if prompted.": "Webový panel se přesouvá na novou adresu a brzy se znovu otevře. Pokud budete vyzváni, přihlaste se znovu."
 "The web panel is restarting; try again later.": "Webový panel se restartuje; zkuste to později."
 "The new password must be at least 4 characters.": "Nové heslo musí mít alespoň 4 znaky."
+"Failed to save the configuration.": "Konfiguraci se nepodařilo uložit."
+"Failed to save the web panel password: {0}": "Heslo webového panelu se nepodařilo uložit: {0}"
+"Remote access requires AllowInsecureRemote=true in the configuration file.": "Vzdálený přístup vyžaduje AllowInsecureRemote=true v konfiguračním souboru."

@@ -139,3 +139,6 @@
 "The web panel is moving to the new address and will reopen shortly. Sign in again if prompted.": "Webpanelet flyttes til den nye adressen og åpnes igjen snart. Logg inn på nytt hvis du blir bedt om det."
 "The web panel is restarting; try again later.": "Webpanelet starter på nytt; prøv igjen senere."
 "The new password must be at least 4 characters.": "Det nye passordet må ha minst 4 tegn."
+"Failed to save the configuration.": "Konfigurasjonen kunne ikke lagres."
+"Failed to save the web panel password: {0}": "Passordet til webpanelet kunne ikke lagres: {0}"
+"Remote access requires AllowInsecureRemote=true in the configuration file.": "Ekstern tilgang krever AllowInsecureRemote=true i konfigurasjonsfilen."

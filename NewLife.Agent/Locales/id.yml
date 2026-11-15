@@ -139,3 +139,6 @@
 "The web panel is moving to the new address and will reopen shortly. Sign in again if prompted.": "Panel web sedang berpindah ke alamat baru dan akan segera dibuka kembali. Masuk kembali jika diminta."
 "The web panel is restarting; try again later.": "Panel web sedang dimulai ulang; coba lagi nanti."
 "The new password must be at least 4 characters.": "Kata sandi baru harus minimal 4 karakter."
+"Failed to save the configuration.": "Gagal menyimpan konfigurasi."
+"Failed to save the web panel password: {0}": "Gagal menyimpan kata sandi panel web: {0}"
+"Remote access requires AllowInsecureRemote=true in the configuration file.": "Akses jarak jauh memerlukan AllowInsecureRemote=true di file konfigurasi."

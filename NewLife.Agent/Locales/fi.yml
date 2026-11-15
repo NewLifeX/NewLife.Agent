@@ -139,3 +139,6 @@
 "The web panel is moving to the new address and will reopen shortly. Sign in again if prompted.": "Verkkopaneeli siirtyy uuteen osoitteeseen ja avautuu pian uudelleen. Kirjaudu uudelleen, jos sinua pyydetään."
 "The web panel is restarting; try again later.": "Verkkopaneeli käynnistyy uudelleen; yritä myöhemmin uudelleen."
 "The new password must be at least 4 characters.": "Uuden salasanan on oltava vähintään 4 merkkiä."
+"Failed to save the configuration.": "Asetusten tallennus epäonnistui."
+"Failed to save the web panel password: {0}": "Verkkopaneelin salasanan tallennus epäonnistui: {0}"
+"Remote access requires AllowInsecureRemote=true in the configuration file.": "Etäkäyttö edellyttää AllowInsecureRemote=true -asetusta asetustiedostossa."

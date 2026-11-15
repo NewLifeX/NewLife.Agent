@@ -139,3 +139,6 @@
 "The web panel is moving to the new address and will reopen shortly. Sign in again if prompted.": "لوحة الويب تنتقل إلى العنوان الجديد وستُعاد فتحها قريبًا. سجّل الدخول مرة أخرى إذا طُلب منك ذلك."
 "The web panel is restarting; try again later.": "لوحة الويب قيد إعادة التشغيل؛ حاول مرة أخرى لاحقًا."
 "The new password must be at least 4 characters.": "يجب ألا تقل كلمة المرور الجديدة عن 4 أحرف."
+"Failed to save the configuration.": "تعذر حفظ التكوين."
+"Failed to save the web panel password: {0}": "تعذر حفظ كلمة مرور لوحة الويب: {0}"
+"Remote access requires AllowInsecureRemote=true in the configuration file.": "يتطلب الوصول عن بُعد ضبط AllowInsecureRemote=true في ملف التكوين."

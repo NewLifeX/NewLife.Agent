@@ -124,7 +124,7 @@ public class ApiController : IHttpController
     {
         if (!CheckAuth()) return new ApiResult { Code = 401, Message = L.T("Unauthorized") };
 
-        var p = Process.GetCurrentProcess();
+        using var p = Process.GetCurrentProcess();
         var uptime = DateTime.Now - p.StartTime;
         var mi = MachineInfo.Current ?? MachineInfo.GetCurrent();
 
@@ -264,7 +264,7 @@ public class ApiController : IHttpController
     {
         if (!CheckAuth()) return new ApiResult { Code = 401, Message = L.T("Unauthorized") };
 
-        var p = Process.GetCurrentProcess();
+        using var p = Process.GetCurrentProcess();
         var beforeMB = p.WorkingSet64 / 1024 / 1024;
 
         XTrace.Log.WriteLogPrefixed(LogLevel.Info, "[WebPanel]", "The web panel triggered memory release; WorkingSet before release={0} MB.", beforeMB);
@@ -481,7 +481,16 @@ public class ApiController : IHttpController
         // 未涉及监听地址/端口，直接落盘
         if ((!bindChanged && !portChanged) || panel == null)
         {
-            set.Save();
+            try
+            {
+                set.Save();
+            }
+            catch (Exception ex)
+            {
+                XTrace.WriteException(ex);
+
+                return new ApiResult { Code = 500, Message = L.T("Failed to save the configuration.") };
+            }
 
             return new ApiResult { Code = 0, Message = L.T("Configuration updated; some settings take effect after the service restarts.") };
         }
@@ -500,6 +509,14 @@ public class ApiController : IHttpController
             RestoreBinding(set, oldBind, oldPort);
 
             return new ApiResult { Code = 400, Message = L.T("Change the web panel password before exposing the panel to the network.") };
+        }
+
+        // 面板没有 TLS，非回环监听必须在配置文件显式允许，避免口令与令牌明文过网
+        if (!AgentWebPanel.IsLoopbackBind(set.WebBind) && !set.AllowInsecureRemote)
+        {
+            RestoreBinding(set, oldBind, oldPort);
+
+            return new ApiResult { Code = 400, Message = L.T("Remote access requires AllowInsecureRemote=true in the configuration file. Keep the panel on 127.0.0.1 and use a reverse proxy for TLS, or edit the configuration manually if you accept the risk.") };
         }
 
         if (!panel.RequestRebind(bindChanged ? set.WebBind : null, portChanged ? set.WebPort : null))
@@ -784,7 +801,7 @@ public class ApiController : IHttpController
     {
         if (!CheckAuth()) return new ApiResult { Code = 401, Message = L.T("Unauthorized") };
 
-        var p = Process.GetCurrentProcess();
+        using var p = Process.GetCurrentProcess();
         var set = Setting.Current;
 
         return new ApiResult<HealthData>
@@ -844,7 +861,12 @@ public class ApiController : IHttpController
         try
         {
             var processes = Process.GetProcessesByName(serviceName);
-            if (processes.Length > 0) return true;
+            if (processes.Length > 0)
+            {
+                foreach (var p in processes) p.Dispose();
+
+                return true;
+            }
         }
         catch { }
         return null;

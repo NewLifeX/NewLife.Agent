@@ -27,8 +27,8 @@ public class AgentWebPanel
     /// <summary>所属服务</summary>
     public ServiceBase Service { get; }
 
-    /// <summary>口令哈希提供者。默认加盐 SHA512，可在启动前替换为更强的算法实现</summary>
-    public IPasswordProvider PasswordProvider { get; set; } = new SaltPasswordProvider();
+    /// <summary>口令哈希提供者。默认 PBKDF2-SHA256（兼容历史明文与旧哈希），可在启动前替换为更强的算法实现</summary>
+    public IPasswordProvider PasswordProvider { get; set; } = new Pbkdf2PasswordProvider();
 
     /// <summary>当前口令是否仍为默认值（空或 admin）</summary>
     public Boolean IsDefaultPassword
@@ -233,6 +233,9 @@ public class AgentWebPanel
     {
         if (Server.Active) return;
 
+        // 默认口令在首次启动时随机生成并落盘，避免 admin/admin 被本机任意用户直接利用
+        if (IsDefaultPassword && !GenerateInitialPassword()) return;
+
         if (!CheckSecurity()) return;
 
         Server.Start();
@@ -245,15 +248,45 @@ public class AgentWebPanel
             XTrace.Log.WriteLogPrefixed(LogLevel.Warn, "[WebPanel]", "Security warning: the web panel is still using the default password. Change it from the panel or set WebPassword in the configuration file.");
     }
 
-    /// <summary>启动前的安全检查。非本机监听且仍使用默认口令时拒绝启动</summary>
+    /// <summary>生成随机初始口令并持久化。失败时拒绝启动，避免退回默认口令</summary>
+    /// <returns>是否成功</returns>
+    private Boolean GenerateInitialPassword()
+    {
+        var password = Rand.NextString(16, false);
+
+        try
+        {
+            SetPassword(password);
+        }
+        catch (Exception ex)
+        {
+            XTrace.Log.WriteLogPrefixed(LogLevel.Error, "[WebPanel]", "Refusing to start: failed to persist the generated initial password: {0}", ex.Message);
+
+            return false;
+        }
+
+        XTrace.Log.WriteLogPrefixed(LogLevel.Warn, "[WebPanel]", "The web panel generated a random initial password: {0}. Sign in and change it as soon as possible.", password);
+
+        return true;
+    }
+
+    /// <summary>启动前的安全检查。非本机监听时必须显式允许明文远程访问，且不能使用默认口令</summary>
     /// <remarks>
-    /// 面板具备服务控制与配置查看能力，等同于管理员权限。默认口令一旦暴露到网络，任何人都可以先登录并改掉口令。
-    /// 需要远程访问时，应先修改口令，或改用反向代理/SSH隧道仅暴露本机回环端口。子类可重写本方法放开限制。
+    /// 面板具备服务控制与配置查看能力，等同于管理员权限；HttpServer 未启用 TLS 时，口令和令牌会明文过网。
+    /// 远程访问建议保持 WebBind=127.0.0.1 并通过反向代理终止 TLS（或 SSH 隧道）；
+    /// 确需明文直连时，必须在配置文件中显式设置 AllowInsecureRemote=true。子类可重写本方法放开限制。
     /// </remarks>
     /// <returns>是否允许启动</returns>
     protected virtual Boolean CheckSecurity()
     {
         if (IsLoopbackBinding()) return true;
+
+        if (!Setting.Current.AllowInsecureRemote)
+        {
+            XTrace.Log.WriteLogPrefixed(LogLevel.Error, "[WebPanel]", "Refusing to start: the web panel listens on a non-loopback address without TLS. Keep WebBind=127.0.0.1 and use a reverse proxy or SSH tunnel, or set AllowInsecureRemote=true in the configuration file if you accept the risk.");
+
+            return false;
+        }
 
         if (!IsDefaultPassword) return true;
 
@@ -629,7 +662,16 @@ public class AgentWebPanel
 
         var set = Setting.Current;
         set.WebPassword = Password;
-        set.Save();
+        try
+        {
+            set.Save();
+        }
+        catch (Exception ex)
+        {
+            // 口令无法落盘时不能让调用方误以为已生效：重启后旧口令仍可用，必须显式报错
+            XTrace.WriteException(ex);
+            throw new XException(L.T("Failed to save the web panel password: {0}", ex.Message));
+        }
 
         WebPanelSecurity.ProtectConfigFile();
 
@@ -642,7 +684,10 @@ public class AgentWebPanel
     /// <param name="password">刚刚验证通过的明文口令</param>
     private void MigrateLegacyPassword(String password)
     {
-        if (!String.Equals(Password, password, StringComparison.Ordinal)) return;
+        // 明文口令，或旧版加盐散列（$sha512$ 等）在登录成功后统一升级为当前哈希格式
+        var legacy = String.Equals(Password, password, StringComparison.Ordinal) ||
+            (PasswordProvider is Pbkdf2PasswordProvider && Password.StartsWith("$", StringComparison.Ordinal) && !Pbkdf2PasswordProvider.IsPbkdf2Hash(Password));
+        if (!legacy) return;
         if (!String.Equals(Password, Setting.Current.WebPassword, StringComparison.Ordinal)) return;
 
         var hash = PasswordProvider.Hash(password);
@@ -654,11 +699,19 @@ public class AgentWebPanel
 
         var set = Setting.Current;
         set.WebPassword = Password;
-        set.Save();
+        try
+        {
+            set.Save();
 
-        WebPanelSecurity.ProtectConfigFile();
+            WebPanelSecurity.ProtectConfigFile();
 
-        XTrace.Log.WriteLogPrefixed(LogLevel.Info, "[WebPanel]", "The web panel password has been upgraded to a salted hash.");
+            XTrace.Log.WriteLogPrefixed(LogLevel.Info, "[WebPanel]", "The web panel password has been upgraded to a salted hash.");
+        }
+        catch (Exception ex)
+        {
+            // 登录已经成功，落盘失败不应阻断会话；下次登录会继续尝试升级
+            XTrace.WriteException(ex);
+        }
     }
     #endregion
 

@@ -389,7 +389,7 @@ public class AgentWebPanelTests
 
         try
         {
-            var panel = new AgentWebPanel(mockSvc.Object);
+            var panel = new AgentWebPanel(mockSvc.Object) { Password = "123456" };
             panel.Start();
             Assert.True(panel.Active);
             Assert.NotEqual(0, panel.Port);
@@ -418,7 +418,7 @@ public class AgentWebPanelTests
 
         try
         {
-            var panel = new AgentWebPanel(mockSvc.Object);
+            var panel = new AgentWebPanel(mockSvc.Object) { Password = "123456" };
             panel.Start();
             panel.Stop("first");
             Assert.False(panel.Active);
@@ -452,7 +452,7 @@ public class AgentWebPanelTests
             set.EnableWebPanel = false;
             set.WebBind = "127.0.0.1";
 
-            var panel = new AgentWebPanel(mockSvc.Object);
+            var panel = new AgentWebPanel(mockSvc.Object) { Password = "123456" };
             panel.Start();
             try
             {
@@ -490,12 +490,16 @@ public class AgentWebPanelTests
         var prevPort = set.WebPort;
         var prevBind = set.WebBind;
         var prevEnable = set.EnableWebPanel;
+        var prevPassword = set.WebPassword;
+        var prevAllowInsecure = set.AllowInsecureRemote;
 
         try
         {
             set.WebPort = 0;
             set.EnableWebPanel = false;
             set.WebBind = "*";
+            set.WebPassword = "123456";
+            set.AllowInsecureRemote = true;
 
             var panel = new AgentWebPanel(mockSvc.Object);
             panel.Start();
@@ -514,6 +518,8 @@ public class AgentWebPanelTests
             set.WebPort = prevPort;
             set.WebBind = prevBind;
             set.EnableWebPanel = prevEnable;
+            set.WebPassword = prevPassword;
+            set.AllowInsecureRemote = prevAllowInsecure;
         }
     }
 

@@ -139,3 +139,6 @@
 "Change the web panel password before exposing the panel to the network.": "對外開放 Web 面板前，請先修改面板密碼。"
 "The web panel is moving to the new address and will reopen shortly. Sign in again if prompted.": "Web 面板正在移轉到新位址並即將重新開啟。若提示需要登入，請重新登入。"
 "The web panel is restarting; try again later.": "Web 面板正在重新啟動，請稍後再試。"
+"Failed to save the configuration.": "儲存設定失敗。"
+"Failed to save the web panel password: {0}": "儲存 Web 面板密碼失敗：{0}"
+"Remote access requires AllowInsecureRemote=true in the configuration file.": "遠端存取需要在設定檔中設定 AllowInsecureRemote=true。"

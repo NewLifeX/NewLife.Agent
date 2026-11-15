@@ -139,3 +139,6 @@
 "The web panel is moving to the new address and will reopen shortly. Sign in again if prompted.": "A webpanel áttér az új címre, és hamarosan újra megnyílik. Ha a rendszer kéri, jelentkezzen be újra."
 "The web panel is restarting; try again later.": "A webpanel újraindul; próbálja újra később."
 "The new password must be at least 4 characters.": "Az új jelszónak legalább 4 karakter hosszúnak kell lennie."
+"Failed to save the configuration.": "Nem sikerült menteni a konfigurációt."
+"Failed to save the web panel password: {0}": "Nem sikerült menteni a webpanel jelszavát: {0}"
+"Remote access requires AllowInsecureRemote=true in the configuration file.": "A távoli hozzáféréshez AllowInsecureRemote=true szükséges a konfigurációs fájlban."

@@ -139,3 +139,6 @@
 "The web panel is moving to the new address and will reopen shortly. Sign in again if prompted.": "ওয়েব প্যানেলটি নতুন ঠিকানায় স্থানান্তরিত হচ্ছে এবং শীঘ্রই আবার খুলবে। অনুরোধ এলে আবার লগইন করুন।"
 "The web panel is restarting; try again later.": "ওয়েব প্যানেল পুনরায় চালু হচ্ছে; পরে আবার চেষ্টা করুন।"
 "The new password must be at least 4 characters.": "নতুন পাসওয়ার্ড কমপক্ষে 4 অক্ষরের হতে হবে।"
+"Failed to save the configuration.": "কনফিগারেশন সংরক্ষণ করা যায়নি।"
+"Failed to save the web panel password: {0}": "ওয়েব প্যানেলের পাসওয়ার্ড সংরক্ষণ করা যায়নি: {0}"
+"Remote access requires AllowInsecureRemote=true in the configuration file.": "দূরবর্তী অ্যাক্সেসের জন্য কনফিগারেশন ফাইলে AllowInsecureRemote=true প্রয়োজন।"
