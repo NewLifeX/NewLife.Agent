@@ -1,8 +1,10 @@
 ﻿#if !NET40
 using System.Diagnostics;
 using System.Globalization;
+using System.Net;
 using System.Net.NetworkInformation;
 using System.Reflection;
+using System.Text;
 using NewLife.Data;
 using NewLife.Http;
 using NewLife.Log;
@@ -89,6 +91,10 @@ public class ApiController : IHttpController
     }
 
     /// <summary>获取客户端IP地址</summary>
+    /// <remarks>
+    /// 同机回环说明请求来自本机反向代理（nginx 等），此时以 X-Forwarded-For 首个地址作为真实客户端。
+    /// 否则反代后所有用户共用 127.0.0.1，任意人连错几次就能把全员登录锁死。
+    /// </remarks>
     /// <returns>IP字符串，无法获取时返回 unknown</returns>
     protected String GetClientIp()
     {
@@ -96,7 +102,18 @@ public class ApiController : IHttpController
         var socket = ctx?.Socket;
         if (socket?.Remote == null || socket.Remote.Address == null) return "unknown";
 
-        return socket.Remote.Address + "";
+        var address = socket.Remote.Address;
+        if (IPAddress.IsLoopback(address))
+        {
+            var forwarded = ctx.Request.Headers["X-Forwarded-For"];
+            if (!forwarded.IsNullOrEmpty())
+            {
+                var first = forwarded.Split(',')[0].Trim();
+                if (IPAddress.TryParse(first, out var real)) return real.ToString();
+            }
+        }
+
+        return address + "";
     }
     #endregion
 
@@ -300,6 +317,33 @@ public class ApiController : IHttpController
                name.EndsWith("Secret", StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>允许从面板修改的配置字段白名单</summary>
+    /// <remarks>
+    /// 用白名单而不是“密码/密钥”黑名单：AfterStart 会在服务启动时执行命令，ServiceName 与 DisplayName 会拼接进服务控制命令与
+    /// 以 root 身份执行的启动脚本，这些字段一旦可改，等于给面板用户一个持久化的命令执行入口。
+    /// 新增配置项默认不可从面板修改，需要时显式加到这里。
+    /// </remarks>
+    internal static readonly HashSet<String> WritableConfig = new(StringComparer.OrdinalIgnoreCase)
+    {
+        nameof(Setting.WatchInterval),
+        nameof(Setting.FreeMemoryInterval),
+        nameof(Setting.MaxMemory),
+        nameof(Setting.MaxThread),
+        nameof(Setting.MaxHandle),
+        nameof(Setting.AutoRestart),
+        nameof(Setting.RestartTimeRange),
+        nameof(Setting.WatchDog),
+        nameof(Setting.EnableWebPanel),
+        nameof(Setting.WebPort),
+        nameof(Setting.WebBind),
+        nameof(Setting.UseAutorun),
+    };
+
+    /// <summary>判断配置字段是否允许从面板修改</summary>
+    /// <param name="name">配置项名称</param>
+    /// <returns>是否允许修改</returns>
+    internal static Boolean IsWritableConfig(String name) => !name.IsNullOrEmpty() && WritableConfig.Contains(name);
+
     /// <summary>获取配置元数据（DisplayName + Description + Type + Value），供前端三列布局渲染</summary>
     /// <returns>配置项列表，含显示名、描述、类型和当前值</returns>
     public Object ConfigMetadata()
@@ -361,6 +405,9 @@ public class ApiController : IHttpController
         var oldBind = set.WebBind;
         var oldPort = set.WebPort;
 
+        // 两阶段应用：先全部校验与转换，再统一写入。避免中途失败留下“改了一半”的内存配置
+        var values = new Dictionary<PropertyInfo, Object>();
+        var backup = new Dictionary<PropertyInfo, Object>();
         try
         {
             foreach (var kv in updates)
@@ -368,21 +415,34 @@ public class ApiController : IHttpController
                 var prop = typeof(Setting).GetProperty(kv.Key, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
                 if (prop == null || !prop.CanWrite) continue;
 
-                // 安全字段白名单：密码/密钥只能通过专用接口写入，不允许从配置面板回写
-                if (IsSensitive(kv.Key)) continue;
+                // 白名单：只有明确允许的字段才能从面板改写，其余（口令、启动命令、服务名等）一律拒绝
+                if (!IsWritableConfig(kv.Key))
+                    return new ApiResult { Code = 403, Message = L.T("The setting {0} cannot be modified from the web panel.", kv.Key) };
 
                 var value = kv.Value;
                 if (value != null && value.GetType() != prop.PropertyType)
                     value = Reflect.ChangeType(value, prop.PropertyType);
 
-                prop.SetValue(set, value, null);
+                values[prop] = value;
+                backup[prop] = prop.GetValue(set, null);
             }
+
+            foreach (var kv in values)
+                kv.Key.SetValue(set, kv.Value, null);
         }
         catch (Exception ex)
         {
+            // 回滚已写入的字段，内存配置与落盘配置必须保持一致；错误信息只记日志，不回传内部细节
+            foreach (var kv in backup)
+            {
+                try { kv.Key.SetValue(set, kv.Value, null); } catch { }
+            }
+
             RestoreBinding(set, oldBind, oldPort);
 
-            return new ApiResult { Code = 500, Message = ex.Message };
+            XTrace.WriteException(ex);
+
+            return new ApiResult { Code = 400, Message = L.T("Invalid value for one or more settings.") };
         }
 
         var bindChanged = !String.Equals(oldBind?.Trim(), set.WebBind?.Trim(), StringComparison.OrdinalIgnoreCase);
@@ -462,9 +522,20 @@ public class ApiController : IHttpController
         if (newPassword.Length < 4)
             return new ApiResult { Code = 400, Message = L.T("The new password must be at least 4 characters.") };
 
+        // 旧口令校验同样限速：令牌被窃后不能靠本地无限次猜测旧口令完成劫持
+        var ip = GetClientIp();
+        if (LoginRateLimiter.IsBlocked(ip))
+            return new ApiResult { Code = 429, Message = L.T("Too many failed attempts. Try again later.") };
+
         // 验证旧密码
         if (!panel.Authenticate(panel.UserName, oldPassword))
+        {
+            LoginRateLimiter.RecordFailure(ip);
+
             return new ApiResult { Code = 403, Message = L.T("Old password is incorrect") };
+        }
+
+        LoginRateLimiter.RecordSuccess(ip);
 
         // 加盐哈希后写入配置并立即生效
         panel.SetPassword(newPassword);
@@ -605,15 +676,12 @@ public class ApiController : IHttpController
 
             if (logFile == null) return list;
 
-            // 使用 FileShare.ReadWrite 允许写入进程同时操作，避免文件共享冲突
-            // 读取失败时重试一次，应对瞬态锁冲突
-            var lines = ReadLinesWithRetry(logFile);
+            // 只读取文件尾部：日志会长期增长，整文件读入会造成大对象分配与长时间阻塞
+            var lines = ReadTailLines(logFile, Math.Max(count, 1));
             if (lines == null || lines.Length == 0) return list;
 
-            var start = Math.Max(0, lines.Length - count);
-            for (var i = start; i < lines.Length; i++)
+            foreach (var line in lines)
             {
-                var line = lines[i];
                 if (!level.IsNullOrEmpty())
                 {
                     if (!line.Contains(level, StringComparison.OrdinalIgnoreCase))
@@ -630,23 +698,46 @@ public class ApiController : IHttpController
         return list;
     }
 
-    /// <summary>使用 FileShare.ReadWrite 读取文件所有行，写入冲突时自动重试</summary>
-    /// <param name="filePath">文件路径</param>
-    /// <returns>所有行，失败返回空数组</returns>
-    private static String[] ReadLinesWithRetry(String filePath)
+    /// <summary>单次日志读取的最大字节数</summary>
+    private const Int32 MaxLogReadBytes = 1024 * 1024;
+
+    /// <summary>从文件尾部读取日志行，读取量不超过 <see cref="MaxLogReadBytes"/></summary>
+    /// <param name="filePath">日志文件路径</param>
+    /// <param name="maxLines">最多返回的行数</param>
+    /// <returns>尾部若干行；失败返回空数组</returns>
+    private static String[] ReadTailLines(String filePath, Int32 maxLines)
     {
         for (var retry = 0; retry < 2; retry++)
         {
             try
             {
+                // 使用 FileShare.ReadWrite 允许写入进程同时操作，避免文件共享冲突
                 using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                using var sr = new StreamReader(fs);
-                var lines = new List<String>();
-                while (!sr.EndOfStream)
+                var length = fs.Length;
+                var size = (Int32)Math.Min(length, MaxLogReadBytes);
+                var start = length - size;
+
+                // 从中间开始时，块首可能是半行，读取后丢弃
+                if (start > 0) fs.Seek(start, SeekOrigin.Begin);
+
+                var buffer = new Byte[size];
+                var read = fs.Read(buffer, 0, size);
+                var text = Encoding.UTF8.GetString(buffer, 0, read);
+
+                var all = text.Split('\n');
+                var list = new List<String>(all.Length);
+                for (var i = start > 0 ? 1 : 0; i < all.Length; i++)
                 {
-                    lines.Add(sr.ReadLine());
+                    var line = all[i].TrimEnd('\r');
+                    // 文件以换行结尾时最后会多出一个空串
+                    if (i == all.Length - 1 && line.Length == 0) continue;
+
+                    list.Add(line);
                 }
-                return lines.ToArray();
+
+                if (list.Count > maxLines) list.RemoveRange(0, list.Count - maxLines);
+
+                return [.. list];
             }
             catch (IOException) when (retry == 0)
             {

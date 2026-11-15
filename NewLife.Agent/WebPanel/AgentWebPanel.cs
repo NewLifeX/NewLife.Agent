@@ -166,13 +166,14 @@ public class AgentWebPanel
         var info = new TokenInfo
         {
             User = user,
-            Expire = DateTime.Now.AddHours(24)
+            // 用 UTC 计时，避免系统时区/夏令时调整导致令牌提前或延后失效
+            Expire = DateTime.UtcNow.AddHours(24)
         };
 
         lock (_lock)
         {
             // 清理过期Token
-            var expired = _tokens.Where(e => e.Value.Expire < DateTime.Now).Select(e => e.Key).ToList();
+            var expired = _tokens.Where(e => e.Value.Expire < DateTime.UtcNow).Select(e => e.Key).ToList();
             foreach (var key in expired)
                 _tokens.Remove(key);
 
@@ -193,7 +194,7 @@ public class AgentWebPanel
         {
             if (!_tokens.TryGetValue(token, out var info)) return false;
 
-            if (info.Expire < DateTime.Now)
+            if (info.Expire < DateTime.UtcNow)
             {
                 _tokens.Remove(token);
                 return false;
@@ -212,6 +213,16 @@ public class AgentWebPanel
         lock (_lock)
         {
             _tokens.Remove(token);
+        }
+    }
+
+    /// <summary>吊销全部已签发Token</summary>
+    /// <remarks>凭据（口令或用户名）变更后必须调用，否则旧令牌仍可继续调用管理接口</remarks>
+    public static void RevokeAllTokens()
+    {
+        lock (_lock)
+        {
+            _tokens.Clear();
         }
     }
     #endregion
@@ -378,7 +389,7 @@ public class AgentWebPanel
             return;
         }
 
-        if (ValidateToken(ExtractToken(request, query)))
+        if (ValidateToken(ExtractToken(request, query, path)))
         {
             await next().ConfigureAwait(false);
 
@@ -435,14 +446,21 @@ public class AgentWebPanel
         return index < 0 ? (raw, null) : (raw[..index], raw[(index + 1)..]);
     }
 
+    /// <summary>允许用 access_token 查询参数鉴权的路径</summary>
+    /// <remarks>
+    /// 仅限只读接口：查询参数会进浏览器历史、Referer 与反向代理日志，一旦令牌从这里泄露，
+    /// 若对写接口同样生效就等同泄露管理员权限。需要请求头的客户端一律走 Authorization。
+    /// </remarks>
+    private static readonly String[] _queryTokenPaths = ["/api/logs"];
+
     /// <summary>从请求头或查询字符串中提取访问令牌</summary>
-    /// <remarks>WebSocket/EventSource 无法自定义请求头，因此额外支持 access_token 查询参数</remarks>
-    private static String ExtractToken(HttpRequest request, String query)
+    /// <remarks>WebSocket/EventSource 无法自定义请求头，因此对只读接口额外支持 access_token 查询参数</remarks>
+    private static String ExtractToken(HttpRequest request, String query, String path)
     {
         var auth = request.Headers["Authorization"];
         if (!auth.IsNullOrEmpty() && auth.StartsWithIgnoreCase("Bearer ")) return auth.Substring("Bearer ".Length).Trim();
 
-        if (!query.IsNullOrEmpty())
+        if (!query.IsNullOrEmpty() && path != null && _queryTokenPaths.Any(e => path.StartsWithIgnoreCase(e)))
         {
             foreach (var item in query.Split('&'))
             {
@@ -572,8 +590,17 @@ public class AgentWebPanel
     /// <param name="password">新密码明文，null 或空则不更新</param>
     public void UpdateCredentials(String user, String password)
     {
+        var userChanged = !user.IsNullOrEmpty() && !user.EqualIgnoreCase(UserName);
+
         if (!user.IsNullOrEmpty()) UserName = user;
         if (!password.IsNullOrEmpty()) SetPassword(password);
+
+        if (userChanged)
+        {
+            // 用户名变更同样属于凭据变更，旧令牌必须作废
+            RevokeAllTokens();
+            LoginRateLimiter.Reset();
+        }
     }
 
     /// <summary>设置新口令。哈希后写入配置并立即生效</summary>
@@ -589,6 +616,10 @@ public class AgentWebPanel
         set.Save();
 
         WebPanelSecurity.ProtectConfigFile();
+
+        // 改密后旧令牌必须立即失效，否则口令被偷后改密无法抢回控制权
+        RevokeAllTokens();
+        LoginRateLimiter.Reset();
     }
 
     /// <summary>历史明文口令升级为哈希。仅当口令来自配置文件时执行，避免改写调用方临时设置的值</summary>

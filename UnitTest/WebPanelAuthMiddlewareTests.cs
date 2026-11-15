@@ -141,10 +141,39 @@ public class WebPanelAuthMiddlewareTests
             var custom = await client.GetAsync("/custom/Ping");
             Assert.Equal(HttpStatusCode.OK, custom.StatusCode);
 
-            // WebSocket/EventSource 等无法设置请求头的场景允许通过查询参数传递令牌
+            // 只读日志接口（EventSource/WebSocket 无法设置请求头）允许通过查询参数传递令牌
             using var queryClient = CreateClient(panel);
-            var byQuery = await queryClient.GetAsync($"/api/Status?access_token={token}");
+            var byQuery = await queryClient.GetAsync($"/api/logs?count=10&access_token={token}");
             Assert.Equal(HttpStatusCode.OK, byQuery.StatusCode);
+
+            // 写接口不接受查询参数令牌：令牌入 URL 后容易随历史记录与代理日志泄露，不能因此获得管理权限
+            var statusByQuery = await queryClient.GetAsync($"/api/Status?access_token={token}");
+            Assert.Equal(HttpStatusCode.Unauthorized, statusByQuery.StatusCode);
+        }
+        finally
+        {
+            panel.Stop("TestDone");
+        }
+    }
+
+    [Fact]
+    [DisplayName("改密后旧令牌立即失效")]
+    public void SetPassword_RevokesExistingTokens()
+    {
+        using var scope = new SettingScope();
+        var panel = StartPanel();
+        try
+        {
+            var token = panel.IssueToken("admin", "123456");
+            Assert.NotNull(token);
+            Assert.True(panel.ValidateToken(token));
+
+            panel.SetPassword("654321");
+
+            // 改密后旧令牌必须失效，否则口令泄露后改密无法收回控制权
+            Assert.False(panel.ValidateToken(token));
+            Assert.Null(panel.IssueToken("admin", "123456"));
+            Assert.NotNull(panel.IssueToken("admin", "654321"));
         }
         finally
         {

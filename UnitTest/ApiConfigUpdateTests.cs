@@ -162,17 +162,28 @@ public class ApiConfigUpdateTests
     }
 
     [Fact]
-    [DisplayName("UpdateConfig_密码字段_白名单忽略不变")]
+    [DisplayName("UpdateConfig_非白名单字段_整体拒绝且不部分生效")]
     public void UpdateConfig_WebPassword_IgnoredByWhitelist()
     {
         using var scope = new SettingScope();
         var (_, controller) = CreateController();
 
-        var before = Setting.Current.WebPassword;
-        var result = controller.UpdateConfig(new Dictionary<String, Object> { ["WebPassword"] = "hacked" });
+        var beforePassword = Setting.Current.WebPassword;
+        var beforeThread = Setting.Current.MaxThread;
+        var beforeAfter = Setting.Current.AfterStart;
 
-        Assert.Equal(0, GetCode(result));
-        Assert.Equal(before, Setting.Current.WebPassword);
+        // AfterStart 是非白名单字段（会在服务启动时执行命令），同批的其他字段也不允许部分生效
+        var result = controller.UpdateConfig(new Dictionary<String, Object>
+        {
+            ["MaxThread"] = 456,
+            ["WebPassword"] = "hacked",
+            ["AfterStart"] = "cmd /c whoami",
+        });
+
+        Assert.Equal(403, GetCode(result));
+        Assert.Equal(beforePassword, Setting.Current.WebPassword);
+        Assert.Equal(beforeThread, Setting.Current.MaxThread);
+        Assert.Equal(beforeAfter, Setting.Current.AfterStart);
     }
 
     [Fact]
@@ -206,20 +217,18 @@ public class ApiConfigUpdateTests
     }
 
     [Fact]
-    [DisplayName("UpdateConfig_无法转换的值_返回500")]
-    public void UpdateConfig_InvalidConversion_Returns500()
+    [DisplayName("UpdateConfig_服务名不可从面板修改")]
+    public void UpdateConfig_ServiceName_Rejected()
     {
         using var scope = new SettingScope();
         var (_, controller) = CreateController();
 
         var before = Setting.Current.ServiceName;
 
-        // 普通 Object 无法转换为 String，Reflect.ChangeType 原样返回，SetValue 类型不匹配抛异常，
-        // 验证内部异常被捕获并返回 500
-        var result = controller.UpdateConfig(new Dictionary<String, Object> { ["ServiceName"] = new Object() });
+        // 服务名会拼接进服务控制命令与平台启动脚本，不能从面板改写
+        var result = controller.UpdateConfig(new Dictionary<String, Object> { ["ServiceName"] = "evil & calc" });
 
-        Assert.Equal(500, GetCode(result));
-        Assert.False(GetMessage(result).IsNullOrEmpty());
+        Assert.Equal(403, GetCode(result));
         Assert.Equal(before, Setting.Current.ServiceName);
     }
     #endregion
