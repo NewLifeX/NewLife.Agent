@@ -55,6 +55,8 @@ public class SystemdSetting : ServiceModel
     {
         //var asm = Assembly.GetEntryAssembly();
         var des = !DisplayName.IsNullOrEmpty() ? DisplayName : Description;
+        // 单位描述是单行键值：换行会把后续内容顶出 [Unit] 段落，甚至注入额外配置项
+        des = SanitizeValue(des);
 
         var sb = new StringBuilder();
         sb.AppendLine("[Unit]");
@@ -69,8 +71,9 @@ public class SystemdSetting : ServiceModel
         sb.AppendLine($"Type={Type}");
         if (!Environment.IsNullOrEmpty()) sb.AppendLine($"Environment={Environment}");
         //sb.AppendLine($"ExecStart=/usr/bin/dotnet {asm.Location}");
+        // FileName 可能已是含引号的复合命令行（dotnet + dll），不能整串再加引号
         sb.AppendLine($"ExecStart={FileName} {Arguments}");
-        sb.AppendLine($"WorkingDirectory={(!WorkingDirectory.IsNullOrEmpty() ? WorkingDirectory : Path.GetDirectoryName(FileName).GetFullPath())}");
+        sb.AppendLine($"WorkingDirectory={QuotePath(!WorkingDirectory.IsNullOrEmpty() ? WorkingDirectory : Path.GetDirectoryName(FileName).GetFullPath())}");
         if (!User.IsNullOrEmpty()) sb.AppendLine($"User={User}");
         if (!Group.IsNullOrEmpty()) sb.AppendLine($"Group={Group}");
 
@@ -97,6 +100,29 @@ public class SystemdSetting : ServiceModel
         sb.AppendLine("WantedBy=multi-user.target");
 
         return sb.ToString();
+    }
+
+    /// <summary>清除单行键值中的换行与控制字符</summary>
+    /// <param name="value">原始值</param>
+    /// <returns>可直接写入单行的值</returns>
+    internal static String SanitizeValue(String value)
+    {
+        if (value.IsNullOrEmpty()) return value;
+
+        return value.Replace("\r", " ").Replace("\n", " ").Trim();
+    }
+
+    /// <summary>处理路径值：去掉已有外层引号，含空白时手动加引号</summary>
+    /// <param name="path">路径</param>
+    /// <returns>unit 文件中的路径值</returns>
+    internal static String QuotePath(String path)
+    {
+        if (path.IsNullOrEmpty()) return path;
+
+        // 调用方（如安装命令）可能已经包了引号，WorkingDirectory= 不支持带引号写法
+        if (path.Length >= 2 && path[0] == '"' && path[path.Length - 1] == '"') path = path.Substring(1, path.Length - 2);
+
+        return path.IndexOf(' ') >= 0 ? $"\"{path}\"" : path;
     }
     #endregion
 }

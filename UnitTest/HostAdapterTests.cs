@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.Versioning;
 using NewLife;
 using NewLife.Agent;
@@ -11,6 +12,15 @@ namespace UnitTest;
 public class HostAdapterTests
 {
     #region SysVinit
+    [Theory]
+    [InlineData("agent is running", true)]
+    [InlineData("agent is not running", false)]
+    [InlineData("not running", false)]
+    [InlineData("", false)]
+    [InlineData("Starting...\nagent is running", true)]
+    [DisplayName("SysVinit_状态输出逐行判定_not running 不算运行")]
+    public void SysVinit_IsRunningStatus_ParsesLines(String status, Boolean expected)
+        => Assert.Equal(expected, SysVinit.IsRunningStatus(status));
     [Fact]
     [DisplayName("SysVinit_未安装的服务_返回未安装")]
     public void SysVinit_NotInstalled_ReturnsFalse()
@@ -84,6 +94,41 @@ public class HostAdapterTests
         Assert.DoesNotContain("{$FileName}", plist);
     }
     #endregion
+
+    [Fact]
+    [DisplayName("OSXLaunch_生成plist_特殊字符做XML转义")]
+    public void OSXLaunch_BuildPlist_EscapesXml()
+    {
+        var plist = OSXLaunch.BuildPlist("svc", "/app/a&b", "x < y", "user1", true);
+
+        Assert.Contains("/app/a&amp;b", plist);
+        Assert.Contains("x &lt; y", plist);
+        Assert.Contains("<key>UserName</key>", plist);
+        Assert.Contains("<string>user1</string>", plist);
+        Assert.Contains("<key>NetworkState</key>", plist);
+    }
+
+    [Fact]
+    [DisplayName("OSXLaunch_生成plist_无参数不留空 string")]
+    public void OSXLaunch_BuildPlist_NoEmptyArgument()
+    {
+        var plist = OSXLaunch.BuildPlist("svc", "/app/app", "");
+
+        // 空参数不输出空 <string>，否则 launchd 会给进程传一个空参数
+        Assert.DoesNotContain(plist.Split('\n'), e => e.Trim() == "<string></string>");
+    }
+
+    [Fact]
+    [DisplayName("陈旧PID判定_进程启动晚于pid文件视为已失效")]
+    public void IsStalePid_ProcessStartedAfterPidFile_Stale()
+    {
+        using var p = Process.GetCurrentProcess();
+
+        // pid 文件写入时间早于进程启动时间，说明 PID 已被其它进程复用
+        Assert.True(ServiceHelper.IsStalePid(p, DateTime.Now.AddMinutes(-5)));
+        // 正常情况：pid 文件在进程启动之后写入
+        Assert.False(ServiceHelper.IsStalePid(p, DateTime.Now.AddMinutes(5)));
+    }
 
     #region Windows 宿主
     [WindowsFact]

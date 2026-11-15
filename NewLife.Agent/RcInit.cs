@@ -115,7 +115,8 @@ public class RcInit : DefaultHost
         var sb = new StringBuilder();
         sb.AppendLine("#!/bin/bash");
         sb.AppendLine("# chkconfig: 2345 10 90");
-        sb.AppendLine($"# description: {displayName}");
+        // 描述会写进注释行：过滤换行，否则可截断注释并向 root 执行的脚本注入命令
+        sb.AppendLine($"# description: {SystemdSetting.SanitizeValue(displayName)}");
 
         sb.AppendLine();
         sb.AppendLine("case \"$1\" in");
@@ -163,8 +164,8 @@ public class RcInit : DefaultHost
         // 因此把启动引导脚本放在当前目录，如StarAgent.sh，然后在rc.d目录中创建链接文件
         File.WriteAllBytes(file, script.GetBytes());
 
-        // 给予可执行权限
-        Process.Start("chmod", $"+x {file}");
+        // 给予可执行权限：失败时脚本无法执行，安装不能继续报成功
+        if (!SetExecutable(file)) return false;
 
         var flag = false;
 
@@ -334,9 +335,53 @@ public class RcInit : DefaultHost
         if (id <= 0) return null;
 
         var p = GetProcessById(id);
+
+        // PID 可能已被系统分配给无关进程：pid 文件残留时先把“启动时间晚于 pid 写入时间”的进程排除，避免误杀
+        if (p != null && ServiceHelper.IsStalePid(p, File.GetLastWriteTime(pid)))
+        {
+            XTrace.WriteLine("Stale pid file {0} for PID {1}; ignoring.", pid, id);
+            try { p.Dispose(); } catch { }
+            try { File.Delete(pid); } catch { }
+
+            return null;
+        }
+
         //if (p == null || GetHasExited(p)) return null;
 
         return p;
+    }
+
+    /// <summary>设置脚本可执行权限</summary>
+    /// <param name="file">脚本文件</param>
+    /// <returns>是否设置成功</returns>
+    private static Boolean SetExecutable(String file)
+    {
+        try
+        {
+#if NET7_0_OR_GREATER
+            // rc.d 脚本只存在于 Linux；显式排除 Windows，既是语义保护也让平台分析器认可
+            // UnixFileMode 自 .NET 7 起提供，更低版本回退到 chmod
+            if (OperatingSystem.IsWindows()) return false;
+
+            const UnixFileMode mode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
+                UnixFileMode.OtherRead | UnixFileMode.OtherExecute;
+            File.SetUnixFileMode(file, mode);
+
+            return true;
+#else
+            using var p = Process.Start("chmod", $"+x \"{file}\"");
+            p?.WaitForExit(3_000);
+
+            return p != null && p.ExitCode == 0;
+#endif
+        }
+        catch (Exception ex)
+        {
+            XTrace.WriteException(ex);
+
+            return false;
+        }
     }
 
     /// <summary>移除命令行尾部参数</summary>

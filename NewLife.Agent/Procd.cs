@@ -109,8 +109,10 @@ public class Procd : DefaultHost
         if (pid <= 0) return false;
 
         var p = GetProcessById(pid);
+        if (p == null || GetHasExited(p)) return false;
 
-        return p != null && !GetHasExited(p);
+        // pid 文件残留时 PID 可能已被无关进程复用，不能据此判定服务在运行
+        return !ServiceHelper.IsStalePid(p, File.GetLastWriteTime(file));
     }
 
     /// <summary>安装服务</summary>

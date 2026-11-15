@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using NewLife.Agent;
+using NewLife.Agent.Models;
 
 namespace UnitTest;
 
@@ -7,6 +8,46 @@ namespace UnitTest;
 /// <remarks>验证 BuildScript() 输出的 shell 脚本内容，不依赖实际 Linux 环境</remarks>
 public class PlatformScriptTests
 {
+    #region 描述注入与路径转义
+    [Fact]
+    [DisplayName("RcInit_描述含换行_压成单行注释")]
+    public void RcInit_DescriptionWithNewLine_Sanitized()
+    {
+        var result = RcInit.BuildScript("/app/agent", "", "正常描述\nrm -rf /");
+
+        var desc = Assert.Single(result.Split('\n'), e => e.StartsWith("# description"));
+        Assert.Equal("# description: 正常描述 rm -rf /", desc.Trim());
+    }
+
+    [Fact]
+    [DisplayName("Systemd_工作目录含空格_自动加引号并去重引号")]
+    public void Systemd_WorkingDirectoryWithSpace_Quoted()
+    {
+        var set = new SystemdSetting
+        {
+            FileName = "/opt/my app/app",
+            WorkingDirectory = "/opt/my app",
+            DisplayName = "测试",
+        };
+
+        Assert.Contains("WorkingDirectory=\"/opt/my app\"", set.Build());
+
+        // 调用方已包引号时不能出现 WorkingDirectory="\"...\""
+        set.WorkingDirectory = "\"/opt/my app\"";
+        Assert.Contains("WorkingDirectory=\"/opt/my app\"", set.Build());
+    }
+
+    [Fact]
+    [DisplayName("Systemd_描述含换行_压成单行")]
+    public void Systemd_DescriptionWithNewLine_Sanitized()
+    {
+        var text = new SystemdSetting { FileName = "/app/a", DisplayName = "第一行\n第二行" }.Build();
+
+        var desc = text.Split('\n').First(e => e.StartsWith("Description="));
+        Assert.Equal("Description=第一行 第二行", desc.Trim());
+    }
+    #endregion
+
     #region Procd 脚本
 
     [Fact]

@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using System.Security;
+using System.Text;
 using NewLife.Agent.Models;
 using NewLife.Log;
 
@@ -17,17 +19,14 @@ public class OSXLaunch : DefaultHost
     /// <summary>实例化</summary>
     static OSXLaunch()
     {
-        var ps = new[] {
-            "~/Library/LaunchAgents/",
-        };
-        foreach (var p in ps)
-        {
-            if (Directory.Exists(p))
-            {
-                _path = p;
-                break;
-            }
-        }
+        // “~” 不会被运行时展开：直接判断 "~/Library/LaunchAgents/" 永远为 false，
+        // 导致面板把 plist 写进进程当前目录，登录自启动不生效
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (home.IsNullOrEmpty()) home = Environment.GetEnvironmentVariable("HOME");
+        if (home.IsNullOrEmpty()) return;
+
+        var dir = Path.Combine(home, "Library", "LaunchAgents");
+        if (Directory.Exists(dir)) _path = dir;
     }
     #endregion
 
@@ -108,36 +107,63 @@ public class OSXLaunch : DefaultHost
         return Install(_path, serviceName, displayName, fileName, arguments, description, User, Group, DependOnNetwork);
     }
 
-    static readonly String _template = """
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-        <dict>
-            <key>Label</key>
-            <string>{$Name}</string>
-            <key>ProgramArguments</key>
-            <array>
-                <string>{$FileName}</string>
-                <string>{$Arguments}</string>
-            </array>
-            <key>RunAtLoad</key>
-            <true/>
-        </dict>
-        </plist>
-
-        """;
-
-    /// <summary>生成 LaunchAgent plist 内容</summary>
+    /// <summary>生成 LaunchAgent plist 内容</summary>    /// <remarks>
+    /// 所有插入值均做 XML 转义，否则参数或路径含 &amp; &lt; &gt; 时 plist 非法，launchctl 会拒绝加载。
+    /// </remarks>
     /// <param name="serviceName">服务名</param>
     /// <param name="fileName">可执行文件路径</param>
     /// <param name="arguments">命令参数</param>
+    /// <param name="user">运行用户，为空则不输出 UserName</param>
+    /// <param name="network">是否依赖网络就绪</param>
     /// <returns>plist XML 文本</returns>
-    public static String BuildPlist(String serviceName, String fileName, String arguments)
+    public static String BuildPlist(String serviceName, String fileName, String arguments, String user = null, Boolean network = false)
     {
-        return _template.Replace("{$Name}", serviceName)
-            .Replace("{$FileName}", fileName)
-            .Replace("{$Arguments}", arguments);
+        var sb = new StringBuilder();
+        sb.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+        sb.AppendLine("<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">");
+        sb.AppendLine("<plist version=\"1.0\">");
+        sb.AppendLine("<dict>");
+        sb.AppendLine("    <key>Label</key>");
+        sb.AppendLine($"    <string>{Escape(serviceName)}</string>");
+        sb.AppendLine("    <key>ProgramArguments</key>");
+        sb.AppendLine("    <array>");
+        sb.AppendLine($"        <string>{Escape(fileName)}</string>");
+        // 空参数不输出空 <string>，否则 launchd 会传一个空参数给进程
+        if (!arguments.IsNullOrEmpty()) sb.AppendLine($"        <string>{Escape(arguments)}</string>");
+        sb.AppendLine("    </array>");
+        sb.AppendLine("    <key>RunAtLoad</key>");
+        sb.AppendLine("    <true/>");
+
+        if (!user.IsNullOrEmpty())
+        {
+            sb.AppendLine("    <key>UserName</key>");
+            sb.AppendLine($"    <string>{Escape(user)}</string>");
+        }
+
+        // 依赖网络时用 NetworkState 表达，否则无条件保活
+        sb.AppendLine("    <key>KeepAlive</key>");
+        if (network)
+        {
+            sb.AppendLine("    <dict>");
+            sb.AppendLine("        <key>NetworkState</key>");
+            sb.AppendLine("        <true/>");
+            sb.AppendLine("    </dict>");
+        }
+        else
+        {
+            sb.AppendLine("    <true/>");
+        }
+
+        sb.AppendLine("</dict>");
+        sb.AppendLine("</plist>");
+
+        return sb.ToString();
     }
+
+    /// <summary>XML 转义</summary>
+    /// <param name="value">原始值</param>
+    /// <returns>可用于 plist 文本的值</returns>
+    private static String Escape(String value) => value.IsNullOrEmpty() ? "" : SecurityElement.Escape(value);
 
     /// <summary>安装服务</summary>
     /// <param name="basePath">LaunchAgents 目录</param>
@@ -159,11 +185,22 @@ public class OSXLaunch : DefaultHost
 
         //var des = !displayName.IsNullOrEmpty() ? displayName : description;
 
-        var str = BuildPlist(serviceName, fileName, arguments);
+        var str = BuildPlist(serviceName, fileName, arguments, user, network);
 
-        File.WriteAllText(file, str);
+        try
+        {
+            // 首次安装时 LaunchAgents 目录可能不存在
+            Directory.CreateDirectory(basePath);
+            File.WriteAllText(file, str);
 
-        Process.Start("launchctl", $"load {file}");
+            using var p = Process.Start("launchctl", $"load \"{file}\"");
+            p?.WaitForExit(5_000);
+        }
+        catch (Exception ex)
+        {
+            XTrace.WriteException(ex);
+            return false;
+        }
 
         return true;
     }
@@ -178,7 +215,7 @@ public class OSXLaunch : DefaultHost
         var file = GetFileName(serviceName);
         if (File.Exists(file))
         {
-            Process.Start("launchctl", $"unload {file}");
+            Process.Start("launchctl", $"unload \"{file}\"");
 
             File.Delete(file);
 

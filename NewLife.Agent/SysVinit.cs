@@ -51,7 +51,30 @@ public class SysVinit : DefaultHost
         if (file == null) return false;
 
         var status = $"{ServicePath}/{serviceName}".Execute("status", 3_000);
-        return status.Contains("running");
+
+        return IsRunningStatus(status);
+    }
+
+    /// <summary>从 status 命令输出判断服务是否运行中</summary>
+    /// <remarks>
+    /// 旧实现直接对整个输出做 Contains("running")，而停服时输出“not running”同样包含该子串，
+    /// 导致状态判断反转（看门狗/状态页认为已停止的服务仍在运行）。改为逐行判断并排除否定行。
+    /// </remarks>
+    /// <param name="status">status 命令输出</param>
+    /// <returns>是否运行中</returns>
+    internal static Boolean IsRunningStatus(String status)
+    {
+        if (status.IsNullOrEmpty()) return false;
+
+        foreach (var line in status.Split('\n'))
+        {
+            var text = line.Trim();
+            if (text.Length == 0) continue;
+            if (text.IndexOf("not running", StringComparison.OrdinalIgnoreCase) >= 0) continue;
+            if (text.IndexOf("running", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+        }
+
+        return false;
     }
 
     /// <summary>安装服务</summary>

@@ -1,8 +1,33 @@
-﻿namespace NewLife.Agent;
+﻿using System.Diagnostics;
+
+namespace NewLife.Agent;
 
 /// <summary>服务助手</summary>
 public static class ServiceHelper
 {
+    /// <summary>判断 pid 文件是否已陈旧</summary>
+    /// <remarks>
+    /// 进程异常退出后 pid 文件会残留，操作系统可能把同一 PID 分配给无关进程；
+    /// 若目标进程的启动时间明显晚于 pid 文件写入时间，说明 PID 已被复用，不能再当作本服务进程。
+    /// </remarks>
+    /// <param name="process">按 pid 找到的进程</param>
+    /// <param name="pidWriteTime">pid 文件最后写入时间</param>
+    /// <returns>是否已陈旧（PID 被复用）</returns>
+    internal static Boolean IsStalePid(Process process, DateTime pidWriteTime)
+    {
+        if (process == null) return false;
+
+        try
+        {
+            // 容差 2 秒，避开文件时间精度与进程启动时间的差异
+            return process.StartTime > pidWriteTime.AddSeconds(2);
+        }
+        catch
+        {
+            // 权限不足取不到启动时间时不做判断，保持原有行为
+            return false;
+        }
+    }
     /// <summary>是否运行时框架主程序</summary>
     /// <param name="fileName">文件名</param>
     /// <returns>是否为运行时主程序（dotnet/java）</returns>
