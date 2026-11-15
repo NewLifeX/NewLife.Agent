@@ -31,7 +31,8 @@ runs:
       DEBIAN_FRONTEND: noninteractive
     run: |
       set -euo pipefail
-      sudo apt-get update
+      set -x
+      sudo apt-get update -o Acquire::Retries=3
       # qemu-user-static 自带 /usr/lib/binfmt.d/qemu-loongarch64.conf（OPF 标志，F 使 chroot 内透明执行）
       sudo apt-get install -y --no-install-recommends qemu-user-static debootstrap
       if ! dpkg -s debian-archive-keyring >/dev/null 2>&1; then
@@ -55,6 +56,7 @@ runs:
       SUITE: ${{ inputs.suite }}
     run: |
       set -euo pipefail
+      set -x
       if [ -e "$ROOTFS/bin/bash" ]; then
         echo "rootfs 已存在，跳过 debootstrap"
         exit 0

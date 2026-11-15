@@ -35,7 +35,7 @@ jobs:
       matrix:
         include:
           - { name: win-x64,     os: windows-latest }
-          - { name: linux-x64,   os: ubuntu-latest,    coverage: true }
+          - { name: linux-x64,   os: ubuntu-24.04,    coverage: true }
           - { name: linux-arm64, os: ubuntu-24.04-arm }
 
     steps:
@@ -65,7 +65,7 @@ jobs:
   # rootfs 取 Debian sid（loong64 已并入官方归档），.NET SDK 用龙芯发行版。
   test-loongarch64:
     name: test (linux-loongarch64 qemu)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 150
 
     steps:
@@ -125,7 +125,7 @@ jobs:
 
   localization:
     name: localization checks
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
 
     steps:
