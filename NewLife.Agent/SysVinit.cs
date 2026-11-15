@@ -96,7 +96,32 @@ public class SysVinit : DefaultHost
         var file = GetServicePath(serviceName);
         if (file == null) return false;
 
-        return "update-rc.d".Execute($"-f {serviceName} remove", 3_000).Contains("Removing any system startup links for");
+        // 先让系统工具清理（部分发行版会顺带处理 rcS 等），但它的输出文案随 locale 变化，不能作为成功依据
+        try { "update-rc.d".Execute($"-f {serviceName} remove", 3_000); } catch { }
+
+        // 直接删除已知的启动/停止链接并核对，避免非英文 locale 下明明删掉了却报失败
+        var dirs = new[] { "/etc/rc.d", "/etc/rc0.d", "/etc/rc1.d", "/etc/rc2.d", "/etc/rc3.d", "/etc/rc4.d", "/etc/rc5.d", "/etc/rc6.d" };
+        var failed = false;
+        foreach (var dir in dirs)
+        {
+            if (!Directory.Exists(dir)) continue;
+
+            foreach (var prefix in new[] { "S50", "K50" })
+            {
+                var link = Path.Combine(dir, prefix + serviceName);
+                try
+                {
+                    if (File.Exists(link) || Directory.Exists(link)) File.Delete(link);
+                }
+                catch (Exception ex)
+                {
+                    XTrace.WriteException(ex);
+                    failed = true;
+                }
+            }
+        }
+
+        return !failed;
     }
 
     /// <summary>启动服务</summary>
@@ -108,7 +133,9 @@ public class SysVinit : DefaultHost
         var file = GetServicePath(serviceName);
         if (file == null) return false;
 
-        return Process.Start(file, "start") != null;
+        using var p = Process.Start(file, "start");
+
+        return p != null;
     }
 
     /// <summary>停止服务</summary>
@@ -120,7 +147,9 @@ public class SysVinit : DefaultHost
         var file = GetServicePath(serviceName);
         if (file == null) return false;
 
-        return Process.Start(file, "stop") != null;
+        using var p = Process.Start(file, "stop");
+
+        return p != null;
     }
 
     /// <summary>重启服务</summary>
@@ -131,7 +160,9 @@ public class SysVinit : DefaultHost
         var file = GetServicePath(serviceName);
         if (file == null) return false;
 
-        return Process.Start(file, "restart") != null;
+        using var p = Process.Start(file, "restart");
+
+        return p != null;
     }
 
     /// <summary>查询服务配置</summary>

@@ -32,6 +32,18 @@ public class HostAdapterTests
     }
 
     [Fact]
+    [DisplayName("SysVinit_未安装的服务_卸载与状态查询返回false")]
+    public void SysVinit_NotInstalled_RemoveAndRunning_False()
+    {
+        const String name = "NewLifeAgentUnitTestNotExist";
+        var host = new SysVinit();
+
+        // 未安装时不应尝试执行 update-rc.d 或 kill，直接返回 false
+        Assert.False(host.IsRunning(name));
+        Assert.False(host.Remove(name));
+    }
+
+    [Fact]
     [DisplayName("SysVinit_构造_名称与安装未实现")]
     public void SysVinit_Install_NotImplemented()
     {
