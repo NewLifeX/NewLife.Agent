@@ -38,6 +38,33 @@ public class PlatformScriptTests
     }
 
     [Fact]
+    [DisplayName("Systemd_ExecStart含空格路径_自动加引号")]
+    public void Systemd_ExecStartWithSpace_Quoted()
+    {
+        var text = new SystemdSetting { FileName = "/opt/my app/agent", Arguments = "-s" }.Build();
+
+        Assert.Contains("ExecStart=\"/opt/my app/agent\" -s", text);
+    }
+
+    [Fact]
+    [DisplayName("Systemd_ExecStart复合命令行_保持原样")]
+    public void Systemd_ExecStartComposite_Unchanged()
+    {
+        var text = new SystemdSetting { FileName = "dotnet \"my app.dll\"", Arguments = "-s" }.Build();
+
+        Assert.Contains("ExecStart=dotnet \"my app.dll\" -s", text);
+    }
+
+    [Fact]
+    [DisplayName("Systemd_工作目录含连字符_仍按路径加引号")]
+    public void Systemd_WorkingDirectoryWithDash_Quoted()
+    {
+        var text = new SystemdSetting { FileName = "/app/agent", WorkingDirectory = "/opt/my -app" }.Build();
+
+        Assert.Contains("WorkingDirectory=\"/opt/my -app\"", text);
+    }
+
+    [Fact]
     [DisplayName("Systemd_描述含换行_压成单行")]
     public void Systemd_DescriptionWithNewLine_Sanitized()
     {
@@ -100,9 +127,19 @@ public class PlatformScriptTests
     {
         var result = Procd.BuildScript("/app/myservice", "", "无参数服务", false);
 
-        Assert.Contains("nohup '/app/myservice'  >/dev/null 2>&1 &", result);
+        Assert.Contains("nohup '/app/myservice' >/dev/null 2>&1 &", result);
         Assert.Contains("START=50", result);
         Assert.Contains("STOP=50", result);
+    }
+
+    [Fact]
+    [DisplayName("Procd_复合命令行_只给可执行文件加引号")]
+    public void Procd_CompositeFileName_QuotesExecutableOnly()
+    {
+        var result = Procd.BuildScript("\"/opt/my app/dotnet\" \"my app.dll\"", "-s", "测试", false);
+
+        Assert.Contains("nohup '/opt/my app/dotnet' \"my app.dll\" -s >/dev/null 2>&1 &", result);
+        Assert.DoesNotContain("'/opt/my app/dotnet\" \"my app.dll\"", result);
     }
 
     #endregion

@@ -207,4 +207,35 @@ public class ServiceHelperTests
     public void QuoteShell_QuotesValue(String value, String expected)
         => Assert.Equal(expected, ServiceHelper.QuoteShell(value));
     #endregion
+
+    #region 复合命令行
+    [Theory]
+    [DisplayName("QuotePath_只给单个路径加引号")]
+    [InlineData("app.exe", "app.exe")]
+    [InlineData("C:\\Program Files\\app.exe", "\"C:\\Program Files\\app.exe\"")]
+    [InlineData("\"C:\\app.exe\" -x", "\"C:\\app.exe\" -x")]
+    [InlineData("dotnet app.dll", "dotnet app.dll")]
+    [InlineData("C:\\app.exe -s", "C:\\app.exe -s")]
+    public void QuotePath_OnlyQuotesSinglePath(String value, String expected)
+        => Assert.Equal(expected, ServiceHelper.QuotePath(value));
+
+    [Theory]
+    [DisplayName("BuildShellCommand_复合命令行只给可执行文件加引号")]
+    [InlineData("\"/opt/my app/dotnet\" \"app.dll\"", "-s", "'/opt/my app/dotnet' \"app.dll\" -s")]
+    [InlineData("dotnet \"my app.dll\"", "", "'dotnet' \"my app.dll\"")]
+    [InlineData("/app/agent", "app.dll -s", "'/app/agent' app.dll -s")]
+    [InlineData("/opt/my app/agent", "", "'/opt/my app/agent'")]
+    public void BuildShellCommand_CompositeFileName(String fileName, String arguments, String expected)
+        => Assert.Equal(expected, ServiceHelper.BuildShellCommand(fileName, arguments));
+
+    [Theory]
+    [DisplayName("IsCompositeCommandLine_区分单个路径与复合命令行")]
+    [InlineData("/opt/my app/agent", false)]
+    [InlineData("C:\\Program Files\\app.exe", false)]
+    [InlineData("\"/opt/my app/dotnet\" \"app.dll\"", true)]
+    [InlineData("dotnet app.dll", true)]
+    [InlineData("C:\\app.exe -s", true)]
+    public void IsCompositeCommandLine_Distinguishes(String value, Boolean expected)
+        => Assert.Equal(expected, ServiceHelper.IsCompositeCommandLine(value));
+    #endregion
 }

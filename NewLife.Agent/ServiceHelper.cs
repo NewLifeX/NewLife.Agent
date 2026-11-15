@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Text;
 
 namespace NewLife.Agent;
 
@@ -163,6 +164,48 @@ public static class ServiceHelper
         return [.. list];
     }
 
+    /// <summary>判断字符串是否为“可执行文件 + 内嵌参数”的复合命令行，而不是单个路径</summary>
+    /// <remarks>
+    /// 单个路径允许包含空格（如 /opt/my app/agent），不能一律按空格拆分；
+    /// 只有以下两种情况视为复合命令行：① 以引号开头（"C:\Program Files\app.exe" -s）；
+    /// ② 首个 token 不含路径分隔符（dotnet app.dll）或该 token 是已存在的文件。
+    /// </remarks>
+    /// <param name="value">待判断字符串</param>
+    /// <returns>是否为复合命令行</returns>
+    public static Boolean IsCompositeCommandLine(String value)
+    {
+        if (value.IsNullOrEmpty()) return false;
+
+        value = value.Trim();
+        if (value.Length == 0) return false;
+        if (value[0] == '"') return true;
+
+        var idx = value.IndexOf(' ');
+        if (idx <= 0) return false;
+
+        var exe = value.Substring(0, idx);
+        var rest = value.Substring(idx + 1).TrimStart();
+
+        // 首个 token 不含路径分隔符（dotnet）、文件已存在，或明显是可执行文件（C:\app.exe -s），
+        // 都按复合命令行处理；单个含空格路径的首个 token 通常是 "C:\Program" 或 "/opt/my"，不会被误判。
+        // 剩余部分以 - / \ 开头（如 dotnet /root/app.dll）同样说明是命令行而不是单个路径
+        return exe.IndexOf('/') < 0 && exe.IndexOf('\\') < 0
+            || File.Exists(exe)
+            || exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+            || exe.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)
+            || exe.EndsWith(".bat", StringComparison.OrdinalIgnoreCase)
+            || exe.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase)
+            || exe.EndsWith(".sh", StringComparison.OrdinalIgnoreCase)
+            || rest.StartsWith("-", StringComparison.Ordinal)
+            || rest.StartsWith("/", StringComparison.Ordinal)
+            || rest.StartsWith("\\", StringComparison.Ordinal);
+    }
+
+    /// <summary>解析文件名与内嵌参数：单个路径整体保留，复合命令行才拆分</summary>
+    /// <param name="fileName">可执行文件路径或复合命令行</param>
+    /// <returns>[可执行文件, 内嵌参数]</returns>
+    static String[] SplitFileName(String fileName) => IsCompositeCommandLine(fileName) ? SplitCommandLine(fileName) : [fileName];
+
     /// <summary>为进程参数加引号（含空白或引号时用双引号包裹）</summary>
     /// <param name="value">原始参数；已带外层双引号时保持不变，避免二次包裹</param>
     /// <returns>可直接拼进 ProcessStartInfo.Arguments 的参数</returns>
@@ -172,6 +215,18 @@ public static class ServiceHelper
         if (value.Length >= 2 && value[0] == '"' && value[value.Length - 1] == '"') return value;
 
         return value.IndexOfAny([' ', '\t', '\r', '\n', '"']) >= 0 ? $"\"{value.Replace("\"", "\\\"")}\"" : value;
+    }
+
+    /// <summary>给单个路径加引号；已是复合命令行（含引号）时原样返回，避免把整串当成一个路径</summary>
+    /// <param name="value">单个路径或复合命令行</param>
+    /// <returns>可直接写入注册表/配置的路径</returns>
+    public static String QuotePath(String value)
+    {
+        if (value.IsNullOrEmpty()) return value;
+        if (value.IndexOf('"') >= 0) return value;
+        if (IsCompositeCommandLine(value)) return value;
+
+        return value.IndexOfAny([' ', '\t', '\r', '\n']) >= 0 ? $"\"{value}\"" : value;
     }
 
     /// <summary>为 shell 脚本加单引号，避免空格与元字符改变命令含义</summary>
@@ -184,6 +239,21 @@ public static class ServiceHelper
         if (value.Length >= 2 && value[0] == '"' && value[value.Length - 1] == '"') value = value.Substring(1, value.Length - 2);
 
         return "'" + value.Replace("'", "'\\''") + "'";
+    }
+
+    /// <summary>构建 sh 脚本中的命令：只给可执行文件加引号，复合命令行中的内嵌参数与附加参数原样保留</summary>
+    /// <param name="fileName">可执行文件路径，或 dotnet + dll 形式的复合命令行</param>
+    /// <param name="arguments">附加参数</param>
+    /// <returns>可直接写入 init 脚本的命令文本</returns>
+    public static String BuildShellCommand(String fileName, String arguments)
+    {
+        var parts = SplitFileName(fileName);
+        var sb = new StringBuilder();
+        if (parts.Length > 0) sb.Append(QuoteShell(parts[0]));
+        if (parts.Length > 1 && !parts[1].IsNullOrEmpty()) sb.Append(' ').Append(parts[1].Trim());
+        if (!arguments.IsNullOrEmpty()) sb.Append(' ').Append(arguments.Trim());
+
+        return sb.ToString();
     }
 
     /// <summary>解析命令行参数字符串为令牌列表</summary>

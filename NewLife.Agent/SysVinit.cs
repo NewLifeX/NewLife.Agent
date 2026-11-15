@@ -133,9 +133,7 @@ public class SysVinit : DefaultHost
         var file = GetServicePath(serviceName);
         if (file == null) return false;
 
-        using var p = Process.Start(file, "start");
-
-        return p != null;
+        return RunScript(file, "start");
     }
 
     /// <summary>停止服务</summary>
@@ -147,9 +145,7 @@ public class SysVinit : DefaultHost
         var file = GetServicePath(serviceName);
         if (file == null) return false;
 
-        using var p = Process.Start(file, "stop");
-
-        return p != null;
+        return RunScript(file, "stop");
     }
 
     /// <summary>重启服务</summary>
@@ -160,9 +156,36 @@ public class SysVinit : DefaultHost
         var file = GetServicePath(serviceName);
         if (file == null) return false;
 
-        using var p = Process.Start(file, "restart");
+        return RunScript(file, "restart");
+    }
 
-        return p != null;
+    /// <summary>执行 init 脚本并检查退出码</summary>
+    /// <param name="file">脚本路径</param>
+    /// <param name="command">start/stop/restart</param>
+    /// <returns>命令是否成功</returns>
+    private static Boolean RunScript(String file, String command)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = file,
+                Arguments = command,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            using var p = Process.Start(psi);
+            if (p == null) return false;
+            if (!p.WaitForExit(10_000)) return true;
+
+            return p.ExitCode == 0;
+        }
+        catch (Exception ex)
+        {
+            XTrace.WriteException(ex);
+
+            return false;
+        }
     }
 
     /// <summary>查询服务配置</summary>

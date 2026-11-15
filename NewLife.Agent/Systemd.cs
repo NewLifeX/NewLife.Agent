@@ -149,11 +149,11 @@ public class Systemd : DefaultHost
         // sudo systemctl enable StarAgent
         // sudo systemctl start StarAgent
 
-        Process.Start("systemctl", "daemon-reload");
-        Process.Start("systemctl", $"enable {serviceName}");
+        var ok = RunSystemctl("daemon-reload");
+        ok &= RunSystemctl($"enable {ServiceHelper.QuoteArgument(serviceName)}");
         //Execute("systemctl", $"start {serviceName}");
 
-        return true;
+        return ok;
     }
 
     /// <summary>卸载服务</summary>
@@ -163,11 +163,12 @@ public class Systemd : DefaultHost
     {
         XTrace.WriteLine("{0}.Remove {1}", Name, serviceName);
 
-        Process.Start("systemctl", $"disable  {serviceName}");
+        RunSystemctl($"disable {ServiceHelper.QuoteArgument(serviceName)}");
+
         var file = ServicePath.CombinePath($"{serviceName}.service");
         if (File.Exists(file)) File.Delete(file);
-        Process.Start("systemctl", "daemon-reload");
-        return true;
+
+        return RunSystemctl("daemon-reload");
     }
 
     /// <summary>启动服务</summary>
@@ -176,7 +177,8 @@ public class Systemd : DefaultHost
     public override Boolean Start(String serviceName)
     {
         XTrace.WriteLine("{0}.Start {1}", Name, serviceName);
-        return Process.Start("systemctl", $"start {serviceName}") != null;
+
+        return RunSystemctl($"start {ServiceHelper.QuoteArgument(serviceName)}");
     }
 
     /// <summary>停止服务</summary>
@@ -185,7 +187,8 @@ public class Systemd : DefaultHost
     public override Boolean Stop(String serviceName)
     {
         XTrace.WriteLine("{0}.Stop {1}", Name, serviceName);
-        return Process.Start("systemctl", $"stop {serviceName}") != null;
+
+        return RunSystemctl($"stop {ServiceHelper.QuoteArgument(serviceName)}");
     }
 
     /// <summary>重启服务</summary>
@@ -195,9 +198,37 @@ public class Systemd : DefaultHost
         XTrace.WriteLine("{0}.Restart {1}", Name, serviceName);
 
         //if (InService)
-        return Process.Start("systemctl", $"restart {serviceName}") != null;
+        return RunSystemctl($"restart {ServiceHelper.QuoteArgument(serviceName)}");
         //else
         //    return Process.Start(Service.GetExeName(), "-run -delay") != null;
+    }
+
+    /// <summary>执行 systemctl 命令并检查退出码，避免只判断进程是否创建成功</summary>
+    /// <param name="arguments">命令参数</param>
+    /// <returns>命令是否成功</returns>
+    private static Boolean RunSystemctl(String arguments)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "systemctl",
+                Arguments = arguments,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            using var p = Process.Start(psi);
+            if (p == null) return false;
+            if (!p.WaitForExit(10_000)) return false;
+
+            return p.ExitCode == 0;
+        }
+        catch (Exception ex)
+        {
+            XTrace.WriteException(ex);
+
+            return false;
+        }
     }
 
     /// <summary>查询服务配置</summary>

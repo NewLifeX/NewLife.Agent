@@ -71,8 +71,9 @@ public class SystemdSetting : ServiceModel
         sb.AppendLine($"Type={Type}");
         if (!Environment.IsNullOrEmpty()) sb.AppendLine($"Environment={Environment}");
         //sb.AppendLine($"ExecStart=/usr/bin/dotnet {asm.Location}");
-        // FileName 可能已是含引号的复合命令行（dotnet + dll），不能整串再加引号
-        sb.AppendLine($"ExecStart={FileName} {Arguments}");
+        // FileName 可能已是含引号的复合命令行（dotnet + dll），不能整串再加引号；单个含空格路径必须加引号
+        var exec = ServiceHelper.IsCompositeCommandLine(FileName) ? FileName : QuotePath(FileName);
+        sb.AppendLine($"ExecStart={exec} {Arguments}");
         sb.AppendLine($"WorkingDirectory={QuotePath(!WorkingDirectory.IsNullOrEmpty() ? WorkingDirectory : Path.GetDirectoryName(FileName).GetFullPath())}");
         if (!User.IsNullOrEmpty()) sb.AppendLine($"User={User}");
         if (!Group.IsNullOrEmpty()) sb.AppendLine($"Group={Group}");

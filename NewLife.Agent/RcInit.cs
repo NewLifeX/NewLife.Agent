@@ -126,10 +126,10 @@ public class RcInit : DefaultHost
         sb.AppendLine();
         sb.AppendLine("case \"$1\" in");
         sb.AppendLine("  start)");
-        sb.AppendLine($"        nohup {ServiceHelper.QuoteShell(fileName)} {arguments} >/dev/null 2>&1 &");
+        sb.AppendLine($"        nohup {ServiceHelper.BuildShellCommand(fileName, arguments)} >/dev/null 2>&1 &");
         sb.AppendLine("        ;;");
         sb.AppendLine("  stop)");
-        sb.AppendLine($"        {ServiceHelper.QuoteShell(fileName)} {TrimArg(arguments)} -stop");
+        sb.AppendLine($"        {ServiceHelper.BuildShellCommand(fileName, TrimArg(arguments))} -stop");
         sb.AppendLine("        ;;");
         sb.AppendLine("  restart)");
         sb.AppendLine($"        $0 stop");
@@ -220,7 +220,8 @@ public class RcInit : DefaultHost
         if (File.Exists(target)) File.Delete(target);
 
         // 路径可能包含空格，必须逐参数加引号，否则 ln 会把路径截断
-        Process.Start("ln", $"-s {ServiceHelper.QuoteArgument(source)} {ServiceHelper.QuoteArgument(target)}");
+        using var p = Process.Start("ln", $"-s {ServiceHelper.QuoteArgument(source)} {ServiceHelper.QuoteArgument(target)}");
+        p?.WaitForExit(5_000);
     }
 
     /// <summary>卸载服务</summary>

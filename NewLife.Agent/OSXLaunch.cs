@@ -26,7 +26,8 @@ public class OSXLaunch : DefaultHost
         if (home.IsNullOrEmpty()) return;
 
         var dir = Path.Combine(home, "Library", "LaunchAgents");
-        if (Directory.Exists(dir)) _path = dir;
+        // 目录可能尚未创建，安装时再创建；这里保留路径，避免静态构造时目录不存在导致之后永久不可用
+        _path = dir;
     }
     #endregion
 
@@ -68,7 +69,7 @@ public class OSXLaunch : DefaultHost
     }
 
     String GetFileName(String serviceName) => GetFileName(serviceName, _path);
-    static String GetFileName(String serviceName, String basePath) => basePath.CombinePath($"{serviceName}.plist");
+    static String GetFileName(String serviceName, String basePath) => basePath.IsNullOrEmpty() ? null : basePath.CombinePath($"{serviceName}.plist");
 
     /// <summary>服务是否已安装</summary>
     /// <param name="serviceName">服务名</param>
@@ -107,7 +108,8 @@ public class OSXLaunch : DefaultHost
         return Install(_path, serviceName, displayName, fileName, arguments, description, User, Group, DependOnNetwork);
     }
 
-    /// <summary>生成 LaunchAgent plist 内容</summary>    /// <remarks>
+    /// <summary>生成 LaunchAgent plist 内容</summary>
+    /// <remarks>
     /// 所有插入值均做 XML 转义，否则参数或路径含 &amp; &lt; &gt; 时 plist 非法，launchctl 会拒绝加载。
     /// </remarks>
     /// <param name="serviceName">服务名</param>
@@ -127,9 +129,17 @@ public class OSXLaunch : DefaultHost
         sb.AppendLine($"    <string>{Escape(serviceName)}</string>");
         sb.AppendLine("    <key>ProgramArguments</key>");
         sb.AppendLine("    <array>");
-        sb.AppendLine($"        <string>{Escape(fileName)}</string>");
-        // launchd 把数组元素逐个作为 argv 传入：参数必须拆成独立 <string>，
-        // 否则 "a b" 会作为一个参数，多参数服务无法启动
+        // FileName 可能是 dotnet + dll 的复合命令行，必须拆成独立 argv；
+        // 单个路径含空格时整体保留，launchd 把数组元素逐个作为参数传入
+        var parts = ServiceHelper.IsCompositeCommandLine(fileName) ? ServiceHelper.SplitCommandLine(fileName) : [fileName];
+        if (parts.Length > 0 && !parts[0].IsNullOrEmpty()) sb.AppendLine($"        <string>{Escape(parts[0])}</string>");
+        if (parts.Length > 1 && !parts[1].IsNullOrEmpty())
+        {
+            foreach (var token in ServiceHelper.ParseArguments(parts[1]))
+            {
+                sb.AppendLine($"        <string>{Escape(token)}</string>");
+            }
+        }
         if (!arguments.IsNullOrEmpty())
         {
             foreach (var token in ServiceHelper.ParseArguments(arguments))
@@ -201,15 +211,16 @@ public class OSXLaunch : DefaultHost
             File.WriteAllText(file, str);
 
             using var p = Process.Start("launchctl", $"load \"{file}\"");
-            p?.WaitForExit(5_000);
+            if (p == null) return false;
+            if (!p.WaitForExit(5_000)) return false;
+
+            return p.ExitCode == 0;
         }
         catch (Exception ex)
         {
             XTrace.WriteException(ex);
             return false;
         }
-
-        return true;
     }
 
     /// <summary>卸载服务</summary>
@@ -222,7 +233,10 @@ public class OSXLaunch : DefaultHost
         var file = GetFileName(serviceName);
         if (File.Exists(file))
         {
-            Process.Start("launchctl", $"unload \"{file}\"");
+            using (var p = Process.Start("launchctl", $"unload \"{file}\""))
+            {
+                if (p != null) p.WaitForExit(5_000);
+            }
 
             File.Delete(file);
 
@@ -239,7 +253,11 @@ public class OSXLaunch : DefaultHost
     {
         XTrace.WriteLine("{0}.Start {1}", GetType().Name, serviceName);
 
-        return Process.Start("launchctl", $"start {serviceName}") != null;
+        using var p = Process.Start("launchctl", $"start \"{serviceName}\"");
+        if (p == null) return false;
+        if (!p.WaitForExit(5_000)) return false;
+
+        return p.ExitCode == 0;
     }
 
     /// <summary>停止服务</summary>
@@ -249,7 +267,11 @@ public class OSXLaunch : DefaultHost
     {
         XTrace.WriteLine("{0}.Stop {1}", GetType().Name, serviceName);
 
-        return Process.Start("launchctl", $"stop {serviceName}") != null;
+        using var p = Process.Start("launchctl", $"stop \"{serviceName}\"");
+        if (p == null) return false;
+        if (!p.WaitForExit(5_000)) return false;
+
+        return p.ExitCode == 0;
     }
 
     /// <summary>重启服务</summary>
@@ -258,10 +280,19 @@ public class OSXLaunch : DefaultHost
     {
         XTrace.WriteLine("{0}.Restart {1}", GetType().Name, serviceName);
 
-        Process.Start("launchctl", $"stop {serviceName}");
-        Process.Start("launchctl", $"start {serviceName}");
+        using (var p = Process.Start("launchctl", $"stop \"{serviceName}\""))
+        {
+            if (p == null) return false;
+            p.WaitForExit(5_000);
+        }
 
-        return true;
+        using (var p = Process.Start("launchctl", $"start \"{serviceName}\""))
+        {
+            if (p == null) return false;
+            if (!p.WaitForExit(5_000)) return false;
+
+            return p.ExitCode == 0;
+        }
     }
 
     /// <summary>查询服务配置</summary>

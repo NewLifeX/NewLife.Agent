@@ -109,8 +109,9 @@ public class WindowsAutorun : DefaultHost
             return false;
         }
 
-        // 路径可能包含空格，必须加引号，否则登录自启动会把路径截断
-        key.SetValue(serviceName, $"{ServiceHelper.QuoteArgument(fileName)} {arguments}".TrimEnd());
+        // 路径可能包含空格，必须加引号，否则登录自启动会把路径截断；
+        // FileName 也可能是 dotnet + dll 的复合命令行，此时已是合法命令文本，不能整串再包引号
+        key.SetValue(serviceName, $"{ServiceHelper.QuotePath(fileName)} {arguments}".TrimEnd());
 #endif
 
         return true;

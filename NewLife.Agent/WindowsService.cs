@@ -507,18 +507,28 @@ public class WindowsService : DefaultHost
         }
 
         //if (InService)
+        var cmd = $"/c net stop \"{serviceName}\" & ping 127.0.0.1 -n 5 & net start \"{serviceName}\"";
+        var success = true;
+        try
         {
-            var cmd = $"/c net stop \"{serviceName}\" & ping 127.0.0.1 -n 5 & net start \"{serviceName}\"";
-            try
+            // 重启命令需要在本服务退出后继续执行；外部调用时等待并检查 net start 结果，
+            // 服务内调用通常会在 net stop 时被终止，走不到等待完成
+            var psi = new ProcessStartInfo
             {
-                // 重启命令需要在本服务退出后继续执行，不能等待；启动失败必须上报，否则健康检查会一直认为重启成功
-                using var p = Process.Start("cmd.exe", cmd);
-            }
-            catch (Exception ex)
-            {
-                XTrace.WriteException(ex);
-                return false;
-            }
+                FileName = "cmd.exe",
+                Arguments = cmd,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            using var p = Process.Start(psi);
+            if (p == null) return false;
+
+            if (p.WaitForExit(30_000)) success = p.ExitCode == 0;
+        }
+        catch (Exception ex)
+        {
+            XTrace.WriteException(ex);
+            return false;
         }
         //else
         //{
@@ -550,7 +560,7 @@ public class WindowsService : DefaultHost
 
         ////if (File.Exists(filename)) File.Delete(filename);
 
-        return true;
+        return success;
     }
 
     /// <summary>查询服务配置</summary>

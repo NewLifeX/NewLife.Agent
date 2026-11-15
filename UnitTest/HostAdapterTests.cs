@@ -122,6 +122,28 @@ public class HostAdapterTests
     #endregion
 
     [Fact]
+    [DisplayName("OSXLaunch_生成plist_复合命令行拆成独立argv")]
+    public void OSXLaunch_BuildPlist_SplitsCompositeFileName()
+    {
+        var plist = OSXLaunch.BuildPlist("svc", "dotnet \"my app.dll\"", "-s");
+
+        Assert.Contains("<string>dotnet</string>", plist);
+        Assert.Contains("<string>my app.dll</string>", plist);
+        Assert.DoesNotContain("<string>dotnet \"my app.dll\"</string>", plist);
+        Assert.Contains("<string>-s</string>", plist);
+    }
+
+    [Fact]
+    [DisplayName("OSXLaunch_生成plist_单个路径含空格整体保留")]
+    public void OSXLaunch_BuildPlist_KeepsSinglePathWithSpaces()
+    {
+        var plist = OSXLaunch.BuildPlist("svc", "/opt/my app/agent", "");
+
+        Assert.Contains("<string>/opt/my app/agent</string>", plist);
+        Assert.DoesNotContain("<string>/opt/my</string>", plist);
+    }
+
+    [Fact]
     [DisplayName("OSXLaunch_生成plist_特殊字符做XML转义")]
     public void OSXLaunch_BuildPlist_EscapesXml()
     {

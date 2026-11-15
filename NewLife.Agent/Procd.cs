@@ -147,19 +147,19 @@ public class Procd : DefaultHost
 
         sb.AppendLine();
         sb.AppendLine("start_service() {");
-        sb.AppendLine($"  nohup {ServiceHelper.QuoteShell(fileName)} {arguments} >/dev/null 2>&1 &");
+        sb.AppendLine($"  nohup {ServiceHelper.BuildShellCommand(fileName, arguments)} >/dev/null 2>&1 &");
         sb.AppendLine("  return 0");
         sb.AppendLine("}");
 
         sb.AppendLine();
         sb.AppendLine("stop_service() {");
-        sb.AppendLine($"  {ServiceHelper.QuoteShell(fileName)} {TrimArg(arguments)} -stop");
+        sb.AppendLine($"  {ServiceHelper.BuildShellCommand(fileName, TrimArg(arguments))} -stop");
         sb.AppendLine("  return 0");
         sb.AppendLine("}");
 
         sb.AppendLine();
         sb.AppendLine("reload_service() {");
-        sb.AppendLine($"  {ServiceHelper.QuoteShell(fileName)} {TrimArg(arguments)} -restart");
+        sb.AppendLine($"  {ServiceHelper.BuildShellCommand(fileName, TrimArg(arguments))} -restart");
         sb.AppendLine("  return 0");
         sb.AppendLine("}");
 
@@ -196,7 +196,10 @@ public class Procd : DefaultHost
         File.WriteAllBytes(file, script.GetBytes());
 
         // 给予可执行权限
-        Process.Start("chmod", $"+x {ServiceHelper.QuoteArgument(file)}");
+        using (var p = Process.Start("chmod", $"+x {ServiceHelper.QuoteArgument(file)}"))
+        {
+            p?.WaitForExit(5_000);
+        }
 
         // 创建链接文件，OpenWrt
         var dir = "/etc/rc.d/";
@@ -212,7 +215,8 @@ public class Procd : DefaultHost
     {
         if (File.Exists(target)) File.Delete(target);
 
-        Process.Start("ln", $"-s {ServiceHelper.QuoteArgument(source)} {ServiceHelper.QuoteArgument(target)}");
+        using var p = Process.Start("ln", $"-s {ServiceHelper.QuoteArgument(source)} {ServiceHelper.QuoteArgument(target)}");
+        p?.WaitForExit(5_000);
     }
 
     /// <summary>卸载服务</summary>
@@ -258,9 +262,7 @@ public class Procd : DefaultHost
 
         //Process.Start(new ProcessStartInfo("sh", $"{file} start") { UseShellExecute = true });
         //"sh".ShellExecute($"{file} start");
-        file.ShellExecute("start");
-
-        return true;
+        return RunScript(file, "start");
     }
 
     /// <summary>停止服务</summary>
@@ -323,9 +325,37 @@ public class Procd : DefaultHost
         XTrace.WriteLine("{0}.Restart {1}", Name, serviceName);
 
         Stop(serviceName);
-        Start(serviceName);
 
-        return true;
+        return Start(serviceName);
+    }
+
+    /// <summary>执行 init 脚本并检查退出码</summary>
+    /// <param name="file">脚本路径</param>
+    /// <param name="command">start/stop/restart</param>
+    /// <returns>命令是否成功</returns>
+    private static Boolean RunScript(String file, String command)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = file,
+                Arguments = command,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            using var p = Process.Start(psi);
+            if (p == null) return false;
+            if (!p.WaitForExit(10_000)) return true;
+
+            return p.ExitCode == 0;
+        }
+        catch (Exception ex)
+        {
+            XTrace.WriteException(ex);
+
+            return false;
+        }
     }
 
     /// <summary>移除命令行尾部参数</summary>
