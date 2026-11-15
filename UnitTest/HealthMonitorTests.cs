@@ -194,13 +194,13 @@ public class HealthMonitorTests
     }
 
     [Fact]
-    [DisplayName("IsAutoRestartDue_时间范围非法格式_宽松触发")]
-    public void IsAutoRestartDue_InvalidRange_Due()
+    [DisplayName("IsAutoRestartDue_时间范围非法格式_不触发")]
+    public void IsAutoRestartDue_InvalidRange_NotDue()
     {
         var set = new Setting { AutoRestart = 60, RestartTimeRange = "abc" };
         var now = new DateTime(2026, 1, 1, 12, 0, 0);
-        // 非 2 段格式按无限制处理，直接触发（与原实现一致）
-        Assert.True(HealthMonitor.IsAutoRestartDue(set, now.AddMinutes(-120), now, out var inRange));
+        // 配置了非法范围时按“不重启”处理，避免在高峰期意外重启
+        Assert.False(HealthMonitor.IsAutoRestartDue(set, now.AddMinutes(-120), now, out var inRange));
         Assert.False(inRange);
     }
 
@@ -218,6 +218,7 @@ public class HealthMonitorTests
     [DisplayName("TryParseTimeRange_合法格式_解析成功")]
     [InlineData("00:00-06:00", 0, 6)]
     [InlineData("22:00-08:00", 22, 8)]
+    [InlineData("22:00:00-06:00:00", 22, 6)]
     public void TryParseTimeRange_Valid_Parses(String range, Int32 startHour, Int32 endHour)
     {
         Assert.True(HealthMonitor.TryParseTimeRange(range, out var start, out var end));
@@ -241,12 +242,35 @@ public class HealthMonitorTests
     }
 
     [Fact]
-    [DisplayName("IsInTimeRange_缺冒号的宽松写法_视为未配置不限制")]
-    public void IsInTimeRange_Malformed_Unrestricted()
+    [DisplayName("IsInTimeRange_未配置_不限制")]
+    public void IsInTimeRange_NoRange_Unrestricted()
     {
-        // "6-10" 在旧实现里会被 TimeSpan 解释为 6 天~10 天，永远不命中；现在按非法范围处理，不限制重启
-        Assert.True(HealthMonitor.IsInTimeRange("6-10", TimeSpan.FromHours(7), out var inRange));
+        Assert.True(HealthMonitor.IsInTimeRange(null, TimeSpan.FromHours(7), out var inRange));
         Assert.False(inRange);
+
+        Assert.True(HealthMonitor.IsInTimeRange("", TimeSpan.FromHours(7), out inRange));
+        Assert.False(inRange);
+    }
+
+    [Theory]
+    [DisplayName("IsInTimeRange_配置了但格式非法_不重启")]
+    [InlineData("6-10")]
+    [InlineData("abc")]
+    [InlineData("06:00")]
+    public void IsInTimeRange_Malformed_NotRestart(String range)
+    {
+        Assert.False(HealthMonitor.IsInTimeRange(range, TimeSpan.FromHours(7), out var inRange));
+        Assert.False(inRange);
+    }
+
+    [Theory]
+    [DisplayName("IsInTimeRange_兼容旧配置的秒级写法")]
+    [InlineData("22:00:00-06:00:00", 23)]
+    [InlineData("22:00:00-06:00:00", 5)]
+    public void IsInTimeRange_WithSeconds_StillWorks(String range, Int32 hour)
+    {
+        Assert.True(HealthMonitor.IsInTimeRange(range, TimeSpan.FromHours(hour), out var inRange));
+        Assert.True(inRange);
     }
     #endregion
 }

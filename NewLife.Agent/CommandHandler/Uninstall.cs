@@ -29,7 +29,8 @@ public class Uninstall : BaseCommandHandler
         {
             XTrace.WriteException(ex);
         }
-        Service.Host.Remove(Service.ServiceName);
+        // 失败时设置退出码，脚本/CI 才能感知卸载失败
+        if (!Service.Host.Remove(Service.ServiceName)) Environment.ExitCode = 1;
 
         // 稍微等一下，以便后续状态刷新
         Thread.Sleep(500);

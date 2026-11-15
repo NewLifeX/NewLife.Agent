@@ -24,7 +24,8 @@ public class Restart : BaseCommandHandler
     /// <inheritdoc/>
     public override void Process(String[] args)
     {
-        Service.Host.Restart(Service.ServiceName);
+        // 失败时设置退出码，脚本/CI 才能感知重启失败
+        if (!Service.Host.Restart(Service.ServiceName)) Environment.ExitCode = 1;
 
         // 稍微等一下，以便后续状态刷新
         Thread.Sleep(500);

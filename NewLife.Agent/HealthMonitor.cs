@@ -1,4 +1,5 @@
 using System.Globalization;
+using NewLife.Log;
 
 namespace NewLife.Agent;
 
@@ -76,12 +77,34 @@ public static class HealthMonitor
     /// <param name="range">范围字符串，格式 HH:mm-HH:mm</param>
     /// <param name="timeOfDay">待判断的时间点</param>
     /// <param name="inTimeRange">是否显式配置了范围并命中</param>
-    /// <returns>是否允许重启；未配置或无法解析时视为不限制</returns>
+    /// <returns>是否允许重启；未配置时不受限制，配置了但格式非法时不重启</returns>
     public static Boolean IsInTimeRange(String range, TimeSpan timeOfDay, out Boolean inTimeRange)
     {
         inTimeRange = false;
 
-        if (!TryParseTimeRange(range, out var start, out var end)) return true;
+        if (range.IsNullOrWhiteSpace()) return true;
+
+        var parts = range.Split('-');
+        if (parts.Length != 2)
+        {
+            WarnInvalidRange(range);
+
+            return false;
+        }
+
+        // 配置了范围但格式非法时维持“不重启”的安全默认，不能退化成全天可重启
+        if (!TryParseClock(parts[0], out var start))
+        {
+            WarnInvalidRange(range);
+
+            return false;
+        }
+        if (!TryParseClock(parts[1], out var end))
+        {
+            WarnInvalidRange(range);
+
+            return false;
+        }
 
         inTimeRange = start <= end
             ? timeOfDay >= start && timeOfDay <= end
@@ -108,7 +131,19 @@ public static class HealthMonitor
         return true;
     }
 
-    /// <summary>按 HH:mm 或 H:mm 解析时钟时间，拒绝 "22" 这类被 TimeSpan 解释为天数的宽松写法</summary>
+    /// <summary>按 HH:mm、H:mm（兼容旧配置的带秒写法 HH:mm:ss）解析时钟时间，拒绝 "22" 这类被 TimeSpan 解释为天数的宽松写法</summary>
     private static Boolean TryParseClock(String text, out TimeSpan value) =>
-        TimeSpan.TryParseExact(text?.Trim(), ["hh\\:mm", "h\\:mm"], CultureInfo.InvariantCulture, out value);
+        TimeSpan.TryParseExact(text?.Trim(), ["hh\\:mm", "h\\:mm", "hh\\:mm\\:ss", "h\\:mm\\:ss"], CultureInfo.InvariantCulture, out value);
+
+    private static String _invalidRange;
+
+    /// <summary>非法时间范围只告警一次，避免每轮巡检刷屏</summary>
+    private static void WarnInvalidRange(String range)
+    {
+        if (String.Equals(_invalidRange, range, StringComparison.Ordinal)) return;
+
+        _invalidRange = range;
+
+        XTrace.Log.WriteLogPrefixed(LogLevel.Warn, "[HealthMonitor]", "Invalid RestartTimeRange '{0}'; automatic restart is disabled until it is corrected.", range);
+    }
 }

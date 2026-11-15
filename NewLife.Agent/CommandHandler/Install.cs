@@ -109,7 +109,8 @@ public class Install : BaseCommandHandler
 
         service.Arguments = arg;
         //Service.Host.Install(Service.ServiceName, Service.DisplayName, exe, arg, Service.Description);
-        Service.Host.Install(service);
+        // 失败时设置退出码，脚本/CI 才能感知安装失败
+        if (!Service.Host.Install(service)) Environment.ExitCode = 1;
 
         // 稍微等一下，以便后续状态刷新
         Thread.Sleep(500);

@@ -39,7 +39,7 @@ public class Reinstall : BaseCommandHandler
             if (Service.Host.IsInstalled(Service.ServiceName)) break;
             Thread.Sleep(100);
         }
-        Service.Host.Start(Service.ServiceName);
+        if (!Service.Host.Start(Service.ServiceName)) Environment.ExitCode = 1;
 
         // 稍微等一下，以便后续状态刷新
         Thread.Sleep(500);

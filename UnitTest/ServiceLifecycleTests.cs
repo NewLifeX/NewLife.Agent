@@ -203,4 +203,16 @@ public class ServiceLifecycleTests
         Assert.False(svc.RestartNow("冷却期内再次触发"));
         Assert.Equal(1, host.RestartCount);
     }
+
+    [Fact]
+    [DisplayName("RequestRestart_重启失败_不进入冷却下一轮继续尝试")]
+    public void RequestRestart_Failure_DoesNotStartCooldown()
+    {
+        var host = new CountingHost { Result = false };
+        var svc = new StartWorkTester { ServiceName = "UnitTestRestartFailure", Host = host };
+
+        Assert.False(svc.RestartNow("首次失败"));
+        Assert.False(svc.RestartNow("立即重试仍失败"));
+        Assert.Equal(2, host.RestartCount);
+    }
 }

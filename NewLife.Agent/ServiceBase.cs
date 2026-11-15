@@ -533,11 +533,13 @@ public abstract class ServiceBase : DisposeBase
         var now = (Int64)Uptime.TotalMilliseconds;
         if (_lastRestart >= 0 && now - _lastRestart < RestartCooldown) return false;
 
-        _lastRestart = now;
-
         WriteLog("{0}", message);
 
-        return Host.Restart(ServiceName);
+        // 只有真正发起成功才进入冷却；失败时下一轮巡检继续尝试
+        var result = Host.Restart(ServiceName);
+        if (result) _lastRestart = now;
+
+        return result;
     }
 
     /// <summary>开始工作</summary>

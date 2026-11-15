@@ -24,7 +24,8 @@ public class Stop : BaseCommandHandler
     /// <inheritdoc/>
     public override void Process(String[] args)
     {
-        Service.Host.Stop(Service.ServiceName);
+        // 失败时设置退出码，脚本/CI 才能感知停止失败
+        if (!Service.Host.Stop(Service.ServiceName)) Environment.ExitCode = 1;
 
         // 稍微等一下，以便后续状态刷新
         Thread.Sleep(500);
