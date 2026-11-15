@@ -379,6 +379,13 @@ public class AgentWebPanel
     /// </remarks>
     private void UseAuthentication() => Server.Use(async (ctx, next) =>
     {
+        // 统一安全响应头：面板拥有服务控制与配置写入能力，不能被第三方页面套壳（点击劫持到 /api/control）
+        // CSP 暂不下发：首页使用内联脚本与 onclick，收紧前需要先把脚本外置
+        var headers = ctx.Response.Headers;
+        headers["X-Frame-Options"] = "DENY";
+        headers["X-Content-Type-Options"] = "nosniff";
+        headers["Referrer-Policy"] = "no-referrer";
+
         var request = ctx.Request;
         var (path, query) = SplitRequestUri(request);
 
@@ -523,8 +530,17 @@ public class AgentWebPanel
         var index = html.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
         if (index < 0) return html;
 
-        var forced = PanelLanguage.Forced ? "true" : "false";
-        var script = $"<script>window.__panelLanguage={{selected:'{PanelLanguage.Selected}',effective:'{PanelLanguage.Effective}',forced:{forced}}};</script>";
+        var forced = PanelLanguage.Forced;
+        var state = new Dictionary<String, Object>
+        {
+            ["selected"] = PanelLanguage.Selected ?? "",
+            ["effective"] = PanelLanguage.Effective ?? "",
+            ["forced"] = forced,
+        };
+
+        // 语言代码来自配置，必须经 JSON 序列化再注入；直接拼字符串会让含引号或 </script> 的值破坏脚本甚至注入代码
+        var json = JsonHelper.ToJson(state);
+        var script = $"<script>window.__panelLanguage={json};</script>";
 
         return html.Insert(index, script);
     }

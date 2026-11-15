@@ -10,6 +10,21 @@ namespace UnitTest;
 /// </remarks>
 public class DiskMonitorTests
 {
+    #region PDH
+    [Fact]
+    [DisplayName("PDH_重复关闭_不抛异常")]
+    public void Pdh_CloseTwice_NoThrow()
+    {
+        var ex = Record.Exception(() =>
+        {
+            PdhHelper.Close();
+            PdhHelper.Close();
+        });
+
+        Assert.Null(ex);
+    }
+    #endregion
+
     #region ParseDiskStats
     [Fact]
     [DisplayName("ParseDiskStats_主磁盘保留_分区与虚拟设备剔除")]

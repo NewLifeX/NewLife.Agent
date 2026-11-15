@@ -514,7 +514,10 @@ public class LocalizationTests
             {
                 using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{panel.Port}") };
                 var html = await client.GetStringAsync("/");
-                Assert.Contains("window.__panelLanguage={selected:'',effective:'en-US',forced:false}", html);
+                // 语言状态以 JSON 注入（值来自配置，必须序列化而不是拼字符串字面量）
+                Assert.Contains("window.__panelLanguage=", html);
+                Assert.Contains("\"effective\":\"en-US\"", html);
+                Assert.Contains("\"forced\":false", html);
             }
             finally
             {

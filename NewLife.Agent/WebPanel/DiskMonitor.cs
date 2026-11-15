@@ -20,6 +20,14 @@ internal static class DiskMonitor
     private static readonly Object _lock = new();
     #endregion
 
+    #region Windows 降级限频
+    private static Int64 _lastWmicTick;
+    private static Int32 _lastWmicIops;
+
+    /// <summary>WMIC 降级查询间隔（毫秒）。每次降级都会创建子进程，按间隔限频避免状态页轮询刷进程</summary>
+    private const Int32 WmicInterval = 30_000;
+    #endregion
+
     /// <summary>获取磁盘 IOPS</summary>
     /// <returns>每秒读写次数总和</returns>
     public static Int32 GetIOPS()
@@ -41,7 +49,23 @@ internal static class DiskMonitor
         }
         catch { }
 
-        // 降级为 WMIC 方式（直接创建进程，不依赖 String.Execute 扩展方法）
+        // PDH 不可用时降级 WMIC：每次都会创建子进程，按 30 秒限频并复用上次结果
+        lock (_lock)
+        {
+            var now = Runtime.TickCount64;
+            if (now - _lastWmicTick < WmicInterval) return _lastWmicIops;
+
+            _lastWmicTick = now;
+            _lastWmicIops = QueryWmicIops();
+
+            return _lastWmicIops;
+        }
+    }
+
+    /// <summary>通过 WMIC 查询磁盘 IOPS</summary>
+    /// <returns>每秒读写次数总和，失败返回 0</returns>
+    private static Int32 QueryWmicIops()
+    {
         try
         {
             var rs = ExecuteWmic("path Win32_PerfFormattedData_PerfDisk_PhysicalDisk where \"Name='_Total'\" get DiskReadsPersec, DiskWritesPersec /value");

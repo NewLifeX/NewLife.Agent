@@ -48,8 +48,12 @@ internal static class PdhHelper
     private static IntPtr _diskReadsCounter;
     private static IntPtr _diskWritesCounter;
     private static IntPtr _diskIdleTimeCounter;
-    private static Boolean _initialized;
+    private static Int64 _nextRetry;
+    private static Boolean _exitHookRegistered;
     private static readonly Object _lock = new();
+
+    /// <summary>初始化失败后的重试间隔（毫秒）。避免一次失败就永久降级到 wmic</summary>
+    private const Int32 RetryInterval = 60_000;
     #endregion
 
     #region 初始化
@@ -57,18 +61,21 @@ internal static class PdhHelper
     /// <returns>是否成功</returns>
     private static Boolean Initialize()
     {
-        if (_initialized) return _queryHandle != IntPtr.Zero;
-
+        // lock 可重入，GetDiskStats 外层持锁再调用本方法不会死锁
         lock (_lock)
         {
-            if (_initialized) return _queryHandle != IntPtr.Zero;
-            _initialized = true;
+            if (_queryHandle != IntPtr.Zero) return true;
+
+            // 上一次初始化失败后按间隔重试，成功前不反复尝试，也不留下未释放的查询句柄
+            if (_nextRetry > 0 && Runtime.TickCount64 < _nextRetry) return false;
 
             try
             {
-                if (PdhOpenQuery(null, IntPtr.Zero, out _queryHandle) != ERROR_SUCCESS)
+                if (PdhOpenQuery(null, IntPtr.Zero, out _queryHandle) != ERROR_SUCCESS || _queryHandle == IntPtr.Zero)
                 {
                     _queryHandle = IntPtr.Zero;
+                    _nextRetry = Runtime.TickCount64 + RetryInterval;
+
                     return false;
                 }
 
@@ -85,13 +92,59 @@ internal static class PdhHelper
                 // 首次采样（某些计数器需要两次采样）
                 PdhCollectQueryData(_queryHandle);
 
+                // 进程退出时兜底关闭查询句柄；静态实例不提供主动释放时机
+                if (!_exitHookRegistered)
+                {
+                    _exitHookRegistered = true;
+                    AppDomain.CurrentDomain.ProcessExit += (s, e) => Close();
+                }
+
                 return true;
             }
             catch
             {
-                _queryHandle = IntPtr.Zero;
+                CloseCore();
+                _nextRetry = Runtime.TickCount64 + RetryInterval;
+
                 return false;
             }
+        }
+    }
+
+    /// <summary>关闭 PDH 查询并释放计数器句柄</summary>
+    public static void Close()
+    {
+        lock (_lock)
+        {
+            CloseCore();
+        }
+    }
+
+    /// <summary>关闭查询（调用方需持有锁）</summary>
+    private static void CloseCore()
+    {
+        if (_diskReadsCounter != IntPtr.Zero)
+        {
+            try { PdhRemoveCounter(_diskReadsCounter); } catch { }
+            _diskReadsCounter = IntPtr.Zero;
+        }
+
+        if (_diskWritesCounter != IntPtr.Zero)
+        {
+            try { PdhRemoveCounter(_diskWritesCounter); } catch { }
+            _diskWritesCounter = IntPtr.Zero;
+        }
+
+        if (_diskIdleTimeCounter != IntPtr.Zero)
+        {
+            try { PdhRemoveCounter(_diskIdleTimeCounter); } catch { }
+            _diskIdleTimeCounter = IntPtr.Zero;
+        }
+
+        if (_queryHandle != IntPtr.Zero)
+        {
+            try { PdhCloseQuery(_queryHandle); } catch { }
+            _queryHandle = IntPtr.Zero;
         }
     }
     #endregion

@@ -829,20 +829,23 @@ async function loadExtensions(){
    const div=document.createElement('div');div.id='panel-'+ext.id;div.className='panel';document.querySelector('main').appendChild(div);
    window._extLoaders[ext.id]=async()=>{
     const panel=document.getElementById('panel-'+ext.id);if(!panel)return;
+    // 扩展名称与图标来自后端注册信息，拼进 innerHTML 前必须转义
+    const title=esc(ext.icon||'')+' '+esc(ext.name);
     panel.innerHTML=`<div class="glass-card card" style="text-align:center;padding:40px"><p style="color:var(--text-secondary)">Loading...</p></div>`;
     try{
      const r=await api(ext.apiEndpoint);
-     if(r.code!==0){panel.innerHTML=`<div class="glass-card card"><h2>${ext.icon||''} ${ext.name}</h2><p class="text-muted">${esc(r.message||'Failed to load')}</p></div>`;return}
-     if(ext.mode==='html'){panel.innerHTML=`<div class="glass-card card"><h2>${ext.icon||''} ${ext.name}</h2>${r.data?.html||r.data||''}</div>`}
+     if(r.code!==0){panel.innerHTML=`<div class="glass-card card"><h2>${title}</h2><p class="text-muted">${esc(r.message||'Failed to load')}</p></div>`;return}
+     // html 模式视为扩展自己负责的受信内容（扩展运行在与面板同源的管理端）
+     if(ext.mode==='html'){panel.innerHTML=`<div class="glass-card card"><h2>${title}</h2>${r.data?.html||r.data||''}</div>`}
      else{
       const d=r.data||r;
       if(typeof d==='object'&&!Array.isArray(d)){
-       let html=`<div class="glass-card card"><h2>${ext.icon||''} ${ext.name}</h2><div class="stats-grid">`;
+       let html=`<div class="glass-card card"><h2>${title}</h2><div class="stats-grid">`;
        Object.entries(d).forEach(([k,v])=>{if(k==='code'||k==='message')return;html+=`<div class="stat"><div class="stat-val">${esc(String(v))}</div><div class="stat-lbl">${esc(k)}</div></div>`});
        html+=`</div></div>`;panel.innerHTML=html;
-      }else{panel.innerHTML=`<div class="glass-card card"><h2>${ext.icon||''} ${ext.name}</h2><pre style="font-family:var(--font-mono);font-size:12px;white-space:pre-wrap;color:var(--text-secondary)">${esc(JSON.stringify(d,null,2))}</pre></div>`}
+      }else{panel.innerHTML=`<div class="glass-card card"><h2>${title}</h2><pre style="font-family:var(--font-mono);font-size:12px;white-space:pre-wrap;color:var(--text-secondary)">${esc(JSON.stringify(d,null,2))}</pre></div>`}
      }
-    }catch(e){panel.innerHTML=`<div class="glass-card card"><h2>${ext.icon||''} ${ext.name}</h2><p class="text-muted">Failed to load</p></div>`}
+    }catch(e){panel.innerHTML=`<div class="glass-card card"><h2>${title}</h2><p class="text-muted">Failed to load</p></div>`}
    };
   });
  }catch(e){}

@@ -88,6 +88,32 @@ public class WebPanelAuthMiddlewareTests
     }
 
     [Fact]
+    [DisplayName("安全响应头_禁止套壳与嗅探")]
+    public async Task SecurityHeaders_Present()
+    {
+        using var scope = new SettingScope();
+        var panel = StartPanel();
+        try
+        {
+            using var client = CreateClient(panel);
+
+            var index = await client.GetAsync("/");
+
+            Assert.Equal("DENY", index.Headers.GetValues("X-Frame-Options").First());
+            Assert.Equal("nosniff", index.Headers.GetValues("X-Content-Type-Options").First());
+            Assert.Equal("no-referrer", index.Headers.GetValues("Referrer-Policy").First());
+
+            // 语言状态以 JSON 注入，不得拼成单引号字面量
+            var html = await index.Content.ReadAsStringAsync();
+            Assert.Contains("window.__panelLanguage={", html);
+        }
+        finally
+        {
+            panel.Stop("TestDone");
+        }
+    }
+
+    [Fact]
     [DisplayName("鉴权中间件_登录页与公开接口免鉴权")]
     public async Task Public_Paths_Allowed()
     {

@@ -128,27 +128,22 @@ public class ApiController : IHttpController
         var uptime = DateTime.Now - p.StartTime;
         var mi = MachineInfo.Current ?? MachineInfo.GetCurrent();
 
-        // 刷新 MachineInfo 动态数据（CPU 使用率、网络速度等）
-        mi.Refresh();
-        mi.RefreshSpeed();
-
-        // 收集 TCP 连接数
-        var tcpConnections = 0;
-        var tcpTimeWait = 0;
-        var tcpCloseWait = 0;
-        try
+        // 系统级采样（CPU/网络/TCP/磁盘）按 2 秒缓存：前端每 10 秒轮询，多个标签页同时打开时不必每个请求都采一次
+        Int32 tcpConnections, tcpTimeWait, tcpCloseWait, diskIops;
+        lock (_statusLock)
         {
-            var properties = IPGlobalProperties.GetIPGlobalProperties();
-            var connections = properties.GetActiveTcpConnections();
+            var now = Runtime.TickCount64;
+            if (now - _statusSampleTick >= StatusCacheMilliseconds)
+            {
+                _statusSampleTick = now;
+                SampleSystem(mi);
+            }
 
-            tcpConnections = connections.Count(e => e.State == TcpState.Established);
-            tcpTimeWait = connections.Count(e => e.State == TcpState.TimeWait);
-            tcpCloseWait = connections.Count(e => e.State == TcpState.CloseWait);
+            tcpConnections = _tcpConnections;
+            tcpTimeWait = _tcpTimeWait;
+            tcpCloseWait = _tcpCloseWait;
+            diskIops = _diskIops;
         }
-        catch { }
-
-        // 收集磁盘 IOPS
-        var diskIops = DiskMonitor.GetIOPS();
 
         return new ApiResult<StatusData>
         {
@@ -193,6 +188,40 @@ public class ApiController : IHttpController
                 Port = AgentWebPanel.Current?.Server.Port ?? 0
             }
         };
+    }
+
+    /// <summary>系统采样缓存时长（毫秒）</summary>
+    private const Int32 StatusCacheMilliseconds = 2_000;
+
+    private static readonly Object _statusLock = new();
+    private static Int64 _statusSampleTick;
+    private static Int32 _tcpConnections;
+    private static Int32 _tcpTimeWait;
+    private static Int32 _tcpCloseWait;
+    private static Int32 _diskIops;
+
+    /// <summary>采集系统级指标，结果写入缓存字段</summary>
+    /// <param name="mi">机器信息，用于刷新 CPU 使用率与网络速度</param>
+    private static void SampleSystem(MachineInfo mi)
+    {
+        mi.Refresh();
+        mi.RefreshSpeed();
+
+        try
+        {
+            var connections = IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpConnections();
+            _tcpConnections = connections.Count(e => e.State == TcpState.Established);
+            _tcpTimeWait = connections.Count(e => e.State == TcpState.TimeWait);
+            _tcpCloseWait = connections.Count(e => e.State == TcpState.CloseWait);
+        }
+        catch
+        {
+            _tcpConnections = 0;
+            _tcpTimeWait = 0;
+            _tcpCloseWait = 0;
+        }
+
+        _diskIops = DiskMonitor.GetIOPS();
     }
     #endregion
 
