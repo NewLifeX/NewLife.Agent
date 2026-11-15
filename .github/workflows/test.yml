@@ -17,9 +17,9 @@ jobs:
     timeout-minutes: 30
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
     - name: Setup dotNET
-      uses: actions/setup-dotnet@v5
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: 10.x
     - name: Build
@@ -39,9 +39,9 @@ jobs:
           - { name: linux-arm64, os: ubuntu-24.04-arm }
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
     - name: Setup dotNET
-      uses: actions/setup-dotnet@v5
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: 10.x
     - name: Test
@@ -55,7 +55,7 @@ jobs:
         dotnet test "${args[@]}"
     - name: Upload coverage
       if: matrix.coverage
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: coverage
         path: TestResults/**/coverage.cobertura.xml
@@ -69,9 +69,9 @@ jobs:
     timeout-minutes: 150
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
     - name: Setup dotNET
-      uses: actions/setup-dotnet@v5
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: 10.x
     - name: Build tests (host)
@@ -117,7 +117,7 @@ jobs:
         sudo chroot "$LOONG64_ROOTFS" /usr/bin/env WORKSPACE="$GITHUB_WORKSPACE" /bin/bash /tmp/run-tests.sh
     - name: Upload test results
       if: always()
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: test-results-linux-loongarch64
         path: TestResults/*.trx
@@ -129,7 +129,7 @@ jobs:
     timeout-minutes: 10
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
     - name: Check locales
       shell: pwsh
       run: |

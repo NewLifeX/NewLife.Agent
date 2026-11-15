@@ -17,9 +17,9 @@ jobs:
     timeout-minutes: 30
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
     - name: Setup dotNET
-      uses: actions/setup-dotnet@v5
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: 10.x
     - name: AOT Analyzer Check
@@ -53,9 +53,9 @@ jobs:
           - { rid: osx-arm64, os: macos-15,       smoke: true }
           # LoongArch64 见下方独立作业 aot-loongarch64
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
     - name: Setup dotNET
-      uses: actions/setup-dotnet@v5
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: |
           10.x
@@ -181,9 +181,9 @@ jobs:
     timeout-minutes: 120
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
     - name: Setup dotNET
-      uses: actions/setup-dotnet@v5
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: 10.x
     - name: Prepare loongarch64 NuGet source
