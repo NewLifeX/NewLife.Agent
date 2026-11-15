@@ -104,7 +104,7 @@
   "Stop the service?": "सेवा रोकें?",
   "Stopped": "रुका हुआ",
   "TCP connections": "TCP कनेक्शन",
-  "The new password must be at least 4 characters": "नया पासवर्ड कम से कम 4 वर्णों का होना चाहिए",
+  "The new password must be at least 8 characters": "नया पासवर्ड कम से कम 8 वर्णों का होना चाहिए",
   "The new passwords do not match": "नए पासवर्ड मेल नहीं खाते",
   "Thread count": "थ्रेड संख्या",
   "Toggle light/dark theme": "हल्की/गहरी थीम बदलें",

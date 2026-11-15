@@ -138,7 +138,9 @@
 "Change the web panel password before exposing the panel to the network.": "Schimbați parola panoului web înainte de a expune panoul în rețea."
 "The web panel is moving to the new address and will reopen shortly. Sign in again if prompted.": "Panoul web se mută la noua adresă și se va redeschide în curând. Autentificați-vă din nou dacă vi se solicită."
 "The web panel is restarting; try again later.": "Panoul web se repornește; încercați din nou mai târziu."
-"The new password must be at least 4 characters.": "Noua parolă trebuie să aibă cel puțin 4 caractere."
 "Failed to save the configuration.": "Salvarea configurației a eșuat."
 "Failed to save the web panel password: {0}": "Salvarea parolei panoului web a eșuat: {0}"
 "Remote access requires AllowInsecureRemote=true in the configuration file.": "Accesul de la distanță necesită AllowInsecureRemote=true în fișierul de configurare."
+
+"The new password must be at least 8 characters.": "Noua parolă trebuie să aibă cel puțin 8 caractere."
+"The web panel is already initialized.": "Panoul web este deja inițializat."

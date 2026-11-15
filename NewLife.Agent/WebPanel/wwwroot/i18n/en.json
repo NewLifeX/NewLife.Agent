@@ -104,7 +104,7 @@
   "Stop the service?": "Stop the service?",
   "Stopped": "Stopped",
   "TCP connections": "TCP connections",
-  "The new password must be at least 4 characters": "The new password must be at least 4 characters",
+  "The new password must be at least 8 characters": "The new password must be at least 8 characters",
   "The new passwords do not match": "The new passwords do not match",
   "Thread count": "Thread count",
   "Toggle light/dark theme": "Toggle light/dark theme",

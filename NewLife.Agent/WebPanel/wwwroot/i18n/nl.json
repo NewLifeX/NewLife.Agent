@@ -104,7 +104,7 @@
   "Stop the service?": "Dienst stoppen?",
   "Stopped": "Gestopt",
   "TCP connections": "TCP-verbindingen",
-  "The new password must be at least 4 characters": "Het nieuwe wachtwoord moet minstens 4 tekens bevatten",
+  "The new password must be at least 8 characters": "Het nieuwe wachtwoord moet minstens 8 tekens bevatten",
   "The new passwords do not match": "De nieuwe wachtwoorden komen niet overeen",
   "Thread count": "Aantal threads",
   "Toggle light/dark theme": "Licht/donker thema wisselen",

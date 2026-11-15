@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
+using System.Text;
 using System.Text.Json;
 using Moq;
 using NewLife;
@@ -10,6 +11,7 @@ using NewLife.Agent.WebPanel;
 using NewLife.Agent.WebPanel.Security;
 using NewLife.Data;
 using NewLife.Http;
+using NewLife.Net;
 using NewLife.Security;
 using NewLife.Serialization;
 using Setting = NewLife.Agent.Setting;
@@ -43,6 +45,25 @@ public class PanelSecurityTests
         return context.Object;
     }
 
+    private static IHttpContext CreateSetupContext(IPAddress remote, String forwarded = null)
+    {
+        var headers = "Host: 127.0.0.1:5580\r\nX-Panel-Setup: 1\r\n";
+        if (!forwarded.IsNullOrEmpty()) headers += $"X-Forwarded-For: {forwarded}\r\n";
+
+        var request = new HttpRequest();
+        request.Parse(new ArrayPacket($"POST /api/Setup HTTP/1.1\r\n{headers}\r\n".GetBytes()));
+
+        var socket = new Mock<ISocketRemote>();
+        socket.Setup(x => x.Remote).Returns(new NetUri(NetType.Tcp, new IPEndPoint(remote, 12345)));
+
+        var context = new Mock<IHttpContext>();
+        context.Setup(x => x.Request).Returns(request);
+        context.Setup(x => x.Response).Returns(new HttpResponse());
+        context.Setup(x => x.Socket).Returns(socket.Object);
+
+        return context.Object;
+    }
+
     private static Int32 GetCode(Object result) => (Int32)result.GetType().GetProperty("Code").GetValue(result);
     #endregion
 
@@ -57,6 +78,24 @@ public class PanelSecurityTests
         Assert.NotEqual("P@ssw0rd", stored);
         Assert.True(provider.Verify("P@ssw0rd", stored));
         Assert.False(provider.Verify("p@ssw0rd", stored));
+    }
+
+    [Fact]
+    [DisplayName("默认口令判断_同一口令值只验证一次")]
+    public void IsDefaultPassword_CachesResult()
+    {
+        var panel = CreatePanel();
+        var provider = new Mock<IPasswordProvider>();
+        provider.Setup(x => x.Verify("admin", "MyPass")).Returns(false);
+
+        panel.PasswordProvider = provider.Object;
+        panel.Password = "MyPass";
+
+        Assert.False(panel.IsDefaultPassword);
+        Assert.False(panel.IsDefaultPassword);
+
+        // 公开的 SetupStatus 会反复读取该属性，不能每次都执行口令散列验证
+        provider.Verify(x => x.Verify("admin", "MyPass"), Times.Once);
     }
 
     [Fact]
@@ -111,11 +150,55 @@ public class PanelSecurityTests
         Assert.False(provider.Verify("P@ssw0rd", "$pbkdf2-sha256$bad"));
     }
 
+    [Theory]
+    [DisplayName("口令哈希_迭代次数越界_拒绝生成")]
+    [InlineData(999)]
+    [InlineData(2_000_001)]
+    public void PasswordProvider_IterationsOutOfRange_Rejected(Int32 iterations)
+    {
+        var provider = new Pbkdf2PasswordProvider { Iterations = iterations };
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => provider.Hash("pass"));
+    }
+
+    [Fact]
+    [DisplayName("口令哈希_篡改迭代次数_拒绝验证")]
+    public void PasswordProvider_TamperedIterations_Rejected()
+    {
+        var provider = new Pbkdf2PasswordProvider { Iterations = 1_000 };
+        var stored = provider.Hash("pass");
+
+        Assert.False(provider.Verify("pass", stored.Replace("$1000$", "$1$")));
+    }
+
+    [Fact]
+    [DisplayName("口令哈希_低迭代PBKDF2_登录后按新工作因子升级")]
+    public void PasswordProvider_LowIterations_UpgradesOnLogin()
+    {
+        using var scope = new SettingScope();
+
+        // 低迭代模拟历史配置，避免测试等待默认工作因子
+        var provider = new Pbkdf2PasswordProvider { Iterations = 2_000 };
+        var set = Setting.Current;
+        set.EnableWebPanel = false;
+        set.WebUserName = "admin";
+        set.WebPassword = new Pbkdf2PasswordProvider { Iterations = 1_000 }.Hash("old-pass");
+
+        var panel = CreatePanel();
+        panel.PasswordProvider = provider;
+
+        Assert.NotNull(panel.IssueToken("admin", "old-pass"));
+        Assert.StartsWith("$pbkdf2-sha256$2000$", panel.Password);
+        Assert.StartsWith("$pbkdf2-sha256$2000$", set.WebPassword);
+        Assert.True(provider.Verify("old-pass", set.WebPassword));
+    }
+
     [Fact]
     [DisplayName("口令哈希_PBKDF2兼容旧加盐SHA512并登录后升级")]
     public void PasswordProvider_LegacySha512_Migrates()
     {
         using var scope = new SettingScope();
+
         var set = Setting.Current;
         set.EnableWebPanel = false;
         set.WebUserName = "admin";
@@ -247,7 +330,7 @@ public class PanelSecurityTests
 
     #region 启动安全前置
     [Fact]
-    [DisplayName("启动检查_非本机监听且默认口令_拒绝明文远程并替换随机口令")]
+    [DisplayName("启动检查_非本机监听且默认口令_拒绝启动且不生成随机口令")]
     public void Start_NonLoopback_DefaultPassword_Refuses()
     {
         using var scope = new SettingScope();
@@ -262,8 +345,8 @@ public class PanelSecurityTests
         panel.Start();
 
         Assert.False(panel.Active);
-        // admin 已被随机口令替换，避免默认口令长期留在配置里
-        Assert.NotEqual("admin", set.WebPassword);
+        Assert.Equal("admin", set.WebPassword);
+        Assert.True(panel.NeedsSetup);
     }
 
     [Fact]
@@ -309,8 +392,8 @@ public class PanelSecurityTests
     }
 
     [Fact]
-    [DisplayName("启动检查_本机回环使用默认口令仍可启动且随机口令替换admin")]
-    public void Start_Loopback_DefaultPassword_Starts()
+    [DisplayName("首次启动_本机回环默认口令_进入设置模式且admin不可登录")]
+    public void Start_Loopback_DefaultPassword_SetupMode()
     {
         using var scope = new SettingScope();
         var set = Setting.Current;
@@ -324,16 +407,92 @@ public class PanelSecurityTests
         try
         {
             Assert.True(panel.Active);
+            Assert.True(panel.NeedsSetup);
 
-            // 默认口令在启动时被随机口令替换，admin/admin 不再可用
-            Assert.False(panel.IsDefaultPassword);
-            Assert.NotEqual("admin", set.WebPassword);
+            // 设置完成前默认口令不能换到令牌
             Assert.Null(panel.IssueToken("admin", "admin"));
         }
         finally
         {
             panel.Stop("TestDone");
         }
+    }
+
+    [Fact]
+    [DisplayName("首次设置页_提交新口令_签发令牌并退出设置模式")]
+    public async Task SetupPage_PostPassword_Succeeds()
+    {
+        using var scope = new SettingScope();
+        var set = Setting.Current;
+        set.EnableWebPanel = false;
+        set.WebBind = "127.0.0.1";
+        set.WebPort = 0;
+        set.WebPassword = "admin";
+
+        var panel = CreatePanel();
+        panel.Start();
+        try
+        {
+            using var http = new HttpClient
+            {
+                BaseAddress = new Uri($"http://127.0.0.1:{panel.Port}/"),
+                Timeout = TimeSpan.FromSeconds(30),
+            };
+
+            var status = await http.GetStringAsync("api/SetupStatus");
+            using (var doc = JsonDocument.Parse(status))
+            {
+                Assert.True(doc.RootElement.GetProperty("data").GetProperty("needsSetup").GetBoolean());
+            }
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, "api/Setup");
+            request.Headers.Add("X-Panel-Setup", "1");
+            request.Content = new StringContent("{\"password\":\"newpass123\"}", Encoding.UTF8, "application/json");
+
+            using var response = await http.SendAsync(request);
+            var body = await response.Content.ReadAsStringAsync();
+            using var result = JsonDocument.Parse(body);
+            Assert.Equal(0, result.RootElement.GetProperty("code").GetInt32());
+
+            var token = result.RootElement.GetProperty("data").GetProperty("token").GetString();
+            Assert.False(token.IsNullOrEmpty());
+            Assert.False(panel.NeedsSetup);
+            Assert.NotNull(panel.IssueToken("admin", "newpass123"));
+        }
+        finally
+        {
+            panel.Stop("TestDone");
+        }
+    }
+
+    [Fact]
+    [DisplayName("首次设置_带转发头_拒绝")]
+    public void Setup_ForwardedHeader_Refused()
+    {
+        var panel = CreatePanel();
+        panel.UserName = "admin";
+        panel.Password = "admin";
+
+        var controller = new ApiController { Context = CreateSetupContext(IPAddress.Loopback, "203.0.113.9") };
+        var result = controller.Setup("newpass123");
+
+        Assert.Equal(403, GetCode(result));
+        Assert.True(panel.NeedsSetup);
+    }
+
+    [Fact]
+    [DisplayName("首次设置_非回环连接_拒绝")]
+    public void Setup_NonLoopback_Refused()
+    {
+        var panel = CreatePanel();
+        panel.UserName = "admin";
+        panel.Password = "admin";
+
+        var controller = new ApiController { Context = CreateSetupContext(IPAddress.Parse("192.168.1.20")) };
+        var result = controller.Setup("newpass123");
+
+        Assert.Equal(403, GetCode(result));
+        Assert.True(panel.NeedsSetup);
     }
     #endregion
 
@@ -351,8 +510,8 @@ public class PanelSecurityTests
 
         var panel = CreatePanel();
         panel.UserName = "admin";
-        panel.Password = "admin";
-        var token = panel.IssueToken("admin", "admin");
+        panel.Password = "testpass123";
+        var token = panel.IssueToken("admin", "testpass123");
 
         var controller = new ApiController { Context = CreateContext(token) };
         var result = controller.UpdateConfig(new Dictionary<String, Object> { ["WebBind"] = "*" });
@@ -374,8 +533,8 @@ public class PanelSecurityTests
 
         var panel = CreatePanel();
         panel.UserName = "admin";
-        panel.Password = "admin";
-        var token = panel.IssueToken("admin", "admin");
+        panel.Password = "testpass123";
+        var token = panel.IssueToken("admin", "testpass123");
 
         var controller = new ApiController { Context = CreateContext(token) };
         var result = controller.UpdateConfig(new Dictionary<String, Object> { ["WebPort"] = 0 });

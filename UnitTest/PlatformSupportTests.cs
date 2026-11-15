@@ -207,5 +207,6 @@ public class PlatformSupportTests
 
         Assert.Equal("-i -title \"my service\"", command);
     }
+
     #endregion
 }

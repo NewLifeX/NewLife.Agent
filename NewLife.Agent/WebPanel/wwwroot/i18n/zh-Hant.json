@@ -104,7 +104,7 @@
   "Stop the service?": "確定要停止服務嗎？",
   "Stopped": "已停止",
   "TCP connections": "TCP 連線數",
-  "The new password must be at least 4 characters": "新密碼至少 4 位",
+  "The new password must be at least 8 characters": "新密碼至少 8 位",
   "The new passwords do not match": "兩次輸入的新密碼不一致",
   "Thread count": "執行緒數",
   "Toggle light/dark theme": "切換淺色/深色主題",

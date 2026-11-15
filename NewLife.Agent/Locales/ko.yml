@@ -138,7 +138,9 @@
 "Change the web panel password before exposing the panel to the network.": "웹 패널을 네트워크에 노출하기 전에 비밀번호를 변경하세요."
 "The web panel is moving to the new address and will reopen shortly. Sign in again if prompted.": "웹 패널이 새 주소로 이동 중이며 곧 다시 열립니다. 요청되면 다시 로그인하세요."
 "The web panel is restarting; try again later.": "웹 패널이 다시 시작되는 중입니다. 나중에 다시 시도하세요."
-"The new password must be at least 4 characters.": "새 비밀번호는 4자 이상이어야 합니다."
 "Failed to save the configuration.": "구성을 저장하지 못했습니다."
 "Failed to save the web panel password: {0}": "웹 패널 비밀번호를 저장하지 못했습니다: {0}"
 "Remote access requires AllowInsecureRemote=true in the configuration file.": "원격 액세스에는 구성 파일에서 AllowInsecureRemote=true 설정이 필요합니다."
+
+"The new password must be at least 8 characters.": "새 비밀번호는 8자 이상이어야 합니다."
+"The web panel is already initialized.": "웹 패널이 이미 초기화되었습니다."

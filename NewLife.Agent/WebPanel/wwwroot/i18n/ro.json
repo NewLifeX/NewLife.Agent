@@ -104,7 +104,7 @@
   "Stop the service?": "Opriți serviciul?",
   "Stopped": "Oprit",
   "TCP connections": "Conexiuni TCP",
-  "The new password must be at least 4 characters": "Parola nouă trebuie să aibă cel puțin 4 caractere",
+  "The new password must be at least 8 characters": "Parola nouă trebuie să aibă cel puțin 8 caractere",
   "The new passwords do not match": "Parolele noi nu coincid",
   "Thread count": "Număr de fire de execuție",
   "Toggle light/dark theme": "Comută tema deschisă/închisă",

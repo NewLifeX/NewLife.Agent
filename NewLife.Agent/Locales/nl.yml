@@ -138,7 +138,9 @@
 "Change the web panel password before exposing the panel to the network.": "Wijzig het wachtwoord van het webpaneel voordat u het paneel op het netwerk blootstelt."
 "The web panel is moving to the new address and will reopen shortly. Sign in again if prompted.": "Het webpaneel verhuist naar het nieuwe adres en opent binnenkort weer. Meld u opnieuw aan als daarom wordt gevraagd."
 "The web panel is restarting; try again later.": "Het webpaneel wordt opnieuw gestart; probeer het later opnieuw."
-"The new password must be at least 4 characters.": "Het nieuwe wachtwoord moet minstens 4 tekens bevatten."
 "Failed to save the configuration.": "Kan de configuratie niet opslaan."
 "Failed to save the web panel password: {0}": "Kan het wachtwoord van het webpaneel niet opslaan: {0}"
 "Remote access requires AllowInsecureRemote=true in the configuration file.": "Externe toegang vereist AllowInsecureRemote=true in het configuratiebestand."
+
+"The new password must be at least 8 characters.": "Het nieuwe wachtwoord moet minstens 8 tekens lang zijn."
+"The web panel is already initialized.": "Het webpaneel is al geïnitialiseerd."

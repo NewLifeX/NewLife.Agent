@@ -104,7 +104,7 @@
   "Stop the service?": "Dừng dịch vụ?",
   "Stopped": "Đã dừng",
   "TCP connections": "Kết nối TCP",
-  "The new password must be at least 4 characters": "Mật khẩu mới phải có ít nhất 4 ký tự",
+  "The new password must be at least 8 characters": "Mật khẩu mới phải có ít nhất 8 ký tự",
   "The new passwords do not match": "Hai mật khẩu mới không khớp",
   "Thread count": "Số luồng",
   "Toggle light/dark theme": "Chuyển giao diện sáng/tối",

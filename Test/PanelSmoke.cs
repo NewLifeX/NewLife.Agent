@@ -26,7 +26,8 @@ internal static class PanelSmoke
         // 端口交给系统分配，避免 CI 机器上固定端口被占用
         set.WebPort = 0;
         set.WebBind = "127.0.0.1";
-        set.WebPassword = "admin";
+        // 显式设置非默认口令：默认 admin 会在启动时被随机口令替换，冒烟无法再用 admin 登录
+        set.WebPassword = "admin123";
 
         var svc = new MyServices();
         var panel = new AgentWebPanel(svc);
@@ -60,7 +61,7 @@ internal static class PanelSmoke
         if (!html.Contains("<html lang=")) throw new Exception("首页缺少 lang 标记");
 
         // 登录：响应 DTO 走 JsonHelper 源生成成员访问器
-        var body = new StringContent("{\"user\":\"admin\",\"password\":\"admin\"}", Encoding.UTF8, "application/json");
+        var body = new StringContent("{\"user\":\"admin\",\"password\":\"admin123\"}", Encoding.UTF8, "application/json");
         var login = http.PostAsync("api/Login", body).Result.Content.ReadAsStringAsync().Result;
         var token = GetToken(login);
         if (token.IsNullOrEmpty()) throw new Exception("登录失败：" + login);
@@ -73,6 +74,10 @@ internal static class PanelSmoke
             var text = http.GetStringAsync(api).Result;
             if (!text.Contains("\"code\":0")) throw new Exception(api + " 返回异常：" + text);
         }
+
+        // 首次设置状态：公开接口且 DTO 走源生成序列化；正常模式下必须已初始化
+        var setup = http.GetStringAsync("api/SetupStatus").Result;
+        if (!setup.Contains("\"needsSetup\":false")) throw new Exception("SetupStatus 返回异常：" + setup);
 
         // 语言切换：写入 NewLife.Setting 并落盘 Core.config（AotRoots 保留全局配置成员）
         var langBody = new StringContent("{\"language\":\"de\"}", Encoding.UTF8, "application/json");

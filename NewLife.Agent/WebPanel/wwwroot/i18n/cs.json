@@ -104,7 +104,7 @@
   "Stop the service?": "Zastavit službu?",
   "Stopped": "Zastaveno",
   "TCP connections": "Připojení TCP",
-  "The new password must be at least 4 characters": "Nové heslo musí mít alespoň 4 znaky",
+  "The new password must be at least 8 characters": "Nové heslo musí mít alespoň 8 znaky",
   "The new passwords do not match": "Nová hesla se neshodují",
   "Thread count": "Počet vláken",
   "Toggle light/dark theme": "Přepnout světlý/tmavý motiv",

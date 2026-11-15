@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Globalization;
+using System.Net;
 using System.Text.Json;
 using Moq;
 using NewLife;
@@ -506,5 +507,25 @@ public class ApiControllerTests
 
         Assert.Equal(0, GetCode(result));
     }
+    #endregion
+
+    #region 客户端IP
+    [Theory]
+    [DisplayName("ClientIp_回环连接_仅显式信任时采用转发头")]
+    [InlineData(false, "203.0.113.9, 10.0.0.1", "127.0.0.1")]
+    [InlineData(true, "203.0.113.9, 10.0.0.1", "203.0.113.9")]
+    [InlineData(true, "not-an-ip", "127.0.0.1")]
+    public void ResolveClientIp_Loopback(Boolean trust, String forwarded, String expected)
+        => Assert.Equal(expected, ApiController.ResolveClientIp(IPAddress.Loopback, forwarded, trust));
+
+    [Fact]
+    [DisplayName("ClientIp_非回环连接_忽略转发头")]
+    public void ResolveClientIp_NonLoopback_IgnoresForwarded()
+        => Assert.Equal("192.168.1.5", ApiController.ResolveClientIp(IPAddress.Parse("192.168.1.5"), "203.0.113.9", true));
+
+    [Fact]
+    [DisplayName("ClientIp_无地址_返回unknown")]
+    public void ResolveClientIp_Null_Unknown()
+        => Assert.Equal("unknown", ApiController.ResolveClientIp(null, "203.0.113.9", true));
     #endregion
 }

@@ -22,6 +22,7 @@ namespace NewLife.Agent.WebPanel;
 [JsonSerializable(typeof(ApiResult<LanguagesData>))]
 [JsonSerializable(typeof(FreeMemoryResult))]
 [JsonSerializable(typeof(LoginData))]
+[JsonSerializable(typeof(SetupData))]
 [JsonSerializable(typeof(ConfigUpdateData))]
 [JsonSerializable(typeof(StatusData))]
 [JsonSerializable(typeof(FreeMemoryData))]

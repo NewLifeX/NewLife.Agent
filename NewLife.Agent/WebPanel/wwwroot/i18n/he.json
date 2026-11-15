@@ -104,7 +104,7 @@
   "Stop the service?": "לעצור את השירות?",
   "Stopped": "נעצר",
   "TCP connections": "חיבורי TCP",
-  "The new password must be at least 4 characters": "הסיסמה החדשה חייבת להכיל לפחות 4 תווים",
+  "The new password must be at least 8 characters": "הסיסמה החדשה חייבת להכיל לפחות 8 תווים",
   "The new passwords do not match": "הסיסמאות החדשות אינן תואמות",
   "Thread count": "מספר תהליכונים",
   "Toggle light/dark theme": "החלף ערכת נושא בהירה/כהה",

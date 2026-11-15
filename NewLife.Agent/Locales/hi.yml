@@ -138,7 +138,9 @@
 "Change the web panel password before exposing the panel to the network.": "वेब पैनल को नेटवर्क पर उजागर करने से पहले उसका पासवर्ड बदलें।"
 "The web panel is moving to the new address and will reopen shortly. Sign in again if prompted.": "वेब पैनल नए पते पर जा रहा है और जल्द ही फिर से खुलेगा। यदि कहा जाए तो फिर से लॉगिन करें।"
 "The web panel is restarting; try again later.": "वेब पैनल पुनः आरंभ हो रहा है; बाद में पुनः प्रयास करें।"
-"The new password must be at least 4 characters.": "नया पासवर्ड कम से कम 4 अक्षरों का होना चाहिए।"
 "Failed to save the configuration.": "कॉन्फ़िगरेशन सहेजा नहीं जा सका।"
 "Failed to save the web panel password: {0}": "वेब पैनल का पासवर्ड सहेजा नहीं जा सका: {0}"
 "Remote access requires AllowInsecureRemote=true in the configuration file.": "दूरस्थ पहुँच के लिए कॉन्फ़िगरेशन फ़ाइल में AllowInsecureRemote=true आवश्यक है।"
+
+"The new password must be at least 8 characters.": "नया पासवर्ड कम से कम 8 वर्णों का होना चाहिए।"
+"The web panel is already initialized.": "वेब पैनल पहले ही प्रारंभ हो चुका है।"

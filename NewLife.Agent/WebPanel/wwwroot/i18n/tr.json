@@ -104,7 +104,7 @@
   "Stop the service?": "Hizmet durdurulsun mu?",
   "Stopped": "Durduruldu",
   "TCP connections": "TCP bağlantıları",
-  "The new password must be at least 4 characters": "Yeni parola en az 4 karakter olmalıdır",
+  "The new password must be at least 8 characters": "Yeni parola en az 8 karakter olmalıdır",
   "The new passwords do not match": "Yeni parolalar eşleşmiyor",
   "Thread count": "İş parçacığı sayısı",
   "Toggle light/dark theme": "Açık/koyu temayı değiştir",

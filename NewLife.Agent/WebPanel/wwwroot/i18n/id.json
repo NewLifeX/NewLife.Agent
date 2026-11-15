@@ -104,7 +104,7 @@
   "Stop the service?": "Hentikan layanan?",
   "Stopped": "Dihentikan",
   "TCP connections": "Koneksi TCP",
-  "The new password must be at least 4 characters": "Kata sandi baru minimal 4 karakter",
+  "The new password must be at least 8 characters": "Kata sandi baru minimal 8 karakter",
   "The new passwords do not match": "Kata sandi baru tidak cocok",
   "Thread count": "Jumlah thread",
   "Toggle light/dark theme": "Ganti tema terang/gelap",

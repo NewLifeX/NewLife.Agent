@@ -138,7 +138,9 @@
 "Change the web panel password before exposing the panel to the network.": "โปรดเปลี่ยนรหัสผ่านของแผงเว็บก่อนเปิดแผงให้เข้าถึงจากเครือข่าย"
 "The web panel is moving to the new address and will reopen shortly. Sign in again if prompted.": "แผงเว็บกำลังย้ายไปยังที่อยู่ใหม่และจะเปิดอีกครั้งในไม่ช้า โปรดเข้าสู่ระบบอีกครั้งหากมีการร้องขอ"
 "The web panel is restarting; try again later.": "แผงเว็บกำลังรีสตาร์ท โปรดลองใหม่ภายหลัง"
-"The new password must be at least 4 characters.": "รหัสผ่านใหม่ต้องมีอย่างน้อย 4 ตัวอักษร"
 "Failed to save the configuration.": "บันทึกการกำหนดค่าไม่สำเร็จ"
 "Failed to save the web panel password: {0}": "บันทึกรหัสผ่านของเว็บแผงไม่สำเร็จ: {0}"
 "Remote access requires AllowInsecureRemote=true in the configuration file.": "การเข้าถึงจากระยะไกลต้องตั้ง AllowInsecureRemote=true ในไฟล์การกำหนดค่า"
+
+"The new password must be at least 8 characters.": "รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร"
+"The web panel is already initialized.": "แผงเว็บได้รับการเริ่มต้นแล้ว"

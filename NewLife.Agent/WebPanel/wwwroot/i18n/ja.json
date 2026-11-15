@@ -104,7 +104,7 @@
   "Stop the service?": "サービスを停止しますか？",
   "Stopped": "停止しました",
   "TCP connections": "TCP 接続数",
-  "The new password must be at least 4 characters": "新しいパスワードは 4 文字以上にしてください",
+  "The new password must be at least 8 characters": "新しいパスワードは 8 文字以上にしてください",
   "The new passwords do not match": "入力した新しいパスワードが一致しません",
   "Thread count": "スレッド数",
   "Toggle light/dark theme": "ライト/ダークテーマを切り替える",

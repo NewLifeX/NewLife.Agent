@@ -138,7 +138,9 @@
 "Change the web panel password before exposing the panel to the network.": "Hãy đổi mật khẩu bảng web trước khi mở bảng ra mạng."
 "The web panel is moving to the new address and will reopen shortly. Sign in again if prompted.": "Bảng web đang chuyển sang địa chỉ mới và sẽ mở lại trong giây lát. Hãy đăng nhập lại nếu được yêu cầu."
 "The web panel is restarting; try again later.": "Bảng web đang khởi động lại; hãy thử lại sau."
-"The new password must be at least 4 characters.": "Mật khẩu mới phải có ít nhất 4 ký tự."
 "Failed to save the configuration.": "Không lưu được cấu hình."
 "Failed to save the web panel password: {0}": "Không lưu được mật khẩu bảng điều khiển web: {0}"
 "Remote access requires AllowInsecureRemote=true in the configuration file.": "Truy cập từ xa yêu cầu AllowInsecureRemote=true trong tệp cấu hình."
+
+"The new password must be at least 8 characters.": "Mật khẩu mới phải có ít nhất 8 ký tự."
+"The web panel is already initialized.": "Bảng điều khiển web đã được khởi tạo."

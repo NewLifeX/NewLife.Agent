@@ -20,7 +20,7 @@ namespace NewLife.Agent.WebPanel;
 /// <remarks>
 /// 提供 RESTful API 接口，包括服务状态查看、启停控制、配置管理、日志查看等功能。
 /// 路由格式：/api/{MethodName}，由 HttpServer.ControllerHandler 自动映射。
-/// 控制器自行完成 Bearer Token 鉴权（Login 方法除外）。
+/// 控制器自行完成 Bearer Token 鉴权（Login、SetupStatus、Setup 除外）。
 /// </remarks>
 public class ApiController : IHttpController
 {
@@ -45,16 +45,120 @@ public class ApiController : IHttpController
         if (LoginRateLimiter.IsBlocked(ip))
             return new ApiResult { Code = 429, Message = L.T("Too many failed attempts. Try again later.") };
 
-        var token = AgentWebPanel.Current?.IssueToken(user, password, ip);
+        var panel = AgentWebPanel.Current;
+        var token = panel?.IssueToken(user, password, ip);
         if (token == null)
         {
             LoginRateLimiter.RecordFailure(ip);
+
             return new ApiResult { Code = 401, Message = L.T("Invalid credentials") };
         }
 
         LoginRateLimiter.RecordSuccess(ip);
 
         return new ApiResult<LoginData> { Code = 0, Data = new LoginData { Token = token } };
+    }
+
+    /// <summary>获取首次设置状态。尚未设置管理员密码时前端显示设置页</summary>
+    /// <returns>是否需要首次设置，以及管理员用户名</returns>
+    public Object SetupStatus()
+    {
+        var panel = AgentWebPanel.Current;
+
+        return new ApiResult<SetupData>
+        {
+            Code = 0,
+            Data = new SetupData
+            {
+                NeedsSetup = panel?.NeedsSetup ?? false,
+                UserName = panel?.UserName,
+            }
+        };
+    }
+
+    /// <summary>首次设置管理员口令。仅允许本机直接访问，且必须带自定义请求头防跨站提交</summary>
+    /// <param name="password">新口令明文</param>
+    /// <returns>设置成功时直接签发登录令牌</returns>
+    public Object Setup(String password)
+    {
+        var panel = AgentWebPanel.Current;
+        if (panel == null) return new ApiResult { Code = 500, Message = L.T("Panel not available") };
+        if (!panel.NeedsSetup) return new ApiResult { Code = 409, Message = L.T("The web panel is already initialized.") };
+        if (!IsLocalSetupRequest()) return new ApiResult { Code = 403, Message = L.T("Unauthorized") };
+        if (password.IsNullOrEmpty() || password.Length < 8)
+            return new ApiResult { Code = 400, Message = L.T("The new password must be at least 8 characters.") };
+
+        // 用户名缺失时补回默认 admin，避免设置完口令却无法签发令牌
+        if (panel.UserName.IsNullOrEmpty())
+        {
+            panel.UserName = "admin";
+            Setting.Current.WebUserName = "admin";
+        }
+
+        try
+        {
+            panel.SetPassword(password);
+        }
+        catch (Exception ex)
+        {
+            XTrace.WriteException(ex);
+
+            return new ApiResult { Code = 500, Message = L.T("Failed to save the web panel password: {0}", ex.Message) };
+        }
+
+        var token = panel.IssueToken(panel.UserName, password, GetClientIp());
+
+        return token.IsNullOrEmpty()
+            ? new ApiResult { Code = 500, Message = L.T("Panel not available") }
+            : new ApiResult<LoginData> { Code = 0, Data = new LoginData { Token = token } };
+    }
+
+    /// <summary>判断请求是否来自本机直接访问，而不是反向代理转发</summary>
+    /// <returns>是否允许执行首次设置</returns>
+    private Boolean IsLocalSetupRequest()
+    {
+        var ctx = Context;
+        var remote = ctx?.Socket?.Remote?.Address;
+        if (remote == null || !IPAddress.IsLoopback(remote)) return false;
+
+        var headers = ctx.Request.Headers;
+
+        // 反向代理会带转发头，远程用户可能借此访问到回环监听的面板；首次设置必须拒绝
+        if (!headers["X-Forwarded-For"].IsNullOrEmpty() || !headers["X-Real-IP"].IsNullOrEmpty()) return false;
+
+        // Host/Origin 必须是本机地址，避免反代把外部域名转发进来
+        if (!IsLocalHost(headers["Host"])) return false;
+
+        var origin = headers["Origin"];
+        if (!origin.IsNullOrEmpty() && !IsLocalOrigin(origin)) return false;
+
+        // 自定义请求头无法被跨站表单伪造，配合 JSON 请求体阻止 CSRF
+        return headers["X-Panel-Setup"] == "1";
+    }
+
+    private static Boolean IsLocalHost(String host)
+    {
+        if (host.IsNullOrEmpty()) return false;
+
+        if (host[0] == '[')
+        {
+            var end = host.IndexOf(']');
+            if (end > 0) host = host.Substring(1, end - 1);
+        }
+        else
+        {
+            var idx = host.IndexOf(':');
+            if (idx > 0) host = host.Substring(0, idx);
+        }
+
+        return host.EqualIgnoreCase("127.0.0.1", "localhost", "::1");
+    }
+
+    private static Boolean IsLocalOrigin(String origin)
+    {
+        if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)) return false;
+
+        return IsLocalHost(uri.Host);
     }
 
     /// <summary>注销登录，吊销当前Token</summary>
@@ -92,8 +196,8 @@ public class ApiController : IHttpController
 
     /// <summary>获取客户端IP地址</summary>
     /// <remarks>
-    /// 同机回环说明请求来自本机反向代理（nginx 等），此时以 X-Forwarded-For 首个地址作为真实客户端。
-    /// 否则反代后所有用户共用 127.0.0.1，任意人连错几次就能把全员登录锁死。
+    /// 仅在显式开启 WebTrustForwardedFor 且连接来自本机回环（可信反向代理）时，才采用 X-Forwarded-For 首个地址。
+    /// 默认不信任该头：面板默认监听回环，本机任意客户端都能伪造它绕过登录限速。
     /// </remarks>
     /// <returns>IP字符串，无法获取时返回 unknown</returns>
     protected String GetClientIp()
@@ -102,18 +206,25 @@ public class ApiController : IHttpController
         var socket = ctx?.Socket;
         if (socket?.Remote == null || socket.Remote.Address == null) return "unknown";
 
-        var address = socket.Remote.Address;
-        if (IPAddress.IsLoopback(address))
+        return ResolveClientIp(socket.Remote.Address, ctx.Request.Headers["X-Forwarded-For"], Setting.Current.WebTrustForwardedFor);
+    }
+
+    /// <summary>解析客户端IP。仅当连接来自回环且显式信任反向代理时使用 X-Forwarded-For</summary>
+    /// <param name="remote">TCP 连接的对端地址</param>
+    /// <param name="forwarded">X-Forwarded-For 头</param>
+    /// <param name="trustForwarded">是否信任反向代理头</param>
+    /// <returns>客户端IP字符串</returns>
+    internal static String ResolveClientIp(IPAddress remote, String forwarded, Boolean trustForwarded)
+    {
+        if (remote == null) return "unknown";
+
+        if (trustForwarded && IPAddress.IsLoopback(remote) && !forwarded.IsNullOrEmpty())
         {
-            var forwarded = ctx.Request.Headers["X-Forwarded-For"];
-            if (!forwarded.IsNullOrEmpty())
-            {
-                var first = forwarded.Split(',')[0].Trim();
-                if (IPAddress.TryParse(first, out var real)) return real.ToString();
-            }
+            var first = forwarded.Split(',')[0].Trim();
+            if (IPAddress.TryParse(first, out var real)) return real.ToString();
         }
 
-        return address + "";
+        return remote + "";
     }
     #endregion
 
@@ -349,7 +460,7 @@ public class ApiController : IHttpController
     /// <summary>允许从面板修改的配置字段白名单</summary>
     /// <remarks>
     /// 用白名单而不是“密码/密钥”黑名单：AfterStart 会在服务启动时执行命令，ServiceName 与 DisplayName 会拼接进服务控制命令与
-    /// 以 root 身份执行的启动脚本，这些字段一旦可改，等于给面板用户一个持久化的命令执行入口。
+    /// 以 root 身份执行的启动脚本，WatchDog 能以服务身份启停任意系统服务；这些字段一旦可改，等于给面板用户一个持久化的提权入口。
     /// 新增配置项默认不可从面板修改，需要时显式加到这里。
     /// </remarks>
     internal static readonly HashSet<String> WritableConfig = new(StringComparer.OrdinalIgnoreCase)
@@ -361,7 +472,6 @@ public class ApiController : IHttpController
         nameof(Setting.MaxHandle),
         nameof(Setting.AutoRestart),
         nameof(Setting.RestartTimeRange),
-        nameof(Setting.WatchDog),
         nameof(Setting.EnableWebPanel),
         nameof(Setting.WebPort),
         nameof(Setting.WebBind),
@@ -392,7 +502,8 @@ public class ApiController : IHttpController
                 DisplayName = GetDisplayName(description),
                 Description = description,
                 Type = prop.TypeName,
-                Value = prop.Property.GetValue(set, null)
+                Value = prop.Property.GetValue(set, null),
+                Writable = IsWritableConfig(prop.Name)
             });
         }
 
@@ -462,11 +573,7 @@ public class ApiController : IHttpController
         catch (Exception ex)
         {
             // 回滚已写入的字段，内存配置与落盘配置必须保持一致；错误信息只记日志，不回传内部细节
-            foreach (var kv in backup)
-            {
-                try { kv.Key.SetValue(set, kv.Value, null); } catch { }
-            }
-
+            RestoreValues(set, backup);
             RestoreBinding(set, oldBind, oldPort);
 
             XTrace.WriteException(ex);
@@ -487,6 +594,9 @@ public class ApiController : IHttpController
             }
             catch (Exception ex)
             {
+                RestoreValues(set, backup);
+                RestoreBinding(set, oldBind, oldPort);
+
                 XTrace.WriteException(ex);
 
                 return new ApiResult { Code = 500, Message = L.T("Failed to save the configuration.") };
@@ -498,6 +608,7 @@ public class ApiController : IHttpController
         // 端口必须是明确值，0 会让面板落到随机端口而无法回传
         if (set.WebPort < 1 || set.WebPort > 65535)
         {
+            RestoreValues(set, backup);
             RestoreBinding(set, oldBind, oldPort);
 
             return new ApiResult { Code = 400, Message = L.T("Invalid port. Use a value between 1 and 65535.") };
@@ -506,6 +617,7 @@ public class ApiController : IHttpController
         // 默认口令下不允许把面板暴露到网络，必须先改口令
         if (!AgentWebPanel.IsLoopbackBind(set.WebBind) && panel.IsDefaultPassword)
         {
+            RestoreValues(set, backup);
             RestoreBinding(set, oldBind, oldPort);
 
             return new ApiResult { Code = 400, Message = L.T("Change the web panel password before exposing the panel to the network.") };
@@ -514,6 +626,7 @@ public class ApiController : IHttpController
         // 面板没有 TLS，非回环监听必须在配置文件显式允许，避免口令与令牌明文过网
         if (!AgentWebPanel.IsLoopbackBind(set.WebBind) && !set.AllowInsecureRemote)
         {
+            RestoreValues(set, backup);
             RestoreBinding(set, oldBind, oldPort);
 
             return new ApiResult { Code = 400, Message = L.T("Remote access requires AllowInsecureRemote=true in the configuration file. Keep the panel on 127.0.0.1 and use a reverse proxy for TLS, or edit the configuration manually if you accept the risk.") };
@@ -521,6 +634,7 @@ public class ApiController : IHttpController
 
         if (!panel.RequestRebind(bindChanged ? set.WebBind : null, portChanged ? set.WebPort : null))
         {
+            RestoreValues(set, backup);
             RestoreBinding(set, oldBind, oldPort);
 
             return new ApiResult { Code = 429, Message = L.T("The web panel is restarting; try again later.") };
@@ -551,6 +665,17 @@ public class ApiController : IHttpController
         set.WebPort = port;
     }
 
+    /// <summary>回滚本次更新的全部配置字段</summary>
+    /// <param name="set">配置实例</param>
+    /// <param name="backup">字段原值</param>
+    private static void RestoreValues(Setting set, Dictionary<PropertyInfo, Object> backup)
+    {
+        foreach (var kv in backup)
+        {
+            try { kv.Key.SetValue(set, kv.Value, null); } catch { }
+        }
+    }
+
     /// <summary>修改密码。校验旧密码后更新为新密码，立即生效无需重启</summary>
     /// <param name="oldPassword">旧密码</param>
     /// <param name="newPassword">新密码</param>
@@ -565,8 +690,8 @@ public class ApiController : IHttpController
         var panel = AgentWebPanel.Current;
         if (panel == null) return new ApiResult { Code = 500, Message = L.T("Panel not available") };
 
-        if (newPassword.Length < 4)
-            return new ApiResult { Code = 400, Message = L.T("The new password must be at least 4 characters.") };
+        if (newPassword.Length < 8)
+            return new ApiResult { Code = 400, Message = L.T("The new password must be at least 8 characters.") };
 
         // 旧口令校验同样限速：令牌被窃后不能靠本地无限次猜测旧口令完成劫持
         var ip = GetClientIp();
@@ -584,7 +709,16 @@ public class ApiController : IHttpController
         LoginRateLimiter.RecordSuccess(ip);
 
         // 加盐哈希后写入配置并立即生效
-        panel.SetPassword(newPassword);
+        try
+        {
+            panel.SetPassword(newPassword);
+        }
+        catch (Exception ex)
+        {
+            XTrace.WriteException(ex);
+
+            return new ApiResult { Code = 500, Message = L.T("Failed to save the web panel password: {0}", ex.Message) };
+        }
 
         XTrace.Log.WriteLogPrefixed(LogLevel.Info, "[WebPanel]", "The web panel password has been changed.");
 
@@ -767,7 +901,14 @@ public class ApiController : IHttpController
                 if (start > 0) fs.Seek(start, SeekOrigin.Begin);
 
                 var buffer = new Byte[size];
-                var read = fs.Read(buffer, 0, size);
+                var read = 0;
+                while (read < size)
+                {
+                    var n = fs.Read(buffer, read, size - read);
+                    if (n == 0) break;
+
+                    read += n;
+                }
                 var text = Encoding.UTF8.GetString(buffer, 0, read);
 
                 var all = text.Split('\n');

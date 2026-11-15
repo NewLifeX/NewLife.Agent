@@ -138,7 +138,9 @@
 "Change the web panel password before exposing the panel to the network.": "Web パネルをネットワークに公開する前に、パスワードを変更してください。"
 "The web panel is moving to the new address and will reopen shortly. Sign in again if prompted.": "Web パネルは新しいアドレスに移動しており、まもなく再び開きます。求められた場合は再度ログインしてください。"
 "The web panel is restarting; try again later.": "Web パネルは再起動中です。しばらくしてから再試行してください。"
-"The new password must be at least 4 characters.": "新しいパスワードは 4 文字以上で入力してください。"
 "Failed to save the configuration.": "構成の保存に失敗しました。"
 "Failed to save the web panel password: {0}": "Web パネルのパスワードを保存できませんでした: {0}"
 "Remote access requires AllowInsecureRemote=true in the configuration file.": "リモートアクセスには構成ファイルでの AllowInsecureRemote=true の設定が必要です。"
+
+"The new password must be at least 8 characters.": "新しいパスワードは 8 文字以上必要です。"
+"The web panel is already initialized.": "Web パネルは既に初期化されています。"

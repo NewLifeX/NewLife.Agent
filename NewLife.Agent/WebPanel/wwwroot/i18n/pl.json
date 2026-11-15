@@ -104,7 +104,7 @@
   "Stop the service?": "Zatrzymać usługę?",
   "Stopped": "Zatrzymana",
   "TCP connections": "Połączenia TCP",
-  "The new password must be at least 4 characters": "Nowe hasło musi mieć co najmniej 4 znaki",
+  "The new password must be at least 8 characters": "Nowe hasło musi mieć co najmniej 8 znaki",
   "The new passwords do not match": "Nowe hasła nie są zgodne",
   "Thread count": "Liczba wątków",
   "Toggle light/dark theme": "Przełącz motyw jasny/ciemny",

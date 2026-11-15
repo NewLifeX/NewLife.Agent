@@ -104,7 +104,7 @@
   "Stop the service?": "Stoppa tjänsten?",
   "Stopped": "Stoppad",
   "TCP connections": "TCP-anslutningar",
-  "The new password must be at least 4 characters": "Det nya lösenordet måste vara minst 4 tecken",
+  "The new password must be at least 8 characters": "Det nya lösenordet måste vara minst 8 tecken",
   "The new passwords do not match": "De nya lösenorden stämmer inte överens",
   "Thread count": "Antal trådar",
   "Toggle light/dark theme": "Växla ljust/mörkt tema",

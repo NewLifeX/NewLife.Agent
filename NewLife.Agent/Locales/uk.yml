@@ -138,7 +138,9 @@
 "Change the web panel password before exposing the panel to the network.": "Змініть пароль веб-панелі, перш ніж відкривати панель у мережу."
 "The web panel is moving to the new address and will reopen shortly. Sign in again if prompted.": "Веб-панель переміщується на нову адресу й незабаром знову відкриється. За потреби увійдіть знову."
 "The web panel is restarting; try again later.": "Веб-панель перезапускається; повторіть спробу пізніше."
-"The new password must be at least 4 characters.": "Новий пароль має містити щонайменше 4 символи."
 "Failed to save the configuration.": "Не вдалося зберегти конфігурацію."
 "Failed to save the web panel password: {0}": "Не вдалося зберегти пароль веб-панелі: {0}"
 "Remote access requires AllowInsecureRemote=true in the configuration file.": "Для віддаленого доступу потрібно AllowInsecureRemote=true у файлі конфігурації."
+
+"The new password must be at least 8 characters.": "Новий пароль має містити щонайменше 8 символів."
+"The web panel is already initialized.": "Веб-панель уже ініціалізовано."

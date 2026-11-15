@@ -104,7 +104,7 @@
   "Stop the service?": "Зупинити службу?",
   "Stopped": "Зупинено",
   "TCP connections": "TCP-з’єднання",
-  "The new password must be at least 4 characters": "Новий пароль має містити щонайменше 4 символи",
+  "The new password must be at least 8 characters": "Новий пароль має містити щонайменше 8 символи",
   "The new passwords do not match": "Нові паролі не збігаються",
   "Thread count": "Кількість потоків",
   "Toggle light/dark theme": "Перемкнути світлу/темну тему",

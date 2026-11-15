@@ -77,6 +77,11 @@ public class Setting : Config<Setting>
     [Description("Allow the web panel to listen on a non-loopback address over plain HTTP. Default false; terminate TLS with a reverse proxy or use an SSH tunnel instead.")]
     public Boolean AllowInsecureRemote { get; set; }
 
+    /// <summary>是否信任本机反向代理传来的 X-Forwarded-For。</summary>
+    /// <remarks>默认false。面板仅监听回环且前面有可信反向代理时设为true，否则本机客户端可伪造该头绕过登录限速。</remarks>
+    [Description("Trust the X-Forwarded-For header from a local reverse proxy. Default false; enabling it lets any local client spoof the header and bypass login rate limiting.")]
+    public Boolean WebTrustForwardedFor { get; set; }
+
     /// <summary>Web面板用户名</summary>
     [Description("Web panel user name.")]
     public String WebUserName { get; set; } = "admin";

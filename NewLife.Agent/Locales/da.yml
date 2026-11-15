@@ -138,7 +138,9 @@
 "Change the web panel password before exposing the panel to the network.": "Skift adgangskoden til webpanelet, før panelet eksponeres på netværket."
 "The web panel is moving to the new address and will reopen shortly. Sign in again if prompted.": "Webpanelet flyttes til den nye adresse og åbner igen om lidt. Log ind igen, hvis du bliver bedt om det."
 "The web panel is restarting; try again later.": "Webpanelet genstarter; prøv igen senere."
-"The new password must be at least 4 characters.": "Den nye adgangskode skal være på mindst 4 tegn."
 "Failed to save the configuration.": "Konfigurationen kunne ikke gemmes."
 "Failed to save the web panel password: {0}": "Webpanelets adgangskode kunne ikke gemmes: {0}"
 "Remote access requires AllowInsecureRemote=true in the configuration file.": "Fjernadgang kræver AllowInsecureRemote=true i konfigurationsfilen."
+
+"The new password must be at least 8 characters.": "Den nye adgangskode skal være mindst 8 tegn."
+"The web panel is already initialized.": "Webpanelet er allerede initialiseret."

@@ -45,6 +45,16 @@ internal class LoginData
     public String Token { get; set; }
 }
 
+/// <summary>Web 面板首次设置状态</summary>
+internal class SetupData
+{
+    /// <summary>是否尚未设置管理员密码</summary>
+    public Boolean NeedsSetup { get; set; }
+
+    /// <summary>管理员用户名</summary>
+    public String UserName { get; set; }
+}
+
 /// <summary>配置更新后的面板地址载荷（绑定地址或端口变更时下发，供前端跳转）</summary>
 internal class ConfigUpdateData
 {
@@ -201,6 +211,9 @@ internal class ConfigItem
 
     /// <summary>当前值（基元/字符串）</summary>
     public Object Value { get; set; }
+
+    /// <summary>是否允许从面板修改。false 表示需直接编辑配置文件</summary>
+    public Boolean Writable { get; set; }
 }
 
 /// <summary>配置元数据载荷</summary>

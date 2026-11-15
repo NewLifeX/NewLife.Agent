@@ -134,7 +134,6 @@
 "Web panel failed to start on port {0}: {1}. The port is already in use or reserved; stop the other instance or change WebPort/WebBind.": "Web 面板无法在端口 {0} 启动：{1}。端口已被占用或被系统保留；请停止其他实例或修改 WebPort/WebBind。"
 "Language updated.": "语言已更新。"
 "Unsupported language: {0}": "不支持的语言：{0}"
-"The new password must be at least 4 characters.": "新密码至少 4 位。"
 "Invalid port. Use a value between 1 and 65535.": "端口无效，请使用 1 到 65535 之间的值。"
 "Change the web panel password before exposing the panel to the network.": "对外开放 Web 面板前，请先修改面板口令。"
 "The web panel is moving to the new address and will reopen shortly. Sign in again if prompted.": "Web 面板正在迁移到新地址并即将重新打开。若提示需要登录，请重新登录。"
@@ -142,3 +141,6 @@
 "Failed to save the configuration.": "保存配置失败。"
 "Failed to save the web panel password: {0}": "保存 Web 面板口令失败：{0}"
 "Remote access requires AllowInsecureRemote=true in the configuration file.": "远程访问需要在配置文件中设置 AllowInsecureRemote=true。"
+
+"The new password must be at least 8 characters.": "新口令至少需要 8 个字符。"
+"The web panel is already initialized.": "Web 面板已完成初始化。"

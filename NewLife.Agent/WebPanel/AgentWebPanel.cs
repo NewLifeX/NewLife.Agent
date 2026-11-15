@@ -31,21 +31,39 @@ public class AgentWebPanel
     public IPasswordProvider PasswordProvider { get; set; } = new Pbkdf2PasswordProvider();
 
     /// <summary>当前口令是否仍为默认值（空或 admin）</summary>
+    /// <remarks>结果按口令值缓存。SetupStatus 是公开接口，不能每次请求都对 PBKDF2 哈希执行一次昂贵验证</remarks>
     public Boolean IsDefaultPassword
     {
         get
         {
-            if (Password.IsNullOrEmpty()) return true;
+            var password = Password;
+            var provider = PasswordProvider;
+            if (_isDefaultPassword != null &&
+                ReferenceEquals(provider, _defaultPasswordProvider) &&
+                String.Equals(password, _defaultPasswordSource, StringComparison.Ordinal))
+                return _isDefaultPassword.Value;
 
-            try
+            Boolean result;
+            if (password.IsNullOrEmpty())
+                result = true;
+            else
             {
-                return PasswordProvider.Verify("admin", Password);
+                try
+                {
+                    result = provider.Verify("admin", password);
+                }
+                catch
+                {
+                    // 历史哈希格式（如已废除的 PBKDF2 串）当前提供者无法识别，不按默认口令处理
+                    result = false;
+                }
             }
-            catch
-            {
-                // 历史哈希格式（如已废除的 PBKDF2 串）当前提供者无法识别，不按默认口令处理
-                return false;
-            }
+
+            _defaultPasswordProvider = provider;
+            _defaultPasswordSource = password;
+            _isDefaultPassword = result;
+
+            return result;
         }
     }
 
@@ -54,6 +72,14 @@ public class AgentWebPanel
 
     /// <summary>密码</summary>
     public String Password { get; set; }
+
+    /// <summary>是否仍处于首次设置模式（尚未设置管理员密码）</summary>
+    public Boolean NeedsSetup => IsDefaultPassword;
+
+    private Boolean _setupMode;
+    private IPasswordProvider _defaultPasswordProvider;
+    private String _defaultPasswordSource;
+    private Boolean? _isDefaultPassword;
 
     /// <summary>是否运行中</summary>
     public Boolean Active => Server.Active;
@@ -99,6 +125,9 @@ public class AgentWebPanel
 
         UserName = set.WebUserName;
         Password = set.WebPassword;
+
+        // 启动时先算一次默认口令状态：公开的 SetupStatus 不能承担 PBKDF2 验证成本
+        _ = IsDefaultPassword;
 
         RegisterRoutes();
         UseAuthentication();
@@ -233,41 +262,24 @@ public class AgentWebPanel
     {
         if (Server.Active) return;
 
-        // 默认口令在首次启动时随机生成并落盘，避免 admin/admin 被本机任意用户直接利用
-        if (IsDefaultPassword && !GenerateInitialPassword()) return;
+        // 首次启动没有口令时只进入设置模式：仅本机可访问，不生成任何随机口令或额外文件
+        _setupMode = IsDefaultPassword;
+        if (_setupMode && !IsLoopbackBinding())
+        {
+            XTrace.Log.WriteLogPrefixed(LogLevel.Error, "[WebPanel]", "Refusing to start: set WebPassword in the configuration file first. First-run setup is only available on 127.0.0.1.");
+
+            return;
+        }
 
         if (!CheckSecurity()) return;
 
         Server.Start();
 
         var scheme = Server.SslProtocol != SslProtocols.None ? "https" : "http";
-        XTrace.Log.WriteLogPrefixed(LogLevel.Info, "[WebPanel]", "The web management panel started on {0} port {1}.", scheme, Server.Port);
-
-        // 仍在使用默认口令时给出警告，便于用户及时修改
-        if (IsDefaultPassword)
-            XTrace.Log.WriteLogPrefixed(LogLevel.Warn, "[WebPanel]", "Security warning: the web panel is still using the default password. Change it from the panel or set WebPassword in the configuration file.");
-    }
-
-    /// <summary>生成随机初始口令并持久化。失败时拒绝启动，避免退回默认口令</summary>
-    /// <returns>是否成功</returns>
-    private Boolean GenerateInitialPassword()
-    {
-        var password = Rand.NextString(16, false);
-
-        try
-        {
-            SetPassword(password);
-        }
-        catch (Exception ex)
-        {
-            XTrace.Log.WriteLogPrefixed(LogLevel.Error, "[WebPanel]", "Refusing to start: failed to persist the generated initial password: {0}", ex.Message);
-
-            return false;
-        }
-
-        XTrace.Log.WriteLogPrefixed(LogLevel.Warn, "[WebPanel]", "The web panel generated a random initial password: {0}. Sign in and change it as soon as possible.", password);
-
-        return true;
+        if (_setupMode)
+            XTrace.Log.WriteLogPrefixed(LogLevel.Warn, "[WebPanel]", "The web panel is in first-run setup mode. Open {0}://{1}:{2}/ on this machine to set the administrator password.", scheme, Server.Local.Host, Server.Port);
+        else
+            XTrace.Log.WriteLogPrefixed(LogLevel.Info, "[WebPanel]", "The web management panel started on {0} port {1}.", scheme, Server.Port);
     }
 
     /// <summary>启动前的安全检查。非本机监听时必须显式允许明文远程访问，且不能使用默认口令</summary>
@@ -290,7 +302,7 @@ public class AgentWebPanel
 
         if (!IsDefaultPassword) return true;
 
-        XTrace.Log.WriteLogPrefixed(LogLevel.Error, "[WebPanel]", "Refusing to start: the web panel listens on a non-loopback address while still using the default password. Set WebPassword in the configuration file (plain text is accepted and upgraded to a hash after sign-in), or sign in on 127.0.0.1 and change it first.");
+        XTrace.Log.WriteLogPrefixed(LogLevel.Error, "[WebPanel]", "Refusing to start: the web panel listens on a non-loopback address while still using the default password. Set WebPassword in the configuration file first; first-run setup is only available on 127.0.0.1.");
 
         return false;
     }
@@ -453,8 +465,8 @@ public class AgentWebPanel
         if (path.EqualIgnoreCase("/", "/index.html", "/favicon.ico")) return true;
         if (path.StartsWithIgnoreCase("/i18n/")) return true;
 
-        // 登录与语言列表是登录前的必需接口
-        if (path.EqualIgnoreCase("/api/Login", "/api/Languages")) return true;
+        // 登录与语言列表是登录前的必需接口；首次设置页需要读取状态并提交新口令
+        if (path.EqualIgnoreCase("/api/Login", "/api/Languages", "/api/SetupStatus", "/api/Setup")) return true;
 
         return false;
     }
@@ -605,6 +617,9 @@ public class AgentWebPanel
     /// <returns>认证是否通过</returns>
     public Boolean Authenticate(String user, String password, String remoteIp = null)
     {
+        // 首次设置完成前不允许用默认口令登录，否则会绕过设置页
+        if (NeedsSetup) return false;
+
         try
         {
             return OnAuthenticate(user, password, remoteIp);
@@ -658,9 +673,11 @@ public class AgentWebPanel
     {
         if (password.IsNullOrEmpty()) return;
 
-        Password = PasswordProvider.Hash(password);
-
+        var oldPassword = Password;
         var set = Setting.Current;
+        var oldSettingPassword = set.WebPassword;
+
+        Password = PasswordProvider.Hash(password);
         set.WebPassword = Password;
         try
         {
@@ -668,25 +685,31 @@ public class AgentWebPanel
         }
         catch (Exception ex)
         {
-            // 口令无法落盘时不能让调用方误以为已生效：重启后旧口令仍可用，必须显式报错
+            // 口令无法落盘时不能让调用方误以为已生效：回滚内存口令，重启后旧口令仍可用
+            Password = oldPassword;
+            set.WebPassword = oldSettingPassword;
+
             XTrace.WriteException(ex);
             throw new XException(L.T("Failed to save the web panel password: {0}", ex.Message));
         }
 
         WebPanelSecurity.ProtectConfigFile();
 
+        // 设置完成后退出首次设置模式
+        _setupMode = false;
+
         // 改密后旧令牌必须立即失效，否则口令被偷后改密无法抢回控制权
         RevokeAllTokens();
         LoginRateLimiter.Reset();
     }
 
-    /// <summary>历史明文口令升级为哈希。仅当口令来自配置文件时执行，避免改写调用方临时设置的值</summary>
+    /// <summary>历史口令哈希升级。仅当口令来自配置文件时执行，避免改写调用方临时设置的值</summary>
     /// <param name="password">刚刚验证通过的明文口令</param>
     private void MigrateLegacyPassword(String password)
     {
-        // 明文口令，或旧版加盐散列（$sha512$ 等）在登录成功后统一升级为当前哈希格式
+        // 明文口令、旧版加盐散列（$sha512$ 等），以及工作因子落后的 PBKDF2 哈希，在登录成功后统一按当前配置重新散列
         var legacy = String.Equals(Password, password, StringComparison.Ordinal) ||
-            (PasswordProvider is Pbkdf2PasswordProvider && Password.StartsWith("$", StringComparison.Ordinal) && !Pbkdf2PasswordProvider.IsPbkdf2Hash(Password));
+            (PasswordProvider is Pbkdf2PasswordProvider pbkdf2 && Password.StartsWith("$", StringComparison.Ordinal) && pbkdf2.NeedsRehash(Password));
         if (!legacy) return;
         if (!String.Equals(Password, Setting.Current.WebPassword, StringComparison.Ordinal)) return;
 
@@ -695,9 +718,11 @@ public class AgentWebPanel
         // 口令提供者若不散列（如默认 PasswordProvider），不必拆腾配置
         if (String.Equals(hash, Password, StringComparison.Ordinal)) return;
 
-        Password = hash;
-
+        var oldPassword = Password;
         var set = Setting.Current;
+        var oldSettingPassword = set.WebPassword;
+
+        Password = hash;
         set.WebPassword = Password;
         try
         {
@@ -705,11 +730,14 @@ public class AgentWebPanel
 
             WebPanelSecurity.ProtectConfigFile();
 
-            XTrace.Log.WriteLogPrefixed(LogLevel.Info, "[WebPanel]", "The web panel password has been upgraded to a salted hash.");
+            XTrace.Log.WriteLogPrefixed(LogLevel.Info, "[WebPanel]", "The web panel password hash has been upgraded to the current work factor.");
         }
         catch (Exception ex)
         {
-            // 登录已经成功，落盘失败不应阻断会话；下次登录会继续尝试升级
+            // 登录已经成功，落盘失败不应阻断会话；回滚内存口令，下次登录会继续尝试升级
+            Password = oldPassword;
+            set.WebPassword = oldSettingPassword;
+
             XTrace.WriteException(ex);
         }
     }

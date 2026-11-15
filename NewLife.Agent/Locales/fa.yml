@@ -138,7 +138,9 @@
 "Change the web panel password before exposing the panel to the network.": "پیش از در دسترس قرار دادن پنل وب در شبکه، گذرواژهٔ آن را تغییر دهید."
 "The web panel is moving to the new address and will reopen shortly. Sign in again if prompted.": "پنل وب به نشانی جدید منتقل می‌شود و به‌زودی دوباره باز خواهد شد. در صورت درخواست، دوباره وارد شوید."
 "The web panel is restarting; try again later.": "پنل وب در حال راه‌اندازی مجدد است؛ بعداً دوباره تلاش کنید."
-"The new password must be at least 4 characters.": "گذرواژهٔ جدید باید حداقل 4 نویسه باشد."
 "Failed to save the configuration.": "ذخیره تنظیمات ناموفق بود."
 "Failed to save the web panel password: {0}": "ذخیره گذرواژه پنل وب ناموفق بود: {0}"
 "Remote access requires AllowInsecureRemote=true in the configuration file.": "دسترسی از راه دور به AllowInsecureRemote=true در فایل تنظیمات نیاز دارد."
+
+"The new password must be at least 8 characters.": "گذرواژه جدید باید حداقل ۸ نویسه باشد."
+"The web panel is already initialized.": "پنل وب قبلاً مقداردهی اولیه شده است."

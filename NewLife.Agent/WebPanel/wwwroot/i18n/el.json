@@ -104,7 +104,7 @@
   "Stop the service?": "Διακοπή της υπηρεσίας;",
   "Stopped": "Διακόπηκε",
   "TCP connections": "Συνδέσεις TCP",
-  "The new password must be at least 4 characters": "Ο νέος κωδικός πρέπει να έχει τουλάχιστον 4 χαρακτήρες",
+  "The new password must be at least 8 characters": "Ο νέος κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες",
   "The new passwords do not match": "Οι νέοι κωδικοί δεν ταιριάζουν",
   "Thread count": "Αριθμός νημάτων",
   "Toggle light/dark theme": "Εναλλαγή φωτεινού/σκοτεινού θέματος",

@@ -104,7 +104,7 @@
   "Stop the service?": "Leállítja a szolgáltatást?",
   "Stopped": "Leállítva",
   "TCP connections": "TCP-kapcsolatok",
-  "The new password must be at least 4 characters": "Az új jelszónak legalább 4 karakter hosszúnak kell lennie",
+  "The new password must be at least 8 characters": "Az új jelszónak legalább 8 karakter hosszúnak kell lennie",
   "The new passwords do not match": "Az új jelszavak nem egyeznek",
   "Thread count": "Szálak száma",
   "Toggle light/dark theme": "Világos/sötét téma váltása",

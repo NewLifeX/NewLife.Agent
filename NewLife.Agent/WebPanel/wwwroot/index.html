@@ -226,6 +226,19 @@ document.getElementById('lpass').addEventListener('keydown', e => {
 <div id="lerr" class="err"></div>
 </div>
 
+<div id="setup" class="login-box glass-card" style="display:none">
+<h1>🔐 Agent management panel</h1>
+<p class="sub">Set the administrator password for this panel</p>
+<label>User name</label>
+<input id="suser" readonly autocomplete="username">
+<label>New password</label>
+<input id="spass" type="password" placeholder="Enter the new password" autocomplete="new-password">
+<label>Confirm new password</label>
+<input id="spass2" type="password" placeholder="Enter the new password" autocomplete="new-password">
+<button class="btn btn-primary btn-lg" style="width:100%;margin-top:8px" onclick="doSetup()">Confirm</button>
+<div id="serr" class="err"></div>
+</div>
+
 <div id="app">
 <header class="glass">
 <div class="logo">
@@ -325,14 +338,44 @@ async function doLogin(){
  }catch(ex){e.textContent='Network error; check whether the service is running';e.classList.add('show')}
 }
 
+async function doSetup(){
+ const p=$('spass').value,c=$('spass2').value,e=$('serr');
+ e.classList.remove('show');
+ if(!p){e.textContent='Enter the new password';e.classList.add('show');return}
+ if(p.length<8){e.textContent='The new password must be at least 8 characters';e.classList.add('show');return}
+ if(p!==c){e.textContent='The new passwords do not match';e.classList.add('show');return}
+ e.textContent='Changing...';e.classList.add('show');e.style.color='var(--text-muted)';
+ try{
+  const r=await fetch('/api/setup',{method:'POST',headers:{'Content-Type':'application/json','X-Panel-Setup':'1'},body:JSON.stringify({password:p})});
+  const j=await r.json();
+  if(j.code!==0){e.textContent=j.message||'Change failed';e.style.color='var(--red)';return}
+  token=j.data.token;sessionStorage.setItem('agent_token',token);
+  $('setup').style.display='none';$('spass').value='';$('spass2').value='';
+  showApp();
+ }catch(ex){e.textContent='Network error; check whether the service is running';e.classList.add('show')}
+}
+
+async function checkSetup(){
+ try{
+  const r=await fetch('/api/setupStatus',{cache:'no-store'});
+  const j=await r.json();
+  if(j.code===0&&j.data&&j.data.needsSetup){
+   $('login').style.display='none';$('setup').style.display='';$('suser').value=j.data.userName||'admin';$('spass').focus();
+   return true
+  }
+ }catch(e){}
+ $('setup').style.display='none';
+ return false
+}
+
 async function logout(){
  // 先通知服务端吊销令牌（静默处理，不阻塞退出流程）
  try{await fetch('/api/logout',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}})}catch(e){}
- sessionStorage.removeItem('agent_token');token='';clearInterval(timer);$('login').style.display='';$('app').style.display='none';$('luser').focus()
+ sessionStorage.removeItem('agent_token');token='';clearInterval(timer);$('login').style.display='';$('setup').style.display='none';$('app').style.display='none';$('luser').focus()
 }
 
 function showApp(){
- $('login').style.display='none';$('app').style.display='block';
+ $('login').style.display='none';$('setup').style.display='none';$('app').style.display='block';
  loadExtensions().then(()=>{loadDashboard();timer=setInterval(loadDashboard,10000)});
 }
 
@@ -690,7 +733,7 @@ async function changePassword(){
 
  if(!oldPwd){msg.textContent='Enter the old password';msg.style.color='var(--red)';return}
  if(!newPwd){msg.textContent='Enter the new password';msg.style.color='var(--red)';return}
- if(newPwd.length<4){msg.textContent='The new password must be at least 4 characters';msg.style.color='var(--red)';return}
+ if(newPwd.length<8){msg.textContent='The new password must be at least 8 characters';msg.style.color='var(--red)';return}
  if(newPwd!==confirmPwd){msg.textContent='The new passwords do not match';msg.style.color='var(--red)';return}
 
  msg.textContent='Changing...';msg.style.color='var(--text-muted)';
@@ -713,11 +756,12 @@ async function changePassword(){
 
 function renderConfigInput(item){
  const v=item.value,n=item.name;
+ const dis=item.writable?'':' disabled title="Edit the configuration file to change this setting"';
  if(item.type==='Boolean')
-  return `<label class="toggle"><input type="checkbox" id="cfg-${n}" ${v?'checked':''} onchange="markDirty('${n}')"><span class="track"><span class="thumb"></span></span></label>`;
+  return `<label class="toggle"><input type="checkbox" id="cfg-${n}" ${v?'checked':''}${dis} onchange="markDirty('${n}')"><span class="track"><span class="thumb"></span></span></label>`;
  if(item.type==='Int32')
-  return `<input type="number" id="cfg-${n}" value="${v??0}" onchange="markDirty('${n}')">`;
- return `<input type="text" id="cfg-${n}" value="${esc(v??'')}" onchange="markDirty('${n}')">`;
+  return `<input type="number" id="cfg-${n}" value="${v??0}"${dis} onchange="markDirty('${n}')">`;
+ return `<input type="text" id="cfg-${n}" value="${esc(v??'')}"${dis} onchange="markDirty('${n}')">`;
 }
 
 let dirtyFields=new Set();
@@ -872,7 +916,7 @@ window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>{
 
 token=sessionStorage.getItem('agent_token')||'';
 loadLanguages();
-if(token)showApp();
+checkSetup().then(needs=>{ if(!needs && token) showApp(); });
 </script>
 </body>
 </html>

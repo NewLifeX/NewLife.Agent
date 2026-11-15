@@ -104,7 +104,7 @@
   "Stop the service?": "หยุดบริการหรือไม่?",
   "Stopped": "หยุดแล้ว",
   "TCP connections": "การเชื่อมต่อ TCP",
-  "The new password must be at least 4 characters": "รหัสผ่านใหม่ต้องมีอย่างน้อย 4 ตัวอักษร",
+  "The new password must be at least 8 characters": "รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร",
   "The new passwords do not match": "รหัสผ่านใหม่ทั้งสองครั้งไม่ตรงกัน",
   "Thread count": "จำนวนเธรด",
   "Toggle light/dark theme": "สลับธีมสว่าง/มืด",

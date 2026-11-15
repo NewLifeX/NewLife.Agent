@@ -239,8 +239,9 @@ public class WebPanelContractTests
 
         var items = data.GetProperty("items").EnumerateArray().ToList();
         Assert.NotEmpty(items);
-        AssertExactKeys(items[0], "name", "displayName", "description", "type", "value");
-        Assert.Contains(items, e => e.GetProperty("name").GetString() == "ServiceName");
+        AssertExactKeys(items[0], "name", "displayName", "description", "type", "value", "writable");
+        Assert.Contains(items, e => e.GetProperty("name").GetString() == "ServiceName" && !e.GetProperty("writable").GetBoolean());
+        Assert.Contains(items, e => e.GetProperty("name").GetString() == "MaxMemory" && e.GetProperty("writable").GetBoolean());
         Assert.DoesNotContain(items, e => e.GetProperty("name").GetString() == "WebPassword");
     }
     #endregion

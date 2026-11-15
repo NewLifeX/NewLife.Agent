@@ -104,7 +104,7 @@
   "Stop the service?": "سرویس متوقف شود؟",
   "Stopped": "متوقف",
   "TCP connections": "اتصال‌های TCP",
-  "The new password must be at least 4 characters": "گذرواژه جدید باید حداقل ۴ نویسه باشد",
+  "The new password must be at least 8 characters": "گذرواژه جدید باید حداقل ۴ نویسه باشد",
   "The new passwords do not match": "گذرواژه‌های جدید یکسان نیستند",
   "Thread count": "تعداد رشته‌ها",
   "Toggle light/dark theme": "تغییر پوسته روشن/تیره",

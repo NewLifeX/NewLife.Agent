@@ -138,7 +138,9 @@
 "Change the web panel password before exposing the panel to the network.": "Modifiez le mot de passe du panneau web avant d'exposer le panneau au réseau."
 "The web panel is moving to the new address and will reopen shortly. Sign in again if prompted.": "Le panneau web passe à la nouvelle adresse et rouvrira bientôt. Reconnectez-vous si cela vous est demandé."
 "The web panel is restarting; try again later.": "Le panneau web redémarre ; réessayez plus tard."
-"The new password must be at least 4 characters.": "Le nouveau mot de passe doit comporter au moins 4 caractères."
 "Failed to save the configuration.": "Échec de l'enregistrement de la configuration."
 "Failed to save the web panel password: {0}": "Échec de l'enregistrement du mot de passe du panneau Web : {0}"
 "Remote access requires AllowInsecureRemote=true in the configuration file.": "L'accès distant nécessite AllowInsecureRemote=true dans le fichier de configuration."
+
+"The new password must be at least 8 characters.": "Le nouveau mot de passe doit contenir au moins 8 caractères."
+"The web panel is already initialized.": "Le panneau Web est déjà initialisé."
