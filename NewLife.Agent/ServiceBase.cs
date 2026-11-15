@@ -45,8 +45,11 @@ public abstract class ServiceBase : DisposeBase
     /// <summary>是否使用自启动。自启动需要用户登录桌面，默认false使用系统服务</summary>
     public Boolean UseAutorun { get; set; }
 
+    private volatile Boolean _running;
+
     /// <summary>运行中</summary>
-    public Boolean Running { get; set; }
+    /// <remarks>停止线程与巡检线程跨线程读写，必须用 volatile 支撑字段保证可见性</remarks>
+    public Boolean Running { get => _running; set => _running = value; }
 
     /// <summary>命令工厂</summary>
     public CommandFactory Command { get; }
@@ -326,9 +329,41 @@ public abstract class ServiceBase : DisposeBase
     private AutoResetEvent _event;
     private Process _process;
 
+    /// <summary>停止请求标记。停止请求可能早于巡检循环启动（服务处于启动挂起状态时被停止），必须独立记录</summary>
+    private volatile Boolean _stopRequested;
+
+    /// <summary>业务逻辑是否已启动。用于与 StopWork 配对，避免未启动就调用停止逻辑</summary>
+    private volatile Boolean _workStarted;
+
+    /// <summary>运行计时器。用单调时钟计算运行时长，避免系统时间调整导致定时重启被推迟或提前</summary>
+    private readonly Stopwatch _uptime = Stopwatch.StartNew();
+
+    /// <summary>运行时长偏移。仅供测试回拨启动时间构造到期场景，生产环境始终为零</summary>
+    private TimeSpan _uptimeOffset;
+
+    /// <summary>已运行时长</summary>
+    private TimeSpan Uptime => _uptime.Elapsed + _uptimeOffset;
+
+    /// <summary>重启冷却毫秒数。阈值持续超标时避免每轮巡检都触发一次重启</summary>
+    private const Int32 RestartCooldown = 60_000;
+
+    /// <summary>上次触发重启的运行计时（毫秒）</summary>
+    private Int64 _lastRestart = -1;
+
+    /// <summary>巡检间隔上下限，单位为秒</summary>
+    private const Int32 MinWatchInterval = 1;
+    private const Int32 MaxWatchInterval = 3600;
+
     /// <summary>主循环</summary>
     internal void DoLoop()
     {
+        // 停止请求可能早于巡检循环启动（服务处于启动挂起阶段时被停止），此时不执行业务后置动作与巡检
+        if (_stopRequested)
+        {
+            Running = false;
+            return;
+        }
+
         // 启动后命令，服务启动后执行的命令
         var set = Setting.Current;
         if (!set.AfterStart.IsNullOrEmpty())
@@ -357,9 +392,16 @@ public abstract class ServiceBase : DisposeBase
             }
         }
 
+        // 巡检间隔必须落在合理区间：0 会空转，负数或过大值（秒转毫秒溢出）会让 WaitOne 抛异常并杀掉巡检线程
+        var interval = set.WatchInterval;
+        if (interval < MinWatchInterval) interval = MinWatchInterval;
+        if (interval > MaxWatchInterval) interval = MaxWatchInterval;
+
         _event = new AutoResetEvent(false);
         Running = true;
-        while (Running)
+
+        // 启动期间可能已收到停止请求，此时不能再进入巡检，否则会把 Running 重新置为 true 导致服务停不下来
+        while (Running && !_stopRequested)
         {
             try
             {
@@ -372,11 +414,20 @@ public abstract class ServiceBase : DisposeBase
                 XTrace.WriteException(ex);
             }
 
-            _event.WaitOne(set.WatchInterval * 1000);
+            try
+            {
+                _event?.WaitOne(interval * 1000);
+            }
+            catch (ObjectDisposedException)
+            {
+                // 事件对象已被停止线程释放，等同收到停止信号
+                break;
+            }
         }
 
-        _event.Dispose();
+        var evt = _event;
         _event = null;
+        evt?.Dispose();
     }
 
     /// <summary>开始循环</summary>
@@ -387,6 +438,10 @@ public abstract class ServiceBase : DisposeBase
     /// </remarks>
     protected internal void StartLoop()
     {
+        // 新一轮启动：清除上一轮遗留的停止请求与业务标记，保证启动前到达的停止请求不会被上一轮状态吞掉
+        _stopRequested = false;
+        _workStarted = false;
+
         Model.Host.RegisterExit(OnProcessExit);
 
         // StartWork 只执行一次，不允许重入
@@ -398,6 +453,7 @@ public abstract class ServiceBase : DisposeBase
         {
             try
             {
+                _workStarted = true;
                 StartWork("StartLoop");
             }
             catch (Exception ex)
@@ -413,14 +469,38 @@ public abstract class ServiceBase : DisposeBase
     }
 
     /// <summary>停止循环</summary>
+    /// <remarks>
+    /// 无论巡检循环是否已经进入，都先记录停止请求：服务在启动挂起阶段被停止时，循环随后才启动，
+    /// 若此处直接返回，DoLoop 会把 Running 重新置为 true，出现「SCM 认为已停止、进程仍在跑且停不下来」。
+    /// </remarks>
     protected internal void StopLoop()
     {
-        if (!Running) return;
+        _stopRequested = true;
 
-        StopWork("StopLoop");
+        try
+        {
+            if (_workStarted)
+            {
+                _workStarted = false;
+                StopWork("StopLoop");
+            }
+        }
+        catch (Exception ex)
+        {
+            // 派生类停止逻辑抛异常时，后续清理与标记复位必须照常执行，否则服务会挂死并等 SCM 强杀
+            WriteLog("StopWork failed: {0}", ex.Message);
+            Log?.Error(ex.ToString());
+        }
+        finally
+        {
+            Running = false;
 
-        Running = false;
-        _event?.Set();
+            try
+            {
+                _event?.Set();
+            }
+            catch (ObjectDisposedException) { }
+        }
 
         try
         {
@@ -430,6 +510,21 @@ public abstract class ServiceBase : DisposeBase
         catch { }
 
         FreeMemory();
+    }
+
+    /// <summary>申请重启服务。带冷却时间，阈值持续超标时不会每轮巡检都触发重启</summary>
+    /// <param name="message">重启原因，写入日志</param>
+    /// <returns>是否真正发起了重启；false 表示处于冷却期或重启失败</returns>
+    protected virtual Boolean RequestRestart(String message)
+    {
+        var now = (Int64)Uptime.TotalMilliseconds;
+        if (_lastRestart >= 0 && now - _lastRestart < RestartCooldown) return false;
+
+        _lastRestart = now;
+
+        WriteLog("{0}; restarting.", message);
+
+        return Host.Restart(ServiceName);
     }
 
     /// <summary>开始工作</summary>
@@ -535,11 +630,7 @@ public abstract class ServiceBase : DisposeBase
         var memory = Process.GetCurrentProcess().WorkingSet64 / 1024 / 1024;
         if (!HealthMonitor.IsMemoryOver(set, memory)) return false;
 
-        WriteLog("Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.", memory, set.MaxMemory);
-
-        Host.Restart(ServiceName);
-
-        return true;
+        return RequestRestart($"Process memory usage {memory:n0} MB exceeds the threshold {set.MaxMemory:n0} MB");
     }
 
     /// <summary>释放内存。GC回收后再释放虚拟内存</summary>
@@ -560,7 +651,7 @@ public abstract class ServiceBase : DisposeBase
 
         if (Runtime.Windows)
         {
-            var p = Process.GetCurrentProcess();
+            using var p = Process.GetCurrentProcess();
             NativeMethods.EmptyWorkingSet(p.Handle);
         }
     }
@@ -573,11 +664,7 @@ public abstract class ServiceBase : DisposeBase
         var count = Process.GetCurrentProcess().Threads.Count;
         if (!HealthMonitor.IsThreadOver(set, count)) return false;
 
-        WriteLog("Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.", count, set.MaxThread);
-
-        Host.Restart(ServiceName);
-
-        return true;
+        return RequestRestart($"Process thread count {count:n0} exceeds the threshold {set.MaxThread:n0}");
     }
 
     /// <summary>检查服务进程的句柄数是否超标。超过 MaxHandle 时触发重启（Windows）</summary>
@@ -588,36 +675,29 @@ public abstract class ServiceBase : DisposeBase
         var count = Process.GetCurrentProcess().HandleCount;
         if (!HealthMonitor.IsHandleOver(set, count)) return false;
 
-        WriteLog("Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.", count, set.MaxHandle);
-
-        Host.Restart(ServiceName);
-
-        return true;
+        return RequestRestart($"Process handle count {count:n0} exceeds the threshold {set.MaxHandle:n0}");
     }
-
-    /// <summary>服务开始时间</summary>
-    private DateTime Start = DateTime.Now;
 
     /// <summary>检查自动重启。达到 AutoRestart 分钟数且在 RestartTimeRange 内时触发重启</summary>
     /// <returns>是否触发重启</returns>
     protected virtual Boolean CheckAutoRestart()
     {
         var set = Setting.Current;
-        if (!HealthMonitor.IsAutoRestartDue(set, Start, DateTime.Now, out var inTimeRange)) return false;
+        var elapsed = Uptime;
+        if (!HealthMonitor.IsAutoRestartDue(set, elapsed, DateTime.Now, out var inTimeRange)) return false;
 
-        var ts = DateTime.Now - Start;
+        String message;
         if (inTimeRange)
-        {
-            WriteLog("Service has run for {0:n0} minutes, reaching the preset restart interval ({1:n0} minutes) within the configured time range ({2}); restarting!", ts.TotalMinutes, set.AutoRestart, set.RestartTimeRange);
-        }
+            message = $"Service has run for {elapsed.TotalMinutes:n0} minutes, reaching the preset restart interval ({set.AutoRestart:n0} minutes) within the configured time range ({set.RestartTimeRange})";
         else
-        {
-            WriteLog("Service has run for {0:n0} minutes, reaching the preset restart interval ({1:n0} minutes); restarting!", ts.TotalMinutes, set.AutoRestart);
-        }
-        //重置开始时间，防止检测时间过快，重启时间较长时，导致多次重复重启
-        Start = DateTime.Now;
+            message = $"Service has run for {elapsed.TotalMinutes:n0} minutes, reaching the preset restart interval ({set.AutoRestart:n0} minutes)";
 
-        Host.Restart(ServiceName);
+        // 冷却期或重启失败时不重置计时，下一轮巡检继续尝试
+        if (!RequestRestart(message)) return false;
+
+        // 重置开始时间，防止检测时间过快，重启时间较长时，导致多次重复重启
+        _uptime.Restart();
+        _uptimeOffset = TimeSpan.Zero;
 
         if (Host is DefaultHost host && !host.InService) StopLoop();
 

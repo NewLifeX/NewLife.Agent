@@ -39,8 +39,9 @@ public static class HealthMonitor
 
     /// <summary>判断是否到达自动重启时间。达到 AutoRestart 分钟数且落入 RestartTimeRange 允许时间段时返回 true</summary>
     /// <remarks>
-    /// 时间范围规则与原实现保持一致：范围字符串以 '-' 分割恰好 2 段时校验当前时间是否在范围内；
+    /// 时间范围规则：范围字符串以 '-' 分割恰好 2 段时校验当前时间是否在范围内，起始时间大于结束时间表示跨零点（如 22:00-06:00）；
     /// 未配置范围或格式非 2 段时视为无限制，直接允许重启。
+    /// 运行时长建议传入由单调时钟计算的 <see cref="TimeSpan"/>（见重载），避免系统时间被调整时判断错乱。
     /// </remarks>
     /// <param name="set">配置</param>
     /// <param name="startTime">服务启动时间</param>
@@ -48,28 +49,46 @@ public static class HealthMonitor
     /// <param name="inTimeRange">是否配置了重启时间范围且当前时间在范围之内</param>
     /// <returns>是否应触发自动重启</returns>
     public static Boolean IsAutoRestartDue(Setting set, DateTime startTime, DateTime now, out Boolean inTimeRange)
+        => IsAutoRestartDue(set, now - startTime, now, out inTimeRange);
+
+    /// <summary>判断是否到达自动重启时间。按已运行时长判断，避免使用系统时间做差</summary>
+    /// <param name="set">配置</param>
+    /// <param name="elapsed">已运行时长，建议来自单调时钟</param>
+    /// <param name="now">当前时间，仅用于判断是否落入允许时间段</param>
+    /// <param name="inTimeRange">是否配置了重启时间范围且当前时间在范围之内</param>
+    /// <returns>是否应触发自动重启</returns>
+    public static Boolean IsAutoRestartDue(Setting set, TimeSpan elapsed, DateTime now, out Boolean inTimeRange)
     {
         inTimeRange = false;
 
         var auto = set?.AutoRestart ?? 0;
         if (auto <= 0) return false;
 
-        var ts = now - startTime;
-        if (ts.TotalMinutes < auto) return false;
+        if (elapsed.TotalMinutes < auto) return false;
 
-        var timeRange = set?.RestartTimeRange?.Split('-');
-        if (timeRange?.Length == 2)
-        {
-            if (TimeSpan.TryParse(timeRange[0], out var start) && start <= now.TimeOfDay
-                && TimeSpan.TryParse(timeRange[1], out var end) && end >= now.TimeOfDay)
-            {
-                inTimeRange = true;
-                return true;
-            }
-            return false;
-        }
+        return IsInTimeRange(set.RestartTimeRange, now.TimeOfDay, out inTimeRange);
+    }
 
-        return true;
+    /// <summary>判断时间点是否落在重启时间范围内</summary>
+    /// <remarks>起始大于结束表示跨零点区间（如 22:00-06:00），此时“晚于起始”或“早于结束”均算命中</remarks>
+    /// <param name="range">范围字符串，格式 HH:mm-HH:mm</param>
+    /// <param name="timeOfDay">待判断的时间点</param>
+    /// <param name="inTimeRange">是否显式配置了范围并命中</param>
+    /// <returns>是否允许重启；未配置或无法解析时视为不限制</returns>
+    public static Boolean IsInTimeRange(String range, TimeSpan timeOfDay, out Boolean inTimeRange)
+    {
+        inTimeRange = false;
+
+        var parts = range?.Split('-');
+        if (parts?.Length != 2) return true;
+        if (!TimeSpan.TryParse(parts[0], out var start)) return true;
+        if (!TimeSpan.TryParse(parts[1], out var end)) return true;
+
+        inTimeRange = start <= end
+            ? timeOfDay >= start && timeOfDay <= end
+            : timeOfDay >= start || timeOfDay <= end;
+
+        return inTimeRange;
     }
 
     /// <summary>解析自动重启时间范围。格式 "HH:mm-HH:mm"，如 "00:00-06:00"</summary>

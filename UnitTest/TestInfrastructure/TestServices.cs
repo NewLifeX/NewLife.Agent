@@ -26,12 +26,12 @@ public class ServiceBaseTester : ServiceBase
     /// <summary>触发一周期健康巡检</summary>
     public void DoCheck() => base.DoCheck(null);
 
-    /// <summary>回拨服务启动时间（私有字段 Start），用于构造自动重启到期场景</summary>
-    /// <param name="ago">相对当前时间回拨的时长</param>
+    /// <summary>回拨服务已运行时长，用于构造自动重启到期场景</summary>
+    /// <param name="ago">向前追加的时长</param>
     public void BackdateStart(TimeSpan ago)
     {
-        var field = typeof(ServiceBase).GetField("Start", BindingFlags.Instance | BindingFlags.NonPublic);
-        field.SetValue(this, DateTime.Now - ago);
+        var field = typeof(ServiceBase).GetField("_uptimeOffset", BindingFlags.Instance | BindingFlags.NonPublic);
+        field.SetValue(this, ago);
     }
 
     /// <summary>读取内存整理的下次触发时间（私有字段 _nextCollect）</summary>

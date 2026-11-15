@@ -498,10 +498,26 @@ public class WindowsService : DefaultHost
 
         if (!IsAdministrator()) return RunAsAdministrator("-restart");
 
+        // 服务名来自配置并会被拼进 cmd 命令行，先拒绝 cmd 元字符，避免命令注入或命令被截断
+        if (serviceName.IsNullOrEmpty() || serviceName.IndexOfAny(['&', '|', '<', '>', '^', '"', '%', '\r', '\n']) >= 0)
+        {
+            XTrace.WriteLine("Invalid service name for restart: [{0}]", serviceName);
+            return false;
+        }
+
         //if (InService)
         {
-            var cmd = $"/c net stop {serviceName} & ping 127.0.0.1 -n 5 & net start {serviceName}";
-            Process.Start("cmd.exe", cmd);
+            var cmd = $"/c net stop \"{serviceName}\" & ping 127.0.0.1 -n 5 & net start \"{serviceName}\"";
+            try
+            {
+                // 重启命令需要在本服务退出后继续执行，不能等待；启动失败必须上报，否则健康检查会一直认为重启成功
+                using var p = Process.Start("cmd.exe", cmd);
+            }
+            catch (Exception ex)
+            {
+                XTrace.WriteException(ex);
+                return false;
+            }
         }
         //else
         //{

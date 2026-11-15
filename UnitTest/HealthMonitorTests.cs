@@ -148,6 +148,43 @@ public class HealthMonitorTests
     }
 
     [Fact]
+    [DisplayName("IsAutoRestartDue_跨零点时间范围_区间内触发")]
+    public void IsAutoRestartDue_CrossMidnight_InRange_Due()
+    {
+        var set = new Setting { AutoRestart = 60, RestartTimeRange = "22:00-06:00" };
+        var elapsed = TimeSpan.FromMinutes(120);
+
+        // 22:00-06:00 跨零点，凌晨 2 点与深夜 23:30 都应命中
+        Assert.True(HealthMonitor.IsAutoRestartDue(set, elapsed, new DateTime(2026, 1, 1, 23, 30, 0), out var late));
+        Assert.True(late);
+
+        Assert.True(HealthMonitor.IsAutoRestartDue(set, elapsed, new DateTime(2026, 1, 2, 2, 0, 0), out var early));
+        Assert.True(early);
+    }
+
+    [Fact]
+    [DisplayName("IsAutoRestartDue_跨零点时间范围_区间外不触发")]
+    public void IsAutoRestartDue_CrossMidnight_OutOfRange_NotDue()
+    {
+        var set = new Setting { AutoRestart = 60, RestartTimeRange = "22:00-06:00" };
+        var elapsed = TimeSpan.FromMinutes(120);
+
+        Assert.False(HealthMonitor.IsAutoRestartDue(set, elapsed, new DateTime(2026, 1, 1, 12, 0, 0), out var inRange));
+        Assert.False(inRange);
+    }
+
+    [Fact]
+    [DisplayName("IsAutoRestartDue_按运行时长重载_达到间隔触发")]
+    public void IsAutoRestartDue_ElapsedOverload_Due()
+    {
+        var set = new Setting { AutoRestart = 30, RestartTimeRange = null };
+        var now = new DateTime(2026, 1, 1, 12, 0, 0);
+
+        Assert.False(HealthMonitor.IsAutoRestartDue(set, TimeSpan.FromMinutes(29), now, out _));
+        Assert.True(HealthMonitor.IsAutoRestartDue(set, TimeSpan.FromMinutes(30), now, out _));
+    }
+
+    [Fact]
     [DisplayName("IsAutoRestartDue_达到分钟数不在范围内_不触发")]
     public void IsAutoRestartDue_ReachedOutOfRange_NotDue()
     {

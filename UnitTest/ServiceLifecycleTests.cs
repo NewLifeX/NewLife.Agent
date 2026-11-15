@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using NewLife;
 using NewLife.Agent;
+using NewLife.Agent.Models;
 using Setting = NewLife.Agent.Setting;
 
 namespace UnitTest;
@@ -16,6 +17,7 @@ public class ServiceLifecycleTests
     {
         public Int32 StartCount;
         public Boolean ThrowOnStartWork;
+        public Boolean ThrowOnStopWork;
 
         public override void StartWork(String reason)
         {
@@ -23,8 +25,38 @@ public class ServiceLifecycleTests
             if (ThrowOnStartWork) throw new InvalidOperationException("模拟业务启动失败");
         }
 
+        public override void StopWork(String reason)
+        {
+            if (ThrowOnStopWork) throw new InvalidOperationException("模拟业务停止失败");
+        }
+
         public void StartLoopNow() => StartLoop();
         public void StopLoopNow() => StopLoop();
+        public void DoLoopNow() => DoLoop();
+        public Boolean RestartNow(String message) => RequestRestart(message);
+    }
+
+    /// <summary>只统计重启次数的测试主机，避免触发真实的服务控制</summary>
+    private class CountingHost : IHost
+    {
+        public Int32 RestartCount;
+        public Boolean Result = true;
+
+        public String Name => "CountingHost";
+
+        public Boolean IsInstalled(String serviceName) => true;
+        public Boolean IsRunning(String serviceName) => true;
+        public Boolean Install(ServiceModel service) => true;
+        public Boolean Remove(String serviceName) => true;
+        public Boolean Start(String serviceName) => true;
+        public Boolean Stop(String serviceName) => true;
+        public Boolean Restart(String serviceName)
+        {
+            Interlocked.Increment(ref RestartCount);
+            return Result;
+        }
+        public void Run(ServiceBase service) { }
+        public ServiceConfig QueryConfig(String serviceName) => null;
     }
 
     private static Boolean WaitUntil(Func<Boolean> predicate, Int32 timeout = 5000)
@@ -117,5 +149,45 @@ public class ServiceLifecycleTests
 
             try { if (File.Exists(marker)) File.Delete(marker); } catch { }
         }
+    }
+
+    [Fact]
+    [DisplayName("StopLoop_早于巡检循环_不进入巡检且Running为false")]
+    public void StopLoop_BeforeDoLoop_DoesNotEnterLoop()
+    {
+        // 服务在启动挂起阶段被停止：DoLoop 尚未执行，StopLoop 必须留下停止标记供随后启动的循环识别
+        var svc = new StartWorkTester { ServiceName = "UnitTestStopBeforeLoop" };
+
+        svc.StopLoopNow();
+
+        var ex = Record.Exception(() => svc.DoLoopNow());
+        Assert.Null(ex);
+        Assert.False(svc.Running);
+    }
+
+    [Fact]
+    [DisplayName("StopLoop_StopWork抛异常_状态仍复位且不外泄")]
+    public void StopLoop_StopWorkThrows_StateReset()
+    {
+        var svc = new StartWorkTester { ServiceName = "UnitTestStopWorkThrows", ThrowOnStopWork = true };
+
+        svc.StartLoopNow();
+        Assert.True(WaitUntil(() => svc.StartCount > 0), "StartWork 未被执行");
+
+        var ex = Record.Exception(() => svc.StopLoopNow());
+        Assert.Null(ex);
+        Assert.False(svc.Running);
+    }
+
+    [Fact]
+    [DisplayName("RequestRestart_冷却期内_只重启一次")]
+    public void RequestRestart_Cooldown_OnlyOnce()
+    {
+        var host = new CountingHost();
+        var svc = new StartWorkTester { ServiceName = "UnitTestRestartCooldown", Host = host };
+
+        Assert.True(svc.RestartNow("首次触发"));
+        Assert.False(svc.RestartNow("冷却期内再次触发"));
+        Assert.Equal(1, host.RestartCount);
     }
 }
