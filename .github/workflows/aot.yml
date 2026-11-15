@@ -17,9 +17,9 @@ jobs:
     timeout-minutes: 30
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Setup dotNET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: 10.x
     - name: AOT Analyzer Check
@@ -43,18 +43,19 @@ jobs:
           - { rid: linux-arm64, os: ubuntu-24.04-arm, smoke: true }
           # 交叉产物为 ARM 架构，ubuntu x64 无法直接运行，仅做发布验证
           - { rid: linux-arm,   os: ubuntu-24.04, cross: armhf, smoke: false, args: "-p:LinkerFlavor=lld" }
-          # Linux musl：交叉构建；x64 产物静态链接可在本机运行，其余仅做发布验证
-          - { rid: linux-musl-x64,   os: ubuntu-24.04, cross: musl-x64,   smoke: true,  args: "-p:CppLinker=/usr/local/bin/clang-musl" }
-          - { rid: linux-musl-arm64, os: ubuntu-24.04, cross: musl-arm64, smoke: false, args: "-p:CppLinker=/usr/local/bin/clang-musl -p:LinkerFlavor=lld" }
-          - { rid: linux-musl-arm,   os: ubuntu-24.04, cross: musl-arm,   smoke: false, args: "-p:CppLinker=/usr/local/bin/clang-musl -p:LinkerFlavor=lld" }
+          # Linux musl：交叉构建；x64 产物静态链接可在本机运行，其余仅做发布验证。
+          # 静态 musl 无法加载系统 ICU，构建期必须启用 InvariantGlobalization，否则 NativeAOT 冒烟启动即 SIGABRT(134)
+          - { rid: linux-musl-x64,   os: ubuntu-24.04, cross: musl-x64,   smoke: true,  args: "-p:CppLinker=/usr/local/bin/clang-musl -p:InvariantGlobalization=true" }
+          - { rid: linux-musl-arm64, os: ubuntu-24.04, cross: musl-arm64, smoke: false, args: "-p:CppLinker=/usr/local/bin/clang-musl -p:LinkerFlavor=lld -p:InvariantGlobalization=true" }
+          - { rid: linux-musl-arm,   os: ubuntu-24.04, cross: musl-arm,   smoke: false, args: "-p:CppLinker=/usr/local/bin/clang-musl -p:LinkerFlavor=lld -p:InvariantGlobalization=true" }
           # macOS
           - { rid: osx-x64,   os: macos-15-intel, smoke: true }
           - { rid: osx-arm64, os: macos-15,       smoke: true }
           # LoongArch64 见下方独立作业 aot-loongarch64
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Setup dotNET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: |
           10.x
@@ -66,12 +67,15 @@ jobs:
     - name: Install Linux armhf cross toolchain
       if: matrix.cross == 'armhf'
       run: |
+        # 端口源套件必须跟随 runner 系统：硬编码 noble 在 26.04(resolute) 上会与主源 zlib1g 版本冲突
+        suite=$(. /etc/os-release && echo "${VERSION_CODENAME:-noble}")
+        echo "ports suite: $suite"
         sudo dpkg --add-architecture armhf
         sudo sed -i 's/^Types: deb$/Types: deb\nArchitectures: amd64/' /etc/apt/sources.list.d/ubuntu.sources
-        sudo tee /etc/apt/sources.list.d/armhf.sources >/dev/null <<'EOF'
+        sudo tee /etc/apt/sources.list.d/armhf.sources >/dev/null <<EOF
         Types: deb
         URIs: http://ports.ubuntu.com/ubuntu-ports
-        Suites: noble noble-updates noble-security
+        Suites: $suite ${suite}-updates ${suite}-security
         Components: main restricted universe multiverse
         Architectures: armhf
         EOF
@@ -85,12 +89,14 @@ jobs:
             sudo apt-get install -y --no-install-recommends musl-tools
             ;;
           musl-arm64)
+            suite=$(. /etc/os-release && echo "${VERSION_CODENAME:-noble}")
+            echo "ports suite: $suite"
             sudo dpkg --add-architecture arm64
             sudo sed -i 's/^Types: deb$/Types: deb\nArchitectures: amd64/' /etc/apt/sources.list.d/ubuntu.sources
-            sudo tee /etc/apt/sources.list.d/arm64.sources >/dev/null <<'EOF'
+            sudo tee /etc/apt/sources.list.d/arm64.sources >/dev/null <<EOF
         Types: deb
         URIs: http://ports.ubuntu.com/ubuntu-ports
-        Suites: noble noble-updates noble-security
+        Suites: $suite ${suite}-updates ${suite}-security
         Components: main restricted universe multiverse
         Architectures: arm64
         EOF
@@ -98,12 +104,14 @@ jobs:
             sudo apt-get install -y gcc-aarch64-linux-gnu musl-dev:arm64
             ;;
           musl-arm)
+            suite=$(. /etc/os-release && echo "${VERSION_CODENAME:-noble}")
+            echo "ports suite: $suite"
             sudo dpkg --add-architecture armhf
             sudo sed -i 's/^Types: deb$/Types: deb\nArchitectures: amd64/' /etc/apt/sources.list.d/ubuntu.sources
-            sudo tee /etc/apt/sources.list.d/armhf-musl.sources >/dev/null <<'EOF'
+            sudo tee /etc/apt/sources.list.d/armhf-musl.sources >/dev/null <<EOF
         Types: deb
         URIs: http://ports.ubuntu.com/ubuntu-ports
-        Suites: noble noble-updates noble-security
+        Suites: $suite ${suite}-updates ${suite}-security
         Components: main restricted universe multiverse
         Architectures: armhf
         EOF
@@ -140,8 +148,14 @@ jobs:
       run: |
         exe="Bin/Test/net10.0/${{ matrix.rid }}/publish/Test"
         if [ ! -f "$exe" ]; then exe="$exe.exe"; fi
-        out=$("$exe" -status 2>&1)
+        out=$("$exe" -status 2>&1) && rc=0 || rc=$?
         echo "$out"
+        if [ "$rc" != "0" ]; then
+          echo "NativeAOT 冒烟进程退出码 $rc（134=SIGABRT，静态 musl 缺 ICU 时常见）"
+          file "$exe" || true
+          ldd "$exe" || true
+          exit 1
+        fi
         if ! echo "$out" | grep -q "NewLife.Agent"; then
           echo "NativeAOT 冒烟未输出预期内容"
           # musl 静态链接失败时产物仍能生成，补打依赖信息便于定位（缺 glibc 符号等）
@@ -150,9 +164,12 @@ jobs:
           exit 1
         fi
         # Web 面板冒烟：内嵌首页与 i18n 词表、面板 DTO 序列化、全局配置反射与语言切换落盘（AotRoots 保留）
-        panel=$("$exe" -panel 2>&1)
+        panel=$("$exe" -panel 2>&1) && rc=0 || rc=$?
         echo "$panel"
-        echo "$panel" | grep -q "AOT_PANEL_PROBE=OK" || { echo "NativeAOT Web 面板冒烟失败"; exit 1; }
+        if [ "$rc" != "0" ] || ! echo "$panel" | grep -q "AOT_PANEL_PROBE=OK"; then
+          echo "NativeAOT Web 面板冒烟失败（exit=$rc）"
+          exit 1
+        fi
 
   # LoongArch64：官方无该 RID 的 NativeAOT 目标包（loongnix 源仅有 net9 的 ILCompiler），
   # 分两层验证：① x64 宿主经 loongnix 源交叉发布自包含包（产物要求 Loongnix 的 glibc 版本节点，
@@ -164,9 +181,9 @@ jobs:
     timeout-minutes: 120
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Setup dotNET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: 10.x
     - name: Prepare loongarch64 NuGet source

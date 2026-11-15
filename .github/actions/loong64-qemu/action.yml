@@ -33,8 +33,12 @@ runs:
       set -euo pipefail
       set -x
       sudo apt-get update -o Acquire::Retries=3
-      # qemu-user-static 自带 /usr/lib/binfmt.d/qemu-loongarch64.conf（OPF 标志，F 使 chroot 内透明执行）
-      sudo apt-get install -y --no-install-recommends qemu-user-static debootstrap
+      # qemu-user-static 自带 /usr/lib/binfmt.d/qemu-loongarch64.conf（OPF 标志，F 使 chroot 内透明执行）。
+      # Ubuntu 26.04 起该包已被拆分/移除，回退到 qemu-user-binfmt + qemu-user
+      if ! sudo apt-get install -y --no-install-recommends qemu-user-static debootstrap; then
+        echo "qemu-user-static 不可用，回退 qemu-user-binfmt + qemu-user"
+        sudo apt-get install -y --no-install-recommends qemu-user-binfmt qemu-user debootstrap
+      fi
       if ! dpkg -s debian-archive-keyring >/dev/null 2>&1; then
         sudo apt-get install -y --no-install-recommends debian-archive-keyring || {
           # 官方仓库未提供时直接从 Debian 归档取密钥环

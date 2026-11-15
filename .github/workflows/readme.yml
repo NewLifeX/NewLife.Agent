@@ -11,7 +11,6 @@ on:
       - 'readme-languages.json'
       - 'readme-package.json'
       - 'tools/**'
-      - 'tools/**'
       - '**/*.csproj'
       - '.github/workflows/readme.yml'
   pull_request:
@@ -20,7 +19,6 @@ on:
       - 'README*.md'
       - 'readme-languages.json'
       - 'readme-package.json'
-      - 'tools/**'
       - 'tools/**'
       - '**/*.csproj'
       - '.github/workflows/readme.yml'
@@ -36,7 +34,7 @@ jobs:
     timeout-minutes: 5
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Check README language switcher
       shell: pwsh
       run: pwsh -NoProfile -File ./tools/sync-readme-languages.ps1 -Check

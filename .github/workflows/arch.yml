@@ -18,9 +18,9 @@ jobs:
     continue-on-error: true
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Setup dotNET (host, for restore)
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: 10.x
     - name: Set up QEMU (riscv64)
@@ -60,9 +60,9 @@ jobs:
     continue-on-error: true
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Setup dotNET (host, for restore)
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: 10.x
     - name: Set up QEMU (s390x)
