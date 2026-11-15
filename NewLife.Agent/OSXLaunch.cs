@@ -128,8 +128,15 @@ public class OSXLaunch : DefaultHost
         sb.AppendLine("    <key>ProgramArguments</key>");
         sb.AppendLine("    <array>");
         sb.AppendLine($"        <string>{Escape(fileName)}</string>");
-        // 空参数不输出空 <string>，否则 launchd 会传一个空参数给进程
-        if (!arguments.IsNullOrEmpty()) sb.AppendLine($"        <string>{Escape(arguments)}</string>");
+        // launchd 把数组元素逐个作为 argv 传入：参数必须拆成独立 <string>，
+        // 否则 "a b" 会作为一个参数，多参数服务无法启动
+        if (!arguments.IsNullOrEmpty())
+        {
+            foreach (var token in ServiceHelper.ParseArguments(arguments))
+            {
+                sb.AppendLine($"        <string>{Escape(token)}</string>");
+            }
+        }
         sb.AppendLine("    </array>");
         sb.AppendLine("    <key>RunAtLoad</key>");
         sb.AppendLine("    <true/>");

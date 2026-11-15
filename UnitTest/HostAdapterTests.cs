@@ -89,8 +89,22 @@ public class HostAdapterTests
         Assert.Contains("<key>Label</key>", plist);
         Assert.Contains("<string>MyService</string>", plist);
         Assert.Contains("<string>/usr/local/bin/dotnet</string>", plist);
-        Assert.Contains("<string>app.dll -s</string>", plist);
+        // launchd 按 argv 逐项传参，必须拆成独立 <string>
+        Assert.Contains("<string>app.dll</string>", plist);
+        Assert.Contains("<string>-s</string>", plist);
+        Assert.DoesNotContain("<string>app.dll -s</string>", plist);
         Assert.Contains("<key>RunAtLoad</key>", plist);
+    }
+
+    [Fact]
+    [DisplayName("OSXLaunch_生成plist_多参数逐项拆分")]
+    public void OSXLaunch_BuildPlist_SplitsArguments()
+    {
+        var plist = OSXLaunch.BuildPlist("svc", "/app/app", "-s --urls \"http://0.0.0.0:80\"");
+
+        Assert.Contains("<string>-s</string>", plist);
+        Assert.Contains("<string>--urls</string>", plist);
+        Assert.Contains("<string>http://0.0.0.0:80</string>", plist);
     }
 
     [Fact]
@@ -111,7 +125,7 @@ public class HostAdapterTests
     [DisplayName("OSXLaunch_生成plist_特殊字符做XML转义")]
     public void OSXLaunch_BuildPlist_EscapesXml()
     {
-        var plist = OSXLaunch.BuildPlist("svc", "/app/a&b", "x < y", "user1", true);
+        var plist = OSXLaunch.BuildPlist("svc", "/app/a&b", "\"x < y\"", "user1", true);
 
         Assert.Contains("/app/a&amp;b", plist);
         Assert.Contains("x &lt; y", plist);

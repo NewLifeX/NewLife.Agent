@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace NewLife.Agent;
 
 /// <summary>健康监控。封装服务健康检查的纯逻辑判断，供 <see cref="ServiceBase"/> 调用，可独立测试</summary>
@@ -79,10 +81,7 @@ public static class HealthMonitor
     {
         inTimeRange = false;
 
-        var parts = range?.Split('-');
-        if (parts?.Length != 2) return true;
-        if (!TimeSpan.TryParse(parts[0], out var start)) return true;
-        if (!TimeSpan.TryParse(parts[1], out var end)) return true;
+        if (!TryParseTimeRange(range, out var start, out var end)) return true;
 
         inTimeRange = start <= end
             ? timeOfDay >= start && timeOfDay <= end
@@ -103,9 +102,13 @@ public static class HealthMonitor
 
         var parts = range?.Split('-');
         if (parts?.Length != 2) return false;
-        if (!TimeSpan.TryParse(parts[0], out start)) return false;
-        if (!TimeSpan.TryParse(parts[1], out end)) return false;
+        if (!TryParseClock(parts[0], out start)) return false;
+        if (!TryParseClock(parts[1], out end)) return false;
 
         return true;
     }
+
+    /// <summary>按 HH:mm 或 H:mm 解析时钟时间，拒绝 "22" 这类被 TimeSpan 解释为天数的宽松写法</summary>
+    private static Boolean TryParseClock(String text, out TimeSpan value) =>
+        TimeSpan.TryParseExact(text?.Trim(), ["hh\\:mm", "h\\:mm"], CultureInfo.InvariantCulture, out value);
 }

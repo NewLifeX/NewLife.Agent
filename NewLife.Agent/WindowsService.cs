@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
+using NewLife.Agent.Command;
 using NewLife.Agent.Models;
 using NewLife.Agent.Windows;
 using NewLife.Log;
@@ -325,7 +326,7 @@ public class WindowsService : DefaultHost
     {
         XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", GetType().Name, service.ServiceName, service.DisplayName, service.FileName, service.Arguments, service.Description);
 
-        if (!IsAdministrator()) return RunAsAdministrator("-i");
+        if (!IsAdministrator()) return RunAsAdministrator(BuildElevationCommand(CommandConst.Install));
 
         using var manager = new SafeServiceHandle(OpenSCManager(null, null, ServiceControllerOptions.SC_MANAGER_CREATE_SERVICE));
         if (manager.IsInvalid)
@@ -427,7 +428,7 @@ public class WindowsService : DefaultHost
     {
         XTrace.WriteLine("{0}.Remove {1}", GetType().Name, serviceName);
 
-        if (!IsAdministrator()) return RunAsAdministrator("-uninstall");
+        if (!IsAdministrator()) return RunAsAdministrator(BuildElevationCommand(CommandConst.Uninstall));
 
         using var manager = new SafeServiceHandle(OpenSCManager(null, null, ServiceControllerOptions.SC_MANAGER_ALL));
         if (manager.IsInvalid)
@@ -452,7 +453,7 @@ public class WindowsService : DefaultHost
     {
         XTrace.WriteLine("{0}.Start {1}", GetType().Name, serviceName);
 
-        if (!IsAdministrator()) return RunAsAdministrator("-start");
+        if (!IsAdministrator()) return RunAsAdministrator(BuildElevationCommand(CommandConst.Start));
 
         using var manager = new SafeServiceHandle(OpenSCManager(null, null, ServiceControllerOptions.SC_MANAGER_CONNECT));
         if (manager.IsInvalid)
@@ -474,7 +475,7 @@ public class WindowsService : DefaultHost
     {
         XTrace.WriteLine("{0}.Stop {1}", GetType().Name, serviceName);
 
-        if (!IsAdministrator()) return RunAsAdministrator("-stop");
+        if (!IsAdministrator()) return RunAsAdministrator(BuildElevationCommand(CommandConst.Stop));
 
         using var manager = new SafeServiceHandle(OpenSCManager(null, null, ServiceControllerOptions.SC_MANAGER_ALL));
         if (manager.IsInvalid)
@@ -496,7 +497,7 @@ public class WindowsService : DefaultHost
     {
         XTrace.WriteLine("{0}.Restart {1}", GetType().Name, serviceName);
 
-        if (!IsAdministrator()) return RunAsAdministrator("-restart");
+        if (!IsAdministrator()) return RunAsAdministrator(BuildElevationCommand(CommandConst.Restart));
 
         // 服务名来自配置并会被拼进 cmd 命令行，先拒绝 cmd 元字符，避免命令注入或命令被截断
         if (serviceName.IsNullOrEmpty() || serviceName.IndexOfAny(['&', '|', '<', '>', '^', '"', '%', '\r', '\n']) >= 0)
@@ -617,8 +618,7 @@ public class WindowsService : DefaultHost
                 WorkingDirectory = Path.GetDirectoryName(exe),
                 Verb = "runas",
                 UseShellExecute = true,
-            } :
-            new ProcessStartInfo
+            } : new ProcessStartInfo
             {
                 FileName = exe,
                 Arguments = argument,
@@ -626,9 +626,47 @@ public class WindowsService : DefaultHost
                 UseShellExecute = true,
             };
 
-        var p = Process.Start(startInfo);
-        return !p.WaitForExit(5_000) || p.ExitCode == 0;
+        try
+        {
+            using var p = Process.Start(startInfo);
+            if (p == null) return false;
+
+            // 用户取消 UAC 时 Process.Start 直接抛异常；长时间未退出说明提权进程已成功拉起
+            if (!p.WaitForExit(30_000)) return true;
+
+            return p.ExitCode == 0;
+        }
+        catch (Exception ex)
+        {
+            XTrace.WriteException(ex);
+            return false;
+        }
     }
+
+    /// <summary>构造提权命令，保留原始命令行里的附加参数（如 --urls），避免提权后丢失</summary>
+    /// <param name="command">要执行的命令</param>
+    /// <param name="args">原始命令行参数（含可执行文件路径，默认取当前进程命令行）</param>
+    /// <returns>提权后传给新进程的命令行</returns>
+    internal static String BuildElevationCommand(String command, String[] args = null)
+    {
+        args ??= Environment.GetCommandLineArgs();
+
+        var list = new List<String>();
+        for (var i = 1; i < args.Length; i++)
+        {
+            var item = args[i];
+            if (item.IsNullOrEmpty() || IsCommand(item)) continue;
+
+            list.Add(ServiceHelper.QuoteArgument(item));
+        }
+
+        return list.Count == 0 ? command : command + " " + String.Join(" ", list);
+    }
+
+    private static Boolean IsCommand(String value) => value.EqualIgnoreCase(
+        CommandConst.ShowStatus, CommandConst.InstallAndStart, CommandConst.Install, CommandConst.Reinstall,
+        CommandConst.Remove, CommandConst.Uninstall, CommandConst.RunService, CommandConst.RunSimulation,
+        CommandConst.Start, CommandConst.Stop, CommandConst.Restart, CommandConst.WatchDog);
 
     static String _executablePath;
     static String ExecutablePath

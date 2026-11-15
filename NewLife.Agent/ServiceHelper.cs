@@ -153,6 +153,39 @@ public static class ServiceHelper
         return [commandLine];
     }
 
+    /// <summary>解析命令行参数字符串为令牌列表（尊重双引号）</summary>
+    /// <param name="arguments">参数字符串</param>
+    /// <returns>令牌列表，无法解析时返回空数组</returns>
+    public static String[] ParseArguments(String arguments)
+    {
+        var list = ParseTokens(arguments);
+
+        return [.. list];
+    }
+
+    /// <summary>为进程参数加引号（含空白或引号时用双引号包裹）</summary>
+    /// <param name="value">原始参数；已带外层双引号时保持不变，避免二次包裹</param>
+    /// <returns>可直接拼进 ProcessStartInfo.Arguments 的参数</returns>
+    public static String QuoteArgument(String value)
+    {
+        if (value.IsNullOrEmpty()) return value;
+        if (value.Length >= 2 && value[0] == '"' && value[value.Length - 1] == '"') return value;
+
+        return value.IndexOfAny([' ', '\t', '\r', '\n', '"']) >= 0 ? $"\"{value.Replace("\"", "\\\"")}\"" : value;
+    }
+
+    /// <summary>为 shell 脚本加单引号，避免空格与元字符改变命令含义</summary>
+    /// <param name="value">原始值；已带外层双引号时先去掉，再统一转成单引号</param>
+    /// <returns>可直接嵌入 sh 脚本的字面量；空值原样返回</returns>
+    public static String QuoteShell(String value)
+    {
+        if (value.IsNullOrEmpty()) return value;
+
+        if (value.Length >= 2 && value[0] == '"' && value[value.Length - 1] == '"') value = value.Substring(1, value.Length - 2);
+
+        return "'" + value.Replace("'", "'\\''") + "'";
+    }
+
     /// <summary>解析命令行参数字符串为令牌列表</summary>
     /// <param name="arguments">参数字符串</param>
     /// <returns>令牌列表</returns>

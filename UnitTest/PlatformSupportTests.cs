@@ -184,4 +184,28 @@ public class PlatformSupportTests
         Assert.False(host.IsInstalled("NewLifeAgentUnitTestNotExist"));
     }
     #endregion
+
+    #region 提权命令
+    [Fact]
+    [DisplayName("BuildElevationCommand_保留附加参数并剔除原命令")]
+    public void BuildElevationCommand_KeepsExtraArguments()
+    {
+        var args = new[] { "C:\\app\\app.exe", "-i", "--urls", "http://0.0.0.0:80", "-user", "svc" };
+
+        var command = WindowsService.BuildElevationCommand("-install", args);
+
+        Assert.Equal("-install --urls http://0.0.0.0:80 -user svc", command);
+    }
+
+    [Fact]
+    [DisplayName("BuildElevationCommand_含空格参数加引号")]
+    public void BuildElevationCommand_QuotesSpacedArguments()
+    {
+        var args = new[] { "app.exe", "-i", "-title", "my service" };
+
+        var command = WindowsService.BuildElevationCommand("-i", args);
+
+        Assert.Equal("-i -title \"my service\"", command);
+    }
+    #endregion
 }

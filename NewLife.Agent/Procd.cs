@@ -62,12 +62,14 @@ public class Procd : DefaultHost
         // 以服务运行
         InService = true;
 
+        var pid = $"{service.ServiceName}.pid".GetFullPath();
         try
         {
             // 用pid文件记录进程id，方便后面杀进程
-            var p = Process.GetCurrentProcess();
-            var pid = $"{service.ServiceName}.pid".GetFullPath();
-            File.WriteAllText(pid, p.Id.ToString());
+            using (var p = Process.GetCurrentProcess())
+            {
+                File.WriteAllText(pid, p.Id.ToString());
+            }
 
             // 启动初始化
             service.StartLoop();
@@ -77,12 +79,15 @@ public class Procd : DefaultHost
 
             // 停止
             service.StopLoop();
-
-            File.Delete(pid);
         }
         catch (Exception ex)
         {
             XTrace.WriteException(ex);
+        }
+        finally
+        {
+            // 异常退出时同样要清理 pid 文件，避免残留 PID 被误判为运行中的服务
+            try { File.Delete(pid); } catch { }
         }
     }
 
@@ -102,17 +107,9 @@ public class Procd : DefaultHost
     /// <returns>服务是否已启动</returns>
     public override Boolean IsRunning(String serviceName)
     {
-        var file = $"{serviceName}.pid".GetFullPath();
-        if (!File.Exists(file)) return false;
+        using var p = GetProcess(serviceName, out _);
 
-        var pid = File.ReadAllText(file).Trim().ToInt();
-        if (pid <= 0) return false;
-
-        var p = GetProcessById(pid);
-        if (p == null || GetHasExited(p)) return false;
-
-        // pid 文件残留时 PID 可能已被无关进程复用，不能据此判定服务在运行
-        return !ServiceHelper.IsStalePid(p, File.GetLastWriteTime(file));
+        return p != null && !GetHasExited(p);
     }
 
     /// <summary>安装服务</summary>
@@ -150,19 +147,19 @@ public class Procd : DefaultHost
 
         sb.AppendLine();
         sb.AppendLine("start_service() {");
-        sb.AppendLine($"  nohup {fileName} {arguments} >/dev/null 2>&1 &");
+        sb.AppendLine($"  nohup {ServiceHelper.QuoteShell(fileName)} {arguments} >/dev/null 2>&1 &");
         sb.AppendLine("  return 0");
         sb.AppendLine("}");
 
         sb.AppendLine();
         sb.AppendLine("stop_service() {");
-        sb.AppendLine($"  {fileName} {TrimArg(arguments)} -stop");
+        sb.AppendLine($"  {ServiceHelper.QuoteShell(fileName)} {TrimArg(arguments)} -stop");
         sb.AppendLine("  return 0");
         sb.AppendLine("}");
 
         sb.AppendLine();
         sb.AppendLine("reload_service() {");
-        sb.AppendLine($"  {fileName} {TrimArg(arguments)} -restart");
+        sb.AppendLine($"  {ServiceHelper.QuoteShell(fileName)} {TrimArg(arguments)} -restart");
         sb.AppendLine("  return 0");
         sb.AppendLine("}");
 
@@ -199,7 +196,7 @@ public class Procd : DefaultHost
         File.WriteAllBytes(file, script.GetBytes());
 
         // 给予可执行权限
-        Process.Start("chmod", $"+x {file}");
+        Process.Start("chmod", $"+x {ServiceHelper.QuoteArgument(file)}");
 
         // 创建链接文件，OpenWrt
         var dir = "/etc/rc.d/";
@@ -215,7 +212,7 @@ public class Procd : DefaultHost
     {
         if (File.Exists(target)) File.Delete(target);
 
-        Process.Start("ln", $"-s {source} {target}");
+        Process.Start("ln", $"-s {ServiceHelper.QuoteArgument(source)} {ServiceHelper.QuoteArgument(target)}");
     }
 
     /// <summary>卸载服务</summary>
@@ -251,12 +248,8 @@ public class Procd : DefaultHost
         XTrace.WriteLine("{0}.Start {1}", Name, serviceName);
 
         // 判断服务是否已启动
-        var id = 0;
-        var pid = $"{serviceName}.pid".GetFullPath();
-        if (File.Exists(pid)) id = File.ReadAllText(pid).Trim().ToInt();
-        if (id > 0)
+        using (var p = GetProcess(serviceName, out _))
         {
-            var p = GetProcessById(id);
             if (p != null && !GetHasExited(p)) return false;
         }
 
@@ -277,32 +270,50 @@ public class Procd : DefaultHost
     {
         XTrace.WriteLine("{0}.Stop {1}", Name, serviceName);
 
-        var id = 0;
-        var pid = $"{serviceName}.pid".GetFullPath();
-        if (File.Exists(pid)) id = File.ReadAllText(pid).Trim().ToInt();
-        if (id <= 0) return false;
-
         // 杀进程
-        var p = GetProcessById(id);
+        using var p = GetProcess(serviceName, out var pidFile);
         if (p == null || GetHasExited(p)) return false;
 
         try
         {
             // 发命令让服务自己退出
-            "kill".ShellExecute($"{id}");
+            "kill".ShellExecute($"{p.Id}");
 
             var n = 30;
             while (!p.HasExited && n-- > 0) Thread.Sleep(100);
 
             if (!p.HasExited) p.Kill();
 
-            File.Delete(pid);
+            File.Delete(pidFile);
 
             return true;
         }
         catch { }
 
         return false;
+    }
+
+    /// <summary>按 pid 文件查找服务进程，PID 被复用时视为陈旧并清理</summary>
+    private static Process GetProcess(String serviceName, out String pid)
+    {
+        var id = 0;
+        pid = $"{serviceName}.pid".GetFullPath();
+        if (File.Exists(pid)) id = File.ReadAllText(pid).Trim().ToInt();
+        if (id <= 0) return null;
+
+        var p = GetProcessById(id);
+
+        // pid 文件残留时 PID 可能已被无关进程复用，不能据此判定服务在运行
+        if (p != null && ServiceHelper.IsStalePid(p, File.GetLastWriteTime(pid)))
+        {
+            XTrace.WriteLine("Stale pid file {0} for PID {1}; ignoring.", pid, id);
+            try { p.Dispose(); } catch { }
+            try { File.Delete(pid); } catch { }
+
+            return null;
+        }
+
+        return p;
     }
 
     /// <summary>重启服务</summary>

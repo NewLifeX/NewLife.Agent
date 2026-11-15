@@ -1,4 +1,5 @@
-﻿using NewLife.Agent.Command;
+﻿using System.Reflection;
+using NewLife.Agent.Command;
 using NewLife.Agent.Models;
 
 namespace NewLife.Agent.CommandHandler;
@@ -42,7 +43,16 @@ public class Install : BaseCommandHandler
             var dll = args2[0].GetFullPath();
             if (!dll.Contains(".dll"))//没有获得到主程的dll
             {
-                dll = Environment.CommandLine?.Split(' ')[0];//Assembly.GetExecutingAssembly().Location;
+                // GetCommandLineArgs()[0] 在部分宿主下是 dotnet 宿主，先回退入口程序集位置，
+                // 最后才解析原始命令行；不能按空格截断，否则路径含空格时取到半截路径
+                var location = GetEntryLocation();
+                if (!location.IsNullOrEmpty()) dll = location.GetFullPath();
+
+                if (!dll.Contains(".dll"))
+                {
+                    var parts = ServiceHelper.SplitCommandLine(Environment.CommandLine);
+                    if (parts.Length > 0) dll = parts[0].GetFullPath();
+                }
             }
 
             if (dll.Contains(' ')) dll = $"\"{dll}\"";
@@ -108,11 +118,18 @@ public class Install : BaseCommandHandler
     /// <summary>Exe程序名</summary>
     public virtual String GetExeName()
     {
-        var p = System.Diagnostics.Process.GetCurrentProcess();
+        using var p = System.Diagnostics.Process.GetCurrentProcess();
         var filename = p.MainModule.FileName;
         //filename = Path.GetFileName(filename);
         filename = filename.Replace(".vshost.", ".");
 
         return filename;
     }
+
+    /// <summary>获取入口程序集路径。单文件/AOT 下返回空串，由调用处回退命令行解析</summary>
+    /// <returns>入口程序集路径</returns>
+#if NET5_0_OR_GREATER
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("SingleFile", "IL3000", Justification = "单文件/AOT 下 Location 返回空串，调用处已回退到命令行解析")]
+#endif
+    private static String GetEntryLocation() => Assembly.GetEntryAssembly()?.Location;
 }

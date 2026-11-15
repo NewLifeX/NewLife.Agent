@@ -14,9 +14,7 @@ public abstract class BaseCommandHandler(ServiceBase service) : ICommandHandler
     /// </summary>
     protected ServiceBase Service { get; } = service;
 
-    /// <summary>
-    /// 命令（命令为唯一标识，子类如果使用相同命令，父类将会被覆盖）
-    /// </summary>
+    /// <summary>命令（唯一标识）。继承具体处理器并复用同一命令时覆盖父类；两个直接继承 BaseCommandHandler 的处理器使用同一命令视为冲突并抛异常</summary>
     public String Cmd { get; set; }
 
     /// <summary>

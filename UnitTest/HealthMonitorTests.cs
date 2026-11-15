@@ -232,9 +232,21 @@ public class HealthMonitorTests
     [InlineData("06:00")]
     [InlineData("abc")]
     [InlineData("a-b")]
+    [InlineData("22-06")]
+    [InlineData("6-10")]
+    [InlineData("24:00-06:00")]
     public void TryParseTimeRange_Invalid_Fails(String range)
     {
         Assert.False(HealthMonitor.TryParseTimeRange(range, out _, out _));
+    }
+
+    [Fact]
+    [DisplayName("IsInTimeRange_缺冒号的宽松写法_视为未配置不限制")]
+    public void IsInTimeRange_Malformed_Unrestricted()
+    {
+        // "6-10" 在旧实现里会被 TimeSpan 解释为 6 天~10 天，永远不命中；现在按非法范围处理，不限制重启
+        Assert.True(HealthMonitor.IsInTimeRange("6-10", TimeSpan.FromHours(7), out var inRange));
+        Assert.False(inRange);
     }
     #endregion
 }

@@ -46,12 +46,14 @@ public class RcInit : DefaultHost
         // 以服务运行
         InService = true;
 
+        var pid = $"{service.ServiceName}.pid".GetFullPath();
         try
         {
             // 用pid文件记录进程id，方便后面杀进程
-            var p = Process.GetCurrentProcess();
-            var pid = $"{service.ServiceName}.pid".GetFullPath();
-            File.WriteAllText(pid, p.Id.ToString());
+            using (var p = Process.GetCurrentProcess())
+            {
+                File.WriteAllText(pid, p.Id.ToString());
+            }
 
             // 启动初始化
             service.StartLoop();
@@ -61,12 +63,15 @@ public class RcInit : DefaultHost
 
             // 停止
             service.StopLoop();
-
-            File.Delete(pid);
         }
         catch (Exception ex)
         {
             XTrace.WriteException(ex);
+        }
+        finally
+        {
+            // 异常退出时同样要清理 pid 文件，避免残留 PID 被误判为运行中的服务
+            try { File.Delete(pid); } catch { }
         }
     }
 
@@ -86,7 +91,7 @@ public class RcInit : DefaultHost
     /// <returns>服务是否已启动</returns>
     public override Boolean IsRunning(String serviceName)
     {
-        var p = GetProcess(serviceName, out _);
+        using var p = GetProcess(serviceName, out _);
 
         return p != null && !GetHasExited(p);
     }
@@ -121,10 +126,10 @@ public class RcInit : DefaultHost
         sb.AppendLine();
         sb.AppendLine("case \"$1\" in");
         sb.AppendLine("  start)");
-        sb.AppendLine($"        nohup {fileName} {arguments} >/dev/null 2>&1 &");
+        sb.AppendLine($"        nohup {ServiceHelper.QuoteShell(fileName)} {arguments} >/dev/null 2>&1 &");
         sb.AppendLine("        ;;");
         sb.AppendLine("  stop)");
-        sb.AppendLine($"        {fileName} {TrimArg(arguments)} -stop");
+        sb.AppendLine($"        {ServiceHelper.QuoteShell(fileName)} {TrimArg(arguments)} -stop");
         sb.AppendLine("        ;;");
         sb.AppendLine("  restart)");
         sb.AppendLine($"        $0 stop");
@@ -176,9 +181,9 @@ public class RcInit : DefaultHost
             if (Directory.Exists(dir))
             {
                 if (i is 0 or 1 or 6)
-                    CreateLink(file, $" {dir}K50{serviceName}");
+                    CreateLink(file, $"{dir}K50{serviceName}");
                 else
-                    CreateLink(file, $" {dir}S50{serviceName}");
+                    CreateLink(file, $"{dir}S50{serviceName}");
 
                 flag = true;
             }
@@ -214,7 +219,8 @@ public class RcInit : DefaultHost
     {
         if (File.Exists(target)) File.Delete(target);
 
-        Process.Start("ln", $"-s {source} {target}");
+        // 路径可能包含空格，必须逐参数加引号，否则 ln 会把路径截断
+        Process.Start("ln", $"-s {ServiceHelper.QuoteArgument(source)} {ServiceHelper.QuoteArgument(target)}");
     }
 
     /// <summary>卸载服务</summary>
@@ -293,7 +299,7 @@ public class RcInit : DefaultHost
     {
         XTrace.WriteLine("{0}.Stop {1}", Name, serviceName);
 
-        var p = GetProcess(serviceName, out var pid);
+        using var p = GetProcess(serviceName, out var pid);
         if (p == null) return false;
 
         try

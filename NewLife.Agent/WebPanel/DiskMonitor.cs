@@ -28,6 +28,28 @@ internal static class DiskMonitor
     private const Int32 WmicInterval = 30_000;
     #endregion
 
+    /// <summary>判断设备是否为虚拟设备或分区</summary>
+    /// <param name="deviceName">/proc/diskstats 中的设备名</param>
+    /// <returns>虚拟设备或分区返回 true</returns>
+    internal static Boolean IsVirtualOrPartition(String deviceName)
+    {
+        if (deviceName.IsNullOrEmpty()) return true;
+
+        // 回环、内存盘、设备映射、光盘、软驱等虚拟/不可统计设备
+        if (deviceName.StartsWith("loop") || deviceName.StartsWith("ram") || deviceName.StartsWith("zram") ||
+            deviceName.StartsWith("dm-") || deviceName.StartsWith("sr") || deviceName.StartsWith("fd"))
+            return true;
+
+        // sd/vd/hd/xvd 系列：主设备名后追加数字即分区
+        if (Regex.IsMatch(deviceName, @"^(sd|vd|hd|xvd)[a-z]+\d+$")) return true;
+
+        // nvme/mmcblk/md/nbd 系列：以 p 分隔的分区，以及 eMMC 的 boot/rpmb 分区
+        if (Regex.IsMatch(deviceName, @"^(nvme\d+n\d+|mmcblk\d+|md\d+|nbd\d+)p\d+$")) return true;
+        if (Regex.IsMatch(deviceName, @"^mmcblk\d+(boot|rpmb)\d+$")) return true;
+
+        return false;
+    }
+
     /// <summary>获取磁盘 IOPS</summary>
     /// <returns>每秒读写次数总和</returns>
     public static Int32 GetIOPS()
@@ -192,13 +214,8 @@ internal static class DiskMonitor
             // parts[0]=major parts[1]=minor parts[2]=device name
             var deviceName = parts[2];
 
-            // 只统计主磁盘（如 sda、nvme0n1），跳过分区和虚拟设备
-            if (deviceName.StartsWith("loop") || deviceName.StartsWith("ram") || deviceName.StartsWith("dm-"))
-                continue;
-            if (Regex.IsMatch(deviceName, @"^[a-z]+\d+$") && !deviceName.StartsWith("nvme"))
-                continue;
-            if (Regex.IsMatch(deviceName, @"^nvme\d+n\d+p\d+$"))
-                continue;
+            // 只统计主磁盘（如 sda、nvme0n1、mmcblk0、md0），跳过分区和虚拟设备
+            if (IsVirtualOrPartition(deviceName)) continue;
 
             // 第 4 列：读完成次数，第 8 列：写完成次数
             totalReads += parts[3].ToLong();

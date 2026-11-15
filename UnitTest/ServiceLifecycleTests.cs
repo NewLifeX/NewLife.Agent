@@ -71,6 +71,18 @@ public class ServiceLifecycleTests
         return predicate();
     }
 
+    private static String ReadMarker(String path)
+    {
+        try
+        {
+            return File.Exists(path) ? File.ReadAllText(path).Trim() : "";
+        }
+        catch (IOException)
+        {
+            return "";
+        }
+    }
+
     [Fact]
     [DisplayName("StartLoop_后台执行StartWork_仅执行一次")]
     public void StartLoop_RunsStartWorkOnce()
@@ -132,7 +144,8 @@ public class ServiceLifecycleTests
             svc.Host = new DefaultHost { Service = svc };
 
             var task = Task.Run(() => svc.Host.Run(svc));
-            var executed = WaitUntil(() => File.Exists(marker), 10_000);
+            // 只等文件出现会在 cmd 重定向创建空文件后立刻被 StopLoop Kill，产生空内容竞态；必须等内容写入
+            var executed = WaitUntil(() => File.Exists(marker) && ReadMarker(marker) == "ok", 10_000);
 
             svc.StopLoopNow();
             try { await task.WaitAsync(TimeSpan.FromSeconds(5)); } catch (TimeoutException) { }

@@ -74,7 +74,7 @@ public class PlatformScriptTests
         var result = Procd.BuildScript("/app/dotnet", "agent.dll -s", "测试服务", false);
 
         Assert.Contains("USE_PROCD=1", result);
-        Assert.Contains("nohup /app/dotnet agent.dll -s >/dev/null 2>&1 &", result);
+        Assert.Contains("nohup '/app/dotnet' agent.dll -s >/dev/null 2>&1 &", result);
         Assert.Contains("start_service()", result);
         Assert.Contains("stop_service()", result);
         Assert.Contains("reload_service()", result);
@@ -88,10 +88,10 @@ public class PlatformScriptTests
         var result = Procd.BuildScript("/app/app.exe", "app.dll -s", "测试", false);
 
         // start 保留 -s
-        Assert.Contains("nohup /app/app.exe app.dll -s >/dev/null 2>&1 &", result);
+        Assert.Contains("nohup '/app/app.exe' app.dll -s >/dev/null 2>&1 &", result);
         // stop/reload 移除 -s 并加上 -stop/-restart
-        Assert.Contains("/app/app.exe app.dll -stop", result);
-        Assert.Contains("/app/app.exe app.dll -restart", result);
+        Assert.Contains("'/app/app.exe' app.dll -stop", result);
+        Assert.Contains("'/app/app.exe' app.dll -restart", result);
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public class PlatformScriptTests
     {
         var result = Procd.BuildScript("/app/myservice", "", "无参数服务", false);
 
-        Assert.Contains("nohup /app/myservice  >/dev/null 2>&1 &", result);
+        Assert.Contains("nohup '/app/myservice'  >/dev/null 2>&1 &", result);
         Assert.Contains("START=50", result);
         Assert.Contains("STOP=50", result);
     }
@@ -141,9 +141,9 @@ public class PlatformScriptTests
         var result = RcInit.BuildScript("/app/app.exe", "app.dll -s", "测试");
 
         // start 保留 -s
-        Assert.Contains("nohup /app/app.exe app.dll -s >/dev/null 2>&1 &", result);
+        Assert.Contains("nohup '/app/app.exe' app.dll -s >/dev/null 2>&1 &", result);
         // stop 移除 -s 并加上 -stop
-        Assert.Contains("/app/app.exe app.dll -stop", result);
+        Assert.Contains("'/app/app.exe' app.dll -stop", result);
         // restart 使用 $0 stop/start
         Assert.Contains("$0 stop", result);
         Assert.Contains("$0 start", result);

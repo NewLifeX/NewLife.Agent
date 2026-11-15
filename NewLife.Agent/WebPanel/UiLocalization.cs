@@ -48,8 +48,13 @@ public static class UiLocalization
         if (map.Count == 0) return html;
 
         // 单次扫描、最长匹配优先，避免译文再次参与替换
-        var regex = _regexes.GetOrAdd(key, _ => BuildRegex(map));
-        if (regex == null) return html;
+        if (!_regexes.TryGetValue(key, out var regex))
+        {
+            regex = BuildRegex(map);
+            if (regex == null) return html;
+
+            _regexes.TryAdd(key, regex);
+        }
 
         page = regex.Replace(html, m => map[m.Value]);
 

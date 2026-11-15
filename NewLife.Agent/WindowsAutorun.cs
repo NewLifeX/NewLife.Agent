@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.Versioning;
 using Microsoft.Win32;
+using NewLife.Agent.Command;
 using NewLife.Agent.Models;
 using NewLife.Agent.Windows;
 using NewLife.Log;
@@ -22,12 +23,14 @@ public class WindowsAutorun : DefaultHost
         // 以服务运行
         InService = true;
 
+        var pid = $"{service.ServiceName}.pid".GetFullPath();
         try
         {
             // 用pid文件记录进程id，方便后面杀进程
-            var p = Process.GetCurrentProcess();
-            var pid = $"{service.ServiceName}.pid".GetFullPath();
-            File.WriteAllText(pid, p.Id.ToString());
+            using (var p = Process.GetCurrentProcess())
+            {
+                File.WriteAllText(pid, p.Id.ToString());
+            }
 
             // 启动初始化
             service.StartLoop();
@@ -37,12 +40,15 @@ public class WindowsAutorun : DefaultHost
 
             // 停止
             service.StopLoop();
-
-            File.Delete(pid);
         }
         catch (Exception ex)
         {
             XTrace.WriteException(ex);
+        }
+        finally
+        {
+            // 异常退出时同样要清理 pid 文件，避免残留 PID 被误判为运行中的服务
+            try { File.Delete(pid); } catch { }
         }
     }
 
@@ -64,9 +70,9 @@ public class WindowsAutorun : DefaultHost
 #if NET5_0_OR_GREATER
     [SupportedOSPlatform("windows")]
 #endif
-    public override unsafe Boolean IsRunning(String serviceName)
+    public override Boolean IsRunning(String serviceName)
     {
-        var p = GetProcess(serviceName, out _);
+        using var p = GetProcess(serviceName, out _);
 
         return p != null && !GetHasExited(p);
     }
@@ -86,7 +92,7 @@ public class WindowsAutorun : DefaultHost
         var arguments = service.Arguments;
         XTrace.WriteLine("{0}.Install {1}, {2}, {3}, {4}", GetType().Name, serviceName, displayName, fileName, arguments, description);
 
-        if (!WindowsService.IsAdministrator()) return WindowsService.RunAsAdministrator("-i");
+        if (!WindowsService.IsAdministrator()) return WindowsService.RunAsAdministrator(WindowsService.BuildElevationCommand(CommandConst.Install));
 
         //// 当前用户的启动目录
         //var dir = Environment.GetFolderPath(Environment.SpecialFolder.Startup);
@@ -97,9 +103,14 @@ public class WindowsAutorun : DefaultHost
 #if NET40_OR_GREATER || NET5_0_OR_GREATER
         // 在注册表中写入启动配置
         using var key = Registry.LocalMachine.OpenSubKey("""SOFTWARE\Microsoft\Windows\CurrentVersion\Run""", true);
+        if (key == null)
+        {
+            XTrace.WriteLine("Failed to open the autorun registry key; installation aborted.");
+            return false;
+        }
 
-        // 添加应用程序到自启动项
-        key.SetValue(serviceName, $"{fileName} {arguments}");
+        // 路径可能包含空格，必须加引号，否则登录自启动会把路径截断
+        key.SetValue(serviceName, $"{ServiceHelper.QuoteArgument(fileName)} {arguments}".TrimEnd());
 #endif
 
         return true;
@@ -115,11 +126,13 @@ public class WindowsAutorun : DefaultHost
     {
         XTrace.WriteLine("{0}.Remove {1}", GetType().Name, serviceName);
 
-        if (!WindowsService.IsAdministrator()) return WindowsService.RunAsAdministrator("-uninstall");
+        if (!WindowsService.IsAdministrator()) return WindowsService.RunAsAdministrator(WindowsService.BuildElevationCommand(CommandConst.Uninstall));
 
 #if NET40_OR_GREATER || NET5_0_OR_GREATER
         // 在注册表中写入启动配置
         using var key = Registry.LocalMachine.OpenSubKey("""SOFTWARE\Microsoft\Windows\CurrentVersion\Run""", true);
+        if (key == null) return false;
+
         key.DeleteValue(serviceName, false);
 #endif
 
@@ -136,18 +149,17 @@ public class WindowsAutorun : DefaultHost
     {
 #if NET40_OR_GREATER || NET5_0_OR_GREATER
         using var key = Registry.LocalMachine.OpenSubKey("""SOFTWARE\Microsoft\Windows\CurrentVersion\Run""", false);
+        if (key == null) return null;
 
         var v = key.GetValue(serviceName)?.ToString();
         if (v.IsNullOrEmpty()) return null;
 
-        var fileName = v;
-        var args = "";
-        var idx = fileName.IndexOf(' ');
-        if (idx > 0)
-        {
-            args = fileName.Substring(idx + 1);
-            fileName = fileName.Substring(0, idx);
-        }
+        // 注册表值可能是 "带空格路径" + 参数，必须按引号规则拆分，不能简单按首个空格截断
+        var parts = ServiceHelper.SplitCommandLine(v);
+        if (parts.Length == 0) return null;
+
+        var fileName = parts[0];
+        var args = parts.Length > 1 ? parts[1] : "";
 
         return new ServiceConfig
         {
@@ -196,10 +208,12 @@ public class WindowsAutorun : DefaultHost
         XTrace.WriteLine("{0}.Start {1}", GetType().Name, serviceName);
 
         // 判断服务是否已启动
-        var p = GetProcess(serviceName, out _);
-        if (p != null && !GetHasExited(p)) return false;
+        using (var p = GetProcess(serviceName, out _))
+        {
+            if (p != null && !GetHasExited(p)) return false;
+        }
 
-        if (!WindowsService.IsAdministrator()) return WindowsService.RunAsAdministrator("-start");
+        if (!WindowsService.IsAdministrator()) return WindowsService.RunAsAdministrator(WindowsService.BuildElevationCommand(CommandConst.Start));
 
         var config = QueryConfig(serviceName);
         if (config == null || config.FilePath.IsNullOrEmpty() || !File.Exists(config.FilePath))
@@ -224,7 +238,7 @@ public class WindowsAutorun : DefaultHost
     {
         XTrace.WriteLine("{0}.Stop {1}", GetType().Name, serviceName);
 
-        var p = GetProcess(serviceName, out var pid);
+        using var p = GetProcess(serviceName, out var pid);
         if (p == null) return false;
 
         try

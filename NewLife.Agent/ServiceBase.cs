@@ -128,6 +128,7 @@ public abstract class ServiceBase : DisposeBase
             catch (Exception ex)
             {
                 XTrace.WriteException(ex);
+                Environment.ExitCode = 1;
             }
         }
         else
@@ -202,7 +203,15 @@ public abstract class ServiceBase : DisposeBase
         DisplayName = set.DisplayName;
         Description = set.Description;
 
-        set.Save();
+        try
+        {
+            set.Save();
+        }
+        catch (Exception ex)
+        {
+            // 只读目录或容器镜像中配置不可写时仍应允许服务启动，使用内存配置即可
+            WriteLog("Failed to save the configuration: {0}", ex.Message);
+        }
     }
 
     /// <summary>显示状态</summary>
@@ -319,8 +328,12 @@ public abstract class ServiceBase : DisposeBase
     protected virtual void ProcessCommand(String cmd, String[] args)
     {
         WriteLog("ProcessCommand cmd={0} args={1}", cmd, args.Join(" "));
-        cmd = cmd.ToLower();
-        Command.Handle(cmd, args);
+        cmd = cmd.ToLowerInvariant();
+        if (!Command.Handle(cmd, args))
+        {
+            WriteLog("Unknown command: {0}", cmd);
+            Environment.ExitCode = 1;
+        }
         WriteLog("ProcessFinished cmd={0}", cmd);
     }
     #endregion
@@ -522,7 +535,7 @@ public abstract class ServiceBase : DisposeBase
 
         _lastRestart = now;
 
-        WriteLog("{0}; restarting.", message);
+        WriteLog("{0}", message);
 
         return Host.Restart(ServiceName);
     }
@@ -627,10 +640,11 @@ public abstract class ServiceBase : DisposeBase
             FreeMemory();
         }
 
-        var memory = Process.GetCurrentProcess().WorkingSet64 / 1024 / 1024;
+        using var p = Process.GetCurrentProcess();
+        var memory = p.WorkingSet64 / 1024 / 1024;
         if (!HealthMonitor.IsMemoryOver(set, memory)) return false;
 
-        return RequestRestart($"Process memory usage {memory:n0} MB exceeds the threshold {set.MaxMemory:n0} MB");
+        return RequestRestart(L.T("Process memory usage {0:n0} MB exceeds the threshold {1:n0} MB; restarting.", memory, set.MaxMemory));
     }
 
     /// <summary>释放内存。GC回收后再释放虚拟内存</summary>
@@ -661,10 +675,11 @@ public abstract class ServiceBase : DisposeBase
     protected virtual Boolean CheckThread()
     {
         var set = Setting.Current;
-        var count = Process.GetCurrentProcess().Threads.Count;
+        using var p = Process.GetCurrentProcess();
+        var count = p.Threads.Count;
         if (!HealthMonitor.IsThreadOver(set, count)) return false;
 
-        return RequestRestart($"Process thread count {count:n0} exceeds the threshold {set.MaxThread:n0}");
+        return RequestRestart(L.T("Process thread count {0:n0} exceeds the threshold {1:n0}; restarting.", count, set.MaxThread));
     }
 
     /// <summary>检查服务进程的句柄数是否超标。超过 MaxHandle 时触发重启（Windows）</summary>
@@ -672,10 +687,11 @@ public abstract class ServiceBase : DisposeBase
     protected virtual Boolean CheckHandle()
     {
         var set = Setting.Current;
-        var count = Process.GetCurrentProcess().HandleCount;
+        using var p = Process.GetCurrentProcess();
+        var count = p.HandleCount;
         if (!HealthMonitor.IsHandleOver(set, count)) return false;
 
-        return RequestRestart($"Process handle count {count:n0} exceeds the threshold {set.MaxHandle:n0}");
+        return RequestRestart(L.T("Process handle count {0:n0} exceeds the threshold {1:n0}; restarting.", count, set.MaxHandle));
     }
 
     /// <summary>检查自动重启。达到 AutoRestart 分钟数且在 RestartTimeRange 内时触发重启</summary>
@@ -686,11 +702,9 @@ public abstract class ServiceBase : DisposeBase
         var elapsed = Uptime;
         if (!HealthMonitor.IsAutoRestartDue(set, elapsed, DateTime.Now, out var inTimeRange)) return false;
 
-        String message;
-        if (inTimeRange)
-            message = $"Service has run for {elapsed.TotalMinutes:n0} minutes, reaching the preset restart interval ({set.AutoRestart:n0} minutes) within the configured time range ({set.RestartTimeRange})";
-        else
-            message = $"Service has run for {elapsed.TotalMinutes:n0} minutes, reaching the preset restart interval ({set.AutoRestart:n0} minutes)";
+        var message = inTimeRange
+            ? L.T("Service has run for {0:n0} minutes, reaching the preset restart interval ({1:n0} minutes) within the configured time range ({2}); restarting!", elapsed.TotalMinutes, set.AutoRestart, set.RestartTimeRange)
+            : L.T("Service has run for {0:n0} minutes, reaching the preset restart interval ({1:n0} minutes); restarting!", elapsed.TotalMinutes, set.AutoRestart);
 
         // 冷却期或重启失败时不重置计时，下一轮巡检继续尝试
         if (!RequestRestart(message)) return false;

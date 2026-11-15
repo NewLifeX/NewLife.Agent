@@ -51,6 +51,28 @@ public class DiskMonitorTests
     }
 
     [Fact]
+    [DisplayName("ParseDiskStats_eMMC与软RAID主设备保留_分区剔除")]
+    public void ParseDiskStats_MmcAndMd_MainDevicesKept()
+    {
+        var content = """
+            179       0 mmcblk0 100 0 1000 50 200 0 2000 70 0 30 120
+            179       1 mmcblk0p1 10 0 100 5 20 0 200 7 0 3 12
+            179       2 mmcblk0boot0 1 0 10 0 2 0 20 0 0 1 2
+            9       0 md0 300 0 3000 15 400 0 4000 25 0 40 160
+            9       1 md0p1 1 0 10 0 2 0 20 1 0 0 1
+            43       0 nbd0 11 0 110 1 12 0 120 2 0 3 4
+            43       1 nbd0p1 1 0 10 0 2 0 20 1 0 0 1
+            """;
+
+        var (reads, writes, ticks) = DiskMonitor.ParseDiskStats(content);
+
+        // mmcblk0、md0、nbd0 都必须作为主设备统计；分区与 boot 分区不能参与
+        Assert.Equal(100 + 300 + 11, reads);
+        Assert.Equal(200 + 400 + 12, writes);
+        Assert.Equal(40, ticks);
+    }
+
+    [Fact]
     [DisplayName("ParseDiskStats_空内容_返回全零")]
     public void ParseDiskStats_Empty_ReturnsZeros()
     {

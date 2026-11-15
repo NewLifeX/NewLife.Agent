@@ -169,4 +169,42 @@ public class ServiceHelperTests
         Assert.Equal("", parts[1]);
     }
     #endregion
+
+    #region ParseArguments
+    [Fact]
+    [DisplayName("ParseArguments_拆分多参数_尊重引号")]
+    public void ParseArguments_MultipleTokens()
+    {
+        var tokens = ServiceHelper.ParseArguments("-s --urls \"http://0.0.0.0:80\" --name \"a b\"");
+
+        Assert.Equal(["-s", "--urls", "http://0.0.0.0:80", "--name", "a b"], tokens);
+    }
+
+    [Fact]
+    [DisplayName("ParseArguments_空或null_返回空数组")]
+    public void ParseArguments_Empty_ReturnsEmpty()
+    {
+        Assert.Empty(ServiceHelper.ParseArguments(""));
+        Assert.Empty(ServiceHelper.ParseArguments(null!));
+    }
+    #endregion
+
+    #region 引号
+    [Theory]
+    [DisplayName("QuoteArgument_含空白才加双引号")]
+    [InlineData("app.exe", "app.exe")]
+    [InlineData("--urls=/x", "--urls=/x")]
+    [InlineData("C:\\Program Files\\app.exe", "\"C:\\Program Files\\app.exe\"")]
+    [InlineData("\"C:\\Program Files\\app.exe\"", "\"C:\\Program Files\\app.exe\"")]
+    public void QuoteArgument_QuotesWhenNeeded(String value, String expected)
+        => Assert.Equal(expected, ServiceHelper.QuoteArgument(value));
+
+    [Theory]
+    [DisplayName("QuoteShell_单引号包裹并转义单引号")]
+    [InlineData("/opt/my app/run", "'/opt/my app/run'")]
+    [InlineData("/opt/it's/run", "'/opt/it'\\''s/run'")]
+    [InlineData("\"/opt/my app/run\"", "'/opt/my app/run'")]
+    public void QuoteShell_QuotesValue(String value, String expected)
+        => Assert.Equal(expected, ServiceHelper.QuoteShell(value));
+    #endregion
 }
