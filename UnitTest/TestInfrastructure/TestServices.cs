@@ -28,11 +28,7 @@ public class ServiceBaseTester : ServiceBase
 
     /// <summary>回拨服务已运行时长，用于构造自动重启到期场景</summary>
     /// <param name="ago">向前追加的时长</param>
-    public void BackdateStart(TimeSpan ago)
-    {
-        var field = typeof(ServiceBase).GetField("_uptimeOffset", BindingFlags.Instance | BindingFlags.NonPublic);
-        field.SetValue(this, ago);
-    }
+    public void BackdateStart(TimeSpan ago) => UptimeOffset = ago;
 
     /// <summary>读取内存整理的下次触发时间（私有字段 _nextCollect）</summary>
     /// <returns>下次触发时间</returns>

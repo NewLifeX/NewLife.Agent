@@ -215,4 +215,30 @@ public class ServiceLifecycleTests
         Assert.False(svc.RestartNow("立即重试仍失败"));
         Assert.Equal(2, host.RestartCount);
     }
+
+    [Fact]
+    [DisplayName("CheckAutoRestart_定时重启后_冷却基准随之归零不屏蔽其它重启")]
+    public void CheckAutoRestart_ResetsCooldown()
+    {
+        using var scope = new SettingScope();
+
+        var host = new CountingHost();
+        var svc = new StartWorkTester { ServiceName = "UnitTestAutoRestartCooldown", Host = host };
+
+        var set = Setting.Current;
+        set.AutoRestart = 1;
+        set.RestartTimeRange = null;
+        set.MaxMemory = 0;
+        set.FreeMemoryInterval = 0;
+
+        // 回拨运行时长到定时重启阈值
+        svc.BackdateStart(TimeSpan.FromMinutes(2));
+        Assert.True(svc.CheckAutoRestart(), "达到自动重启间隔却未触发");
+        Assert.Equal(1, host.RestartCount);
+
+        // 重启后运行计时归零，冷却基准必须同时归零；否则内存超限触发的重启会被长时间屏蔽
+        set.MaxMemory = 1;
+        Assert.True(svc.CheckMemory(), "定时重启后内存超限未触发重启，冷却基准未归零");
+        Assert.Equal(2, host.RestartCount);
+    }
 }

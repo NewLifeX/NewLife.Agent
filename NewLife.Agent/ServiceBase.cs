@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Runtime;
 using System.Runtime.CompilerServices;
@@ -352,10 +352,10 @@ public abstract class ServiceBase : DisposeBase
     private readonly Stopwatch _uptime = Stopwatch.StartNew();
 
     /// <summary>运行时长偏移。仅供测试回拨启动时间构造到期场景，生产环境始终为零</summary>
-    private TimeSpan _uptimeOffset;
+    internal TimeSpan UptimeOffset { get; set; }
 
     /// <summary>已运行时长</summary>
-    private TimeSpan Uptime => _uptime.Elapsed + _uptimeOffset;
+    private TimeSpan Uptime => _uptime.Elapsed + UptimeOffset;
 
     /// <summary>重启冷却毫秒数。阈值持续超标时避免每轮巡检都触发一次重启</summary>
     private const Int32 RestartCooldown = 60_000;
@@ -713,7 +713,11 @@ public abstract class ServiceBase : DisposeBase
 
         // 重置开始时间，防止检测时间过快，重启时间较长时，导致多次重复重启
         _uptime.Restart();
-        _uptimeOffset = TimeSpan.Zero;
+        UptimeOffset = TimeSpan.Zero;
+
+        // 冷却基准与运行计时同源，必须一起归零。否则运行计时归零后，下一轮巡检用旧基准算出差值为负，
+        // 冷却判据恒成立，内存/句柄/线程超限触发的重启会被屏蔽到运行时长重新超过旧值为止（可能长达数小时）
+        _lastRestart = -1;
 
         if (Host is DefaultHost host && !host.InService) StopLoop();
 
