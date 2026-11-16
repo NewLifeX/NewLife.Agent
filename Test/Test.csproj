@@ -18,7 +18,7 @@
   <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
     <PublishAot>true</PublishAot>
   </PropertyGroup>
-  <!-- 静态 musl 无法加载系统 ICU，按 RID 在构建期固定 InvariantGlobalization，CI 与本地发布保持一致 -->
+  <!-- musl 进程只能加载 musl 版 ICU，按 RID 在构建期固定 InvariantGlobalization，CI 与本地发布保持一致 -->
   <PropertyGroup Condition="$(RuntimeIdentifier.StartsWith('linux-musl'))">
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>

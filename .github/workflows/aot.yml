@@ -43,8 +43,9 @@ jobs:
           - { rid: linux-arm64, os: ubuntu-24.04-arm, smoke: true }
           # 交叉产物为 ARM 架构，ubuntu x64 无法直接运行，仅做发布验证
           - { rid: linux-arm,   os: ubuntu-24.04, cross: armhf, smoke: false, args: "-p:LinkerFlavor=lld" }
-          # Linux musl：交叉构建；x64 产物静态链接可在本机运行，其余仅做发布验证。
-          # 静态 musl 无法加载系统 ICU，InvariantGlobalization 已按 RID 在 Test.csproj 中固定
+          # Linux musl：交叉构建；x64 产物可在本机运行，其余仅做发布验证。
+          # musl 进程只能加载 musl 版运行库（宿主 ICU/libssl 都是 glibc 版），
+          # InvariantGlobalization 已按 RID 在 Test.csproj 中固定，冒烟见下方 alpine 容器步骤
           - { rid: linux-musl-x64,   os: ubuntu-24.04, cross: musl-x64,   smoke: true,  args: "-p:CppLinker=/usr/local/bin/clang-musl" }
           - { rid: linux-musl-arm64, os: ubuntu-24.04, cross: musl-arm64, smoke: false, args: "-p:CppLinker=/usr/local/bin/clang-musl -p:LinkerFlavor=lld" }
           - { rid: linux-musl-arm,   os: ubuntu-24.04, cross: musl-arm,   smoke: false, args: "-p:CppLinker=/usr/local/bin/clang-musl -p:LinkerFlavor=lld" }
@@ -148,26 +149,43 @@ jobs:
       run: |
         exe="Bin/Test/net10.0/${{ matrix.rid }}/publish/Test"
         if [ ! -f "$exe" ]; then exe="$exe.exe"; fi
-        out=$("$exe" -status 2>&1) && rc=0 || rc=$?
+
+        # musl 进程只能加载 musl 版运行库，而宿主 ubuntu 的 libssl 是 glibc 版：
+        # 面板启动即验证口令，OpenSSL 垫片加载失败会以 No usable version of libssl was found 直接 SIGABRT，
+        # 因此 musl 冒烟改在 alpine 容器内执行，与真实部署环境一致
+        probe() { "$exe" "$@"; }
+        if [ "${{ matrix.rid }}" = "linux-musl-x64" ]; then
+          dir="$RUNNER_TEMP/aot-${{ matrix.rid }}"
+          rm -rf "$dir" && mkdir -p "$dir"
+          # 容器内以 root 写 Config，退出时用 sudo 清理，避免 runner 收尾删不掉
+          trap '_trap_rc=$?; sudo rm -rf "$dir" || true; exit $_trap_rc' EXIT
+          cp -a "$(dirname "$exe")/." "$dir/"
+          exe="$dir/Test"
+          probe() { docker run --rm -v "$dir:/app" -w /app alpine:3.22 ./Test "$@"; }
+        fi
+
+        out=$(probe -status 2>&1) && rc=0 || rc=$?
         echo "$out"
         if [ "$rc" != "0" ]; then
-          echo "NativeAOT 冒烟进程退出码 $rc（134=SIGABRT，静态 musl 缺 ICU 时常见）"
+          echo "NativeAOT 冒烟进程退出码 $rc（134=SIGABRT，缺运行库时常见：musl 版 ICU/OpenSSL 未就绪）"
           file "$exe" || true
           ldd "$exe" || true
           exit 1
         fi
         if ! echo "$out" | grep -q "NewLife.Agent"; then
           echo "NativeAOT 冒烟未输出预期内容"
-          # musl 静态链接失败时产物仍能生成，补打依赖信息便于定位（缺 glibc 符号等）
+          # 产物有问题时补打依赖信息便于定位（缺库、链接到 glibc 等）
           file "$exe" || true
           ldd "$exe" || true
           exit 1
         fi
         # Web 面板冒烟：内嵌首页与 i18n 词表、面板 DTO 序列化、全局配置反射与语言切换落盘（AotRoots 保留）
-        panel=$("$exe" -panel 2>&1) && rc=0 || rc=$?
+        panel=$(probe -panel 2>&1) && rc=0 || rc=$?
         echo "$panel"
         if [ "$rc" != "0" ] || ! echo "$panel" | grep -q "AOT_PANEL_PROBE=OK"; then
           echo "NativeAOT Web 面板冒烟失败（exit=$rc）"
+          file "$exe" || true
+          ldd "$exe" || true
           exit 1
         fi
 
