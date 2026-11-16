@@ -396,7 +396,8 @@ public abstract class ServiceBase : DisposeBase
                         WorkingDirectory = ".".GetFullPath()
                     };
                     _process = Process.Start(si);
-                    WriteLog("Process: [{0}]{1}", _process.Id, _process.ProcessName);
+                    // Start 在复用现有进程时可能返回 null，直接取值会 NRE 掩盖真正的启动问题
+                    if (_process != null) WriteLog("Process: [{0}]{1}", _process.Id, _process.ProcessName);
                 }
             }
             catch (Exception ex)
@@ -518,9 +519,18 @@ public abstract class ServiceBase : DisposeBase
         try
         {
             _process?.Kill();
-            _process = null;
         }
         catch { }
+        finally
+        {
+            // Kill 失败（进程已自行退出）时同样必须释放句柄，否则每轮启停泄漏一个 Process 句柄
+            var process = _process;
+            _process = null;
+            if (process != null)
+            {
+                try { process.Dispose(); } catch { }
+            }
+        }
 
         FreeMemory();
     }
