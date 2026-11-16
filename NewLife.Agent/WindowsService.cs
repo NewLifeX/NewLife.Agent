@@ -153,7 +153,7 @@ public class WindowsService : DefaultHost
             StopStatusKeepAlive();
 
             XTrace.WriteException(ex);
-            XTrace.WriteLine("Failed to start service {0}: {1}", Service.ServiceName, new Win32Exception(Marshal.GetLastWin32Error()).Message);
+            XTrace.WriteLine("Failed to start service {0}.", Service.ServiceName);
 
             ReportStatus(ServiceControllerStatus.Stopped);
             return;
