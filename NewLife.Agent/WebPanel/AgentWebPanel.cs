@@ -38,10 +38,14 @@ public class AgentWebPanel
         {
             var password = Password;
             var provider = PasswordProvider;
-            if (_isDefaultPassword != null &&
-                ReferenceEquals(provider, _defaultPasswordProvider) &&
-                String.Equals(password, _defaultPasswordSource, StringComparison.Ordinal))
-                return _isDefaultPassword.Value;
+
+            // 缓存必须是单一不可变快照：分别写三个字段时，并发线程可能读到“新口令 + 旧结论”，
+            // 把已改过口令的面板误判成默认口令（设置页会重新出现，甚至可被本机用户再次改密）
+            var cached = _defaultPasswordCache;
+            if (cached != null &&
+                ReferenceEquals(cached.Provider, provider) &&
+                String.Equals(cached.Password, password, StringComparison.Ordinal))
+                return cached.Result;
 
             Boolean result;
             if (password.IsNullOrEmpty())
@@ -59,9 +63,7 @@ public class AgentWebPanel
                 }
             }
 
-            _defaultPasswordProvider = provider;
-            _defaultPasswordSource = password;
-            _isDefaultPassword = result;
+            _defaultPasswordCache = new DefaultPasswordCache(provider, password, result);
 
             return result;
         }
@@ -77,9 +79,17 @@ public class AgentWebPanel
     public Boolean NeedsSetup => IsDefaultPassword;
 
     private Boolean _setupMode;
-    private IPasswordProvider _defaultPasswordProvider;
-    private String _defaultPasswordSource;
-    private Boolean? _isDefaultPassword;
+    private volatile DefaultPasswordCache _defaultPasswordCache;
+
+    /// <summary>默认口令判定结果快照。整体替换发布，避免多字段并发写入产生撕裂</summary>
+    private sealed class DefaultPasswordCache(IPasswordProvider provider, String password, Boolean result)
+    {
+        public IPasswordProvider Provider { get; } = provider;
+
+        public String Password { get; } = password;
+
+        public Boolean Result { get; } = result;
+    }
 
     /// <summary>是否运行中</summary>
     public Boolean Active => Server.Active;
