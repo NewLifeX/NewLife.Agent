@@ -8,6 +8,9 @@ using NewLife.Agent.Models;
 
 namespace UnitTest;
 
+// 与面板测试同集合串行：本类会临时改写全局 Localization.Culture，
+// 并行执行时会把其它类发起的 HTTP 请求翻成中文，导致断言拿到混语响应
+[Collection("WebPanel")]
 public class InstallTests
 {
     [Fact]
