@@ -99,11 +99,9 @@ internal static class PanelSmoke
     }
 
     /// <summary>当前是否处于全球化不变模式</summary>
-    /// <remarks>InvariantGlobalization 下 CultureInfo 取具体语言会抛异常，据此判断</remarks>
+    /// <remarks>InvariantGlobalization 下 CultureInfo 取具体语言会抛异常，据此判断；不用 AppContext 开关，net45 目标没有该 API</remarks>
     private static Boolean IsInvariantGlobalization()
     {
-        if (AppContext.TryGetSwitch("System.Globalization.Invariant", out var invariant) && invariant) return true;
-
         try
         {
             return CultureInfo.GetCultureInfo("de").Name.IsNullOrEmpty();
