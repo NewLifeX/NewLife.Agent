@@ -150,6 +150,23 @@ public class PanelSecurityTests
         Assert.False(provider.Verify("P@ssw0rd", "$pbkdf2-sha256$bad"));
     }
 
+    [Fact]
+    [DisplayName("口令哈希_兼容标准PBKDF2实现")]
+    public void PasswordProvider_MatchesStandardPbkdf2()
+    {
+        var provider = new Pbkdf2PasswordProvider { Iterations = 1_000 };
+
+        // 用框架标准实现生成密文再交给本实现验证：锁定存储格式与标准 PBKDF2 一致，
+        // 切换派生实现（手写循环与 Rfc2898DeriveBytes）后历史哈希仍可验证
+        var salt = new Byte[16];
+        for (var i = 0; i < salt.Length; i++) salt[i] = (Byte)(i + 1);
+        var hash = System.Security.Cryptography.Rfc2898DeriveBytes.Pbkdf2("P@ssw0rd".GetBytes(), salt, 1_000, System.Security.Cryptography.HashAlgorithmName.SHA256, 32);
+        var stored = $"{Pbkdf2PasswordProvider.Prefix}1000${salt.ToBase64()}${hash.ToBase64()}";
+
+        Assert.True(provider.Verify("P@ssw0rd", stored));
+        Assert.False(provider.Verify("p@ssw0rd", stored));
+    }
+
     [Theory]
     [DisplayName("口令哈希_迭代次数越界_拒绝生成")]
     [InlineData(999)]
