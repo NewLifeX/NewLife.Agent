@@ -28,6 +28,16 @@ public class WindowsService : DefaultHost
     private IntPtr _statusHandle;
     private SERVICE_TABLE_ENTRY _table;
     private ServiceControlCallbackEx _commandHandler;
+    private System.Threading.Timer _startTimer;
+    private readonly Object _statusLock = new();
+
+    /// <summary>启动挂起等待提示。服务冷启动包含程序集加载、JIT、配置加载、插件扫描、网络探测等，可能耗时数秒</summary>
+    /// <remarks>
+    /// SCM 在等待提示到期前没有收到状态更新（检查点推进）时，会判定服务启动超时并直接终止进程，
+    /// 且该终止不计为失败退出，配置的失败恢复动作不会触发，服务会永久停留在 Stopped。
+    /// 默认 30 秒，与 SCM 服务连接超时量级一致。
+    /// </remarks>
+    public Int32 StartWaitHint { get; set; } = 30_000;
 
     /// <summary>开始执行服务</summary>
     /// <param name="service"></param>
@@ -121,8 +131,11 @@ public class WindowsService : DefaultHost
         _commandHandler = ServiceCommandCallbackEx;
         _statusHandle = RegisterServiceCtrlHandlerEx(Service.ServiceName, _commandHandler, IntPtr.Zero);
 
-        if (ReportStatus(ServiceControllerStatus.StartPending, 3000))
+        if (ReportStatus(ServiceControllerStatus.StartPending, StartWaitHint))
         {
+            // 启动初始化可能耗时较长，挂起期间周期性续报状态并推进检查点，避免 SCM 判定无响应后强杀进程
+            StartStatusKeepAlive();
+
             //!!! 不要在ServiceMain里面调用系统函数
             ThreadPool.QueueUserWorkItem(ServiceQueuedMainCallback);
         }
@@ -134,7 +147,23 @@ public class WindowsService : DefaultHost
         {
             // 启动初始化
             Service.StartLoop();
+        }
+        catch (Exception ex)
+        {
+            StopStatusKeepAlive();
 
+            XTrace.WriteException(ex);
+            XTrace.WriteLine("Failed to start service {0}: {1}", Service.ServiceName, new Win32Exception(Marshal.GetLastWin32Error()).Message);
+
+            ReportStatus(ServiceControllerStatus.Stopped);
+            return;
+        }
+
+        // 初始化结束，先停掉续报再由 Running 接管状态，避免续报把状态倒回 StartPending
+        StopStatusKeepAlive();
+
+        try
+        {
             ReportStatus(ServiceControllerStatus.Running);
 
             // 阻塞
@@ -159,6 +188,46 @@ public class WindowsService : DefaultHost
         }
     }
 
+    /// <summary>启动挂起期间周期性续报状态。每次续报推进检查点，向 SCM 证明服务仍在初始化</summary>
+    private void StartStatusKeepAlive()
+    {
+        var period = GetKeepAlivePeriod(StartWaitHint);
+        _startTimer = new System.Threading.Timer(StartStatusCallback, null, period, period);
+    }
+
+    /// <summary>计算启动续报间隔。间隔必须严格小于等待提示，保证到期前至少续报数次</summary>
+    /// <param name="waitHint">等待提示，单位毫秒</param>
+    /// <returns>续报间隔，单位毫秒</returns>
+    internal static Int32 GetKeepAlivePeriod(Int32 waitHint)
+    {
+        // 等待提示过小时续报没有意义，按 1 秒下限处理，避免得到 0 或负数的无效间隔
+        if (waitHint < 1_000) waitHint = 1_000;
+
+        // 取等待提示的 1/5，限制在 200~2000 毫秒，既不会过密，也留足续报余量
+        var period = waitHint / 5;
+        if (period < 200) period = 200;
+        if (period > 2_000) period = 2_000;
+
+        return period;
+    }
+
+    private void StartStatusCallback(Object state)
+    {
+        lock (_statusLock)
+        {
+            // 已进入运行或停止状态后不再续报，避免把状态倒回启动挂起
+            if (_status.currentState != ServiceControllerStatus.StartPending) return;
+
+            ReportStatus(ServiceControllerStatus.StartPending, StartWaitHint, false);
+        }
+    }
+
+    private void StopStatusKeepAlive()
+    {
+        var timer = Interlocked.Exchange(ref _startTimer, null);
+        timer?.Dispose();
+    }
+
     private Int32 ServiceCommandCallbackEx(ControlOptions command, Int32 eventType, IntPtr eventData, IntPtr eventContext)
     {
         if (command is not ControlOptions.PowerEvent and
@@ -169,7 +238,8 @@ public class WindowsService : DefaultHost
         switch (command)
         {
             case ControlOptions.Interrogate:
-                ReportStatus(_status.currentState, 0, false);
+                // 启动挂起期间续报要带上等待提示，否则 SCM 收到 0 会按默认超时判定启动失败
+                ReportStatus(_status.currentState, _status.currentState == ServiceControllerStatus.StartPending ? StartWaitHint : 0, false);
                 break;
             case ControlOptions.Stop:
             case ControlOptions.Shutdown:
@@ -245,23 +315,27 @@ public class WindowsService : DefaultHost
 
         fixed (SERVICE_STATUS* status = &_status)
         {
-            // 开始挂起时，不接受任何命令；其它状态下允许停止
-            if (state == ServiceControllerStatus.StartPending)
-                _status.controlsAccepted = 0;
-            else
-                //_status.controlsAccepted = ControlsAccepted.CanStop;
-                _status.controlsAccepted = _acceptedCommands;
+            // 启动续报线程与 SCM 控制回调会并发改状态，串行化避免相互覆盖
+            lock (_statusLock)
+            {
+                // 开始挂起时，不接受任何命令；其它状态下允许停止
+                if (state == ServiceControllerStatus.StartPending)
+                    _status.controlsAccepted = 0;
+                else
+                    //_status.controlsAccepted = ControlsAccepted.CanStop;
+                    _status.controlsAccepted = _acceptedCommands;
 
-            // 正在运行和已经停止，检查点为0；其它状态累加检查点
-            _status.checkPoint = state is ServiceControllerStatus.Running or
-                ServiceControllerStatus.Stopped
-                ? 0
-                : _checkPoint++;
+                // 正在运行和已经停止，检查点为0；其它状态累加检查点
+                _status.checkPoint = state is ServiceControllerStatus.Running or
+                    ServiceControllerStatus.Stopped
+                    ? 0
+                    : _checkPoint++;
 
-            _status.waitHint = waitHint;
-            _status.currentState = state;
+                _status.waitHint = waitHint;
+                _status.currentState = state;
 
-            return SetServiceStatus(_statusHandle, status);
+                return SetServiceStatus(_statusHandle, status);
+            }
         }
     }
 

@@ -183,6 +183,26 @@ public class PlatformSupportTests
         Assert.False(host.IsRunning("NewLifeAgentUnitTestNotExist"));
         Assert.False(host.IsInstalled("NewLifeAgentUnitTestNotExist"));
     }
+
+    [Theory]
+    [InlineData(0, 200)]
+    [InlineData(-1, 200)]
+    [InlineData(500, 200)]
+    [InlineData(1_000, 200)]
+    [InlineData(3_000, 600)]
+    [InlineData(30_000, 2_000)]
+    [InlineData(120_000, 2_000)]
+    [DisplayName("WindowsService_启动续报间隔_落在合理区间且小于等待提示")]
+    public void WindowsService_KeepAlivePeriod_IsSane(Int32 waitHint, Int32 expected)
+    {
+        var period = WindowsService.GetKeepAlivePeriod(waitHint);
+
+        // 非法的等待提示不能算出 0 或负数，否则创建定时器时会抛异常
+        Assert.Equal(expected, period);
+
+        // 间隔必须严格小于等待提示，否则 SCM 会在续报前判定启动超时
+        if (waitHint >= 1_000) Assert.True(period < waitHint);
+    }
     #endregion
 
     #region 提权命令
