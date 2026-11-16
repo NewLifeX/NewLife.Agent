@@ -111,6 +111,7 @@ public class OSXLaunch : DefaultHost
     /// <summary>生成 LaunchAgent plist 内容</summary>
     /// <remarks>
     /// 所有插入值均做 XML 转义，否则参数或路径含 &amp; &lt; &gt; 时 plist 非法，launchctl 会拒绝加载。
+    /// KeepAlive 仅在依赖网络时输出，避免无条件保活让 <c>launchctl stop</c> 失效。
     /// </remarks>
     /// <param name="serviceName">服务名</param>
     /// <param name="fileName">可执行文件路径</param>
@@ -157,18 +158,16 @@ public class OSXLaunch : DefaultHost
             sb.AppendLine($"    <string>{Escape(user)}</string>");
         }
 
-        // 依赖网络时用 NetworkState 表达，否则无条件保活
-        sb.AppendLine("    <key>KeepAlive</key>");
+        // 依赖网络时用 NetworkState 表达保活。其余情况不输出 KeepAlive：
+        // 无条件 KeepAlive 会让 launchctl stop 失效——进程被 SIGTERM 终止后 launchd 会立刻重新拉起，
+        // 停服看起来成功但服务马上又回来了；崩溃自愈由 Agent 自身的看门狗与自动重启负责。
         if (network)
         {
+            sb.AppendLine("    <key>KeepAlive</key>");
             sb.AppendLine("    <dict>");
             sb.AppendLine("        <key>NetworkState</key>");
             sb.AppendLine("        <true/>");
             sb.AppendLine("    </dict>");
-        }
-        else
-        {
-            sb.AppendLine("    <true/>");
         }
 
         sb.AppendLine("</dict>");

@@ -94,6 +94,8 @@ public class HostAdapterTests
         Assert.Contains("<string>-s</string>", plist);
         Assert.DoesNotContain("<string>app.dll -s</string>", plist);
         Assert.Contains("<key>RunAtLoad</key>", plist);
+        // 默认不输出 KeepAlive：无条件保活会让 launchctl stop 失效（进程被杀后立刻被 launchd 重新拉起）
+        Assert.DoesNotContain("<key>KeepAlive</key>", plist);
     }
 
     [Fact]
