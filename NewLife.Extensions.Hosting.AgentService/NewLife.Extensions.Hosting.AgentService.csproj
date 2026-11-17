@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFrameworks>netcoreapp3.1;net5.0;net6.0;net7.0;net8.0;net9.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>netcoreapp3.1;net5.0;net6.0;net7.0;net8.0;net9.0;net10.0;net11.0</TargetFrameworks>
     <AssemblyTitle>主机服务托管扩展</AssemblyTitle>
     <Description>为ASP.NET Core与Worker提供Agent托管集成，支持服务化部署与运维。</Description>
     <Company>新生命开发团队</Company>
@@ -81,6 +81,10 @@
   <ItemGroup Condition="'$(TargetFramework)'=='net10.0'">
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.14" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.14" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)'=='net11.0'">
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="11.0.0" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\Doc\leaf.png" Link="leaf.png" PackagePath="\" />

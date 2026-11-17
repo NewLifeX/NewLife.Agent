@@ -32,8 +32,8 @@ Supported platforms:
 
 Supported frameworks:
 
-- `NewLife.Agent`: `net40;net45;net461;netstandard2.0;netstandard2.1;net6.0;net7.0;net8.0;net9.0;net10.0`
-- `NewLife.Extensions.Hosting.AgentService`: `netcoreapp3.1;net5.0;net6.0;net7.0;net8.0;net9.0;net10.0`
+- `NewLife.Agent`: `net40;net45;net461;netstandard2.0;netstandard2.1;net6.0;net7.0;net8.0;net9.0;net10.0;net11.0`
+- `NewLife.Extensions.Hosting.AgentService`: `netcoreapp3.1;net5.0;net6.0;net7.0;net8.0;net9.0;net10.0;net11.0`
 
 ---
 

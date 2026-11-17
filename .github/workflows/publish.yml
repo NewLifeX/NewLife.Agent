@@ -26,6 +26,7 @@ jobs:
           8.x
           9.x
           10.x
+          11.x
     - name: Get Version
       # tag 触发时取 tag 的 yyyy.MMdd（保证包版本与 tag 完全一致）；手工触发时取当天日期
       shell: pwsh
