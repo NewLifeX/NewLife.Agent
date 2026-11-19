@@ -3,8 +3,6 @@
 # NewLife.Agent - Cross-Platform Service Daemon & Ops Framework
 
 ![GitHub top language](https://img.shields.io/github/languages/top/newlifex/newlife.agent?logo=github)
-
-
 ![GitHub License](https://img.shields.io/github/license/NewLifeX/NewLife.Agent?logo=github)
 ![NuGet Downloads](https://img.shields.io/nuget/dt/NewLife.Agent?logo=nuget)
 ![NuGet](https://img.shields.io/nuget/v/NewLife.Agent?logo=nuget)
