@@ -96,7 +96,7 @@
 1. 初始化环境 `InitService()`
 2. 选择宿主并加载配置 `Init()`
 3. 解析命令（如 `-install`/`-start`）或进入交互菜单
-4. 启动服务循环 `StartLoop()` -> `DoLoop()` -> `StopLoop()`
+4. 启动服务循环 `StartLoop()`（后台执行 StartWork，立即返回）-> `DoLoop()`（启动面板并巡检）-> `StopLoop()`
 
 ### 核心职责
 
@@ -237,13 +237,13 @@
 1. `Main(args)`
 2. `InitService()`
 3. `Init()`
-4. `StartLoop()`
-5. `DoLoop()`（循环）
+4. `StartLoop()`（后台执行 StartWork，立即返回）
+5. `DoLoop()`（启动 Web 面板并进入循环）
 6. `StopLoop()`
 
 业务程序通常只需重写：
 
-- `StartWork(String reason)`：启动业务逻辑
+- `StartWork(String reason)`：启动业务逻辑。在后台执行，异常仅写日志，不阻塞 Running 上报
 - `StopWork(String reason)`：停止并释放资源
 
 ### 运行循环
