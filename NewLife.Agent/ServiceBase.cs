@@ -51,8 +51,10 @@ public abstract class ServiceBase : DisposeBase
     /// <remarks>停止线程与巡检线程跨线程读写，必须用 volatile 支撑字段保证可见性</remarks>
     public Boolean Running { get => _running; set => _running = value; }
 
-    /// <summary>命令工厂</summary>
-    public CommandFactory Command { get; }
+    private CommandFactory _command;
+
+    /// <summary>命令工厂。首次访问时创建，避免服务启动阶段反射扫描命令处理器</summary>
+    public CommandFactory Command => LazyInitializer.EnsureInitialized(ref _command, () => new CommandFactory(this));
 
 #if !NET40
     /// <summary>Web管理面板</summary>
@@ -76,8 +78,6 @@ public abstract class ServiceBase : DisposeBase
 
         var set = Setting.Current;
         UseAutorun = set.UseAutorun;
-
-        Command = new CommandFactory(this);
     }
 
     /// <summary>初始化服务。Agent组件内部使用</summary>
@@ -377,6 +377,11 @@ public abstract class ServiceBase : DisposeBase
             return;
         }
 
+#if !NET40
+        // 服务已进入运行状态，再启动Web管理面板等可选组件，避免占用启动握手时间
+        StartWebPanel();
+#endif
+
         // 启动后命令，服务启动后执行的命令
         var set = Setting.Current;
         if (!set.AfterStart.IsNullOrEmpty())
@@ -558,34 +563,39 @@ public abstract class ServiceBase : DisposeBase
     }
 
     /// <summary>开始工作</summary>
-    /// <remarks>基类实现用于输出日志</remarks>
+    /// <remarks>基类实现用于输出日志。Web 管理面板等可选组件在 DoLoop 中启动，避免占用服务启动握手时间</remarks>
     /// <param name="reason"></param>
     public virtual void StartWork(String reason)
     {
         WriteLog("Service started: {0}", reason);
+    }
 
 #if !NET40
-        // 启动Web管理面板
+    /// <summary>启动Web管理面板</summary>
+    /// <remarks>在服务进入运行状态后调用，避免面板初始化和端口绑定占用启动握手时间</remarks>
+    protected internal void StartWebPanel()
+    {
+        if (_webPanel != null) return;
+
         var set = Setting.Current;
-        if (set.EnableWebPanel)
+        if (!set.EnableWebPanel) return;
+
+        try
         {
-            try
-            {
-                _webPanel = CreateWebPanel(this);
-                _webPanel.Start();
-            }
-            catch (SocketException ex) when (ex.SocketErrorCode is SocketError.AddressAlreadyInUse or SocketError.AccessDenied)
-            {
-                // 端口被占用或保留时不打印完整堆栈，避免看起来像服务本身崩溃
-                WriteLogPrefixed(LogLevel.Warn, "[WebPanel] ", "Web panel failed to start on port {0}: {1}. The port is already in use or reserved; stop the other instance or change WebPort/WebBind.", _webPanel?.Port ?? set.WebPort, ex.SocketErrorCode);
-            }
-            catch (Exception ex)
-            {
-                XTrace.WriteException(ex);
-            }
+            _webPanel = CreateWebPanel(this);
+            _webPanel.Start();
         }
-#endif
+        catch (SocketException ex) when (ex.SocketErrorCode is SocketError.AddressAlreadyInUse or SocketError.AccessDenied)
+        {
+            // 端口被占用或保留时不打印完整堆栈，避免看起来像服务本身崩溃
+            WriteLogPrefixed(LogLevel.Warn, "[WebPanel] ", "Web panel failed to start on port {0}: {1}. The port is already in use or reserved; stop the other instance or change WebPort/WebBind.", _webPanel?.Port ?? set.WebPort, ex.SocketErrorCode);
+        }
+        catch (Exception ex)
+        {
+            XTrace.WriteException(ex);
+        }
     }
+#endif
 
     private void OnProcessExit(Object sender, EventArgs e)
     {

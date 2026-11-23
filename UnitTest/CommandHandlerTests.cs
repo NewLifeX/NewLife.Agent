@@ -366,7 +366,7 @@ public class CommandHandlerTests
     {
         var mb = new Mock<ServiceBase> { CallBase = true };
 
-        // CommandFactory 在 ServiceBase 构造函数中已创建
+        // Command 属性首次访问时懒加载创建，避免服务启动阶段反射扫描
         Assert.NotNull(mb.Object.Command);
     }
 

@@ -591,8 +591,8 @@ public class AgentWebPanelTests
     }
 
     [WindowsFact]
-    [DisplayName("StartWork_端口被独占_输出告警且不抛异常")]
-    public void StartWork_PanelPortExclusive_LogsWarningAndContinues()
+    [DisplayName("StartWebPanel_端口被独占_输出告警且不抛异常")]
+    public void StartWebPanel_PanelPortExclusive_LogsWarningAndContinues()
     {
         using var scope = new SettingScope();
 
@@ -611,7 +611,7 @@ public class AgentWebPanelTests
         var log = new CaptureLog();
         var svc = new ServiceBaseTester { ServiceName = "PortBusySvc", Log = log };
 
-        var ex = Record.Exception(() => svc.StartWork("test"));
+        var ex = Record.Exception(() => svc.StartWebPanel());
 
         Assert.Null(ex);
         Assert.NotNull(AgentWebPanel.Current);

@@ -52,10 +52,10 @@ public class PanelTokenLifecycleTests
         public AgentWebPanel Panel => _webPanel;
     }
 
-    /// <summary>启用面板时 StartWork 自动启动面板，StopWork 停止并清空引用</summary>
+    /// <summary>启用面板时 StartWebPanel 启动面板，StopWork 停止并清空引用</summary>
     [Fact]
-    [DisplayName("StartWork_启用面板_自动启动并在StopWork后关闭")]
-    public void StartWork_PanelEnabled_StartsAndStopsWithService()
+    [DisplayName("StartWebPanel_启用面板_自动启动并在StopWork后关闭")]
+    public void StartWebPanel_PanelEnabled_StartsAndStopsWithService()
     {
         using var scope = new SettingScope();
         var set = Setting.Current;
@@ -64,7 +64,7 @@ public class PanelTokenLifecycleTests
         set.WebBind = "127.0.0.1";
 
         var svc = new PanelServiceTester { ServiceName = "UTPanelLifecycle" };
-        svc.StartWork("test");
+        svc.StartWebPanel();
 
         var panel = svc.Panel;
         try
@@ -82,10 +82,10 @@ public class PanelTokenLifecycleTests
         Assert.False(panel.Active);
     }
 
-    /// <summary>未启用面板时 StartWork 不创建面板，StopWork 安全返回</summary>
+    /// <summary>未启用面板时 StartWebPanel 不创建面板，StopWork 安全返回</summary>
     [Fact]
-    [DisplayName("StartWork_未启用面板_不创建面板")]
-    public void StartWork_PanelDisabled_NoPanel()
+    [DisplayName("StartWebPanel_未启用面板_不创建面板")]
+    public void StartWebPanel_PanelDisabled_NoPanel()
     {
         using var scope = new SettingScope();
         var set = Setting.Current;
@@ -93,10 +93,26 @@ public class PanelTokenLifecycleTests
         set.WebPort = 0;
 
         var svc = new PanelServiceTester { ServiceName = "UTPanelDisabled" };
-        svc.StartWork("test");
+        svc.StartWebPanel();
 
         Assert.Null(svc.Panel);
         Assert.Null(Record.Exception(() => svc.StopWork("test")));
+    }
+
+    /// <summary>StartWork 只启动业务，不再负责启动 Web 面板；面板由运行态统一启动</summary>
+    [Fact]
+    [DisplayName("StartWork_不启动面板_由运行态统一启动")]
+    public void StartWork_DoesNotStartPanel()
+    {
+        using var scope = new SettingScope();
+        var set = Setting.Current;
+        set.EnableWebPanel = true;
+        set.WebPort = 0;
+
+        var svc = new PanelServiceTester { ServiceName = "UTPanelStartWork" };
+        svc.StartWork("test");
+
+        Assert.Null(svc.Panel);
     }
     #endregion
 
