@@ -36,6 +36,22 @@ public class ServiceLifecycleTests
         public Boolean RestartNow(String message) => RequestRestart(message);
     }
 
+    /// <summary>StartWork 阻塞到信号释放，用于验证 StartLoop 不等待业务初始化</summary>
+    private class BlockingStartWorkTester : ServiceBaseTester
+    {
+        public readonly ManualResetEventSlim Started = new(false);
+        public readonly ManualResetEventSlim Release = new(false);
+
+        public override void StartWork(String reason)
+        {
+            Started.Set();
+            Release.Wait(10_000);
+        }
+
+        public void StartLoopNow() => StartLoop();
+        public void StopLoopNow() => StopLoop();
+    }
+
     /// <summary>只统计重启次数的测试主机，避免触发真实的服务控制</summary>
     private class CountingHost : IHost
     {
@@ -108,6 +124,23 @@ public class ServiceLifecycleTests
         Assert.True(WaitUntil(() => svc.StartCount > 0), "StartWork 未被执行");
         Thread.Sleep(200);
         Assert.Equal(1, svc.StartCount);
+    }
+
+    [Fact]
+    [DisplayName("StartLoop_StartWork阻塞_不等待业务初始化")]
+    public void StartLoop_SlowStartWork_DoesNotBlock()
+    {
+        var svc = new BlockingStartWorkTester { ServiceName = "UnitTestSlowStart" };
+
+        var sw = Stopwatch.StartNew();
+        svc.StartLoopNow();
+        sw.Stop();
+
+        Assert.True(sw.ElapsedMilliseconds < 1_000, $"StartLoop 等待了 {sw.ElapsedMilliseconds}ms，不应等待 StartWork 完成");
+        Assert.True(svc.Started.Wait(2_000), "StartWork 未被执行");
+
+        svc.Release.Set();
+        svc.StopLoopNow();
     }
 
     [Fact]

@@ -446,9 +446,8 @@ public abstract class ServiceBase : DisposeBase
 
     /// <summary>开始循环</summary>
     /// <remarks>
-    /// 调用 StartWork 启动业务逻辑，等待至多 3 秒。
-    /// StartWork 只执行一次，不允许多次重试，避免业务初始化重入导致的资源冲突。
-    /// 若超时，StartWork 仍在后台运行，调用方应确保 StartWork 为非阻塞设计。
+    /// 调用 StartWork 启动业务逻辑。StartWork 在后台执行，服务启动握手不再等待业务初始化完成，
+    /// 避免业务初始化耗时直接推迟 Running 状态上报。StartWork 只执行一次，不允许多次重试。
     /// </remarks>
     protected internal void StartLoop()
     {
@@ -458,13 +457,17 @@ public abstract class ServiceBase : DisposeBase
 
         Model.Host.RegisterExit(OnProcessExit);
 
-        // StartWork 只执行一次，不允许重入
+        // StartWork 只执行一次，不允许重入。放到后台执行，Running 状态不再等待业务初始化完成
 #if NET40
-        var task = Task.Factory.StartNew(() =>
+        _ = Task.Factory.StartNew(() =>
 #else
-        var task = Task.Run(() =>
+        _ = Task.Run(() =>
 #endif
         {
+            // 启动挂起期间已经收到停止请求时，不再启动业务
+            if (_stopRequested) return;
+
+            var sw = Stopwatch.StartNew();
             try
             {
                 _workStarted = true;
@@ -475,11 +478,13 @@ public abstract class ServiceBase : DisposeBase
                 WriteLog("StartWork failed: {0}", ex.Message);
                 Log?.Error(ex.ToString());
             }
+            finally
+            {
+                sw.Stop();
+                if (sw.ElapsedMilliseconds > 3_000)
+                    XTrace.WriteLine("StartWork took {0}ms; avoid blocking operations in StartWork.", sw.ElapsedMilliseconds);
+            }
         });
-        if (!task.Wait(3_000))
-        {
-            XTrace.WriteLine("StartWork took too long; avoid blocking operations in StartWork.");
-        }
     }
 
     /// <summary>停止循环</summary>
