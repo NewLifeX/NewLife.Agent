@@ -94,7 +94,7 @@
     <AdditionalFiles Include="$(MSBuildProjectDirectory)/Locales/*.yml" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'!='net40' and '$(UseLocalNewLifeSource)' != 'true'">
-    <PackageReference Include="NewLife.Core" Version="12.0.2026.1115-beta2355" />
+    <PackageReference Include="NewLife.Core" Version="12.0.2026.1121-beta0924" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'=='net40'">
     <!-- net40 无 NewLife.Core 12，沿用最后的 net40 专用版本 -->
