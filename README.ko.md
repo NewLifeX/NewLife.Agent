@@ -1,5 +1,6 @@
-# NewLife.Agent - 크로스 플랫폼 서비스 데몬 프레임워크
+# NewLife.Agent - 크로스 플랫폼 서비스 데몬 및 운영 프레임워크
 
+![GitHub top language](https://img.shields.io/github/languages/top/newlifex/newlife.agent?logo=github)
 ![GitHub License](https://img.shields.io/github/license/NewLifeX/NewLife.Agent?logo=github)
 ![NuGet Downloads](https://img.shields.io/nuget/dt/NewLife.Agent?logo=nuget)
 ![NuGet](https://img.shields.io/nuget/v/NewLife.Agent?logo=nuget)
@@ -14,34 +15,102 @@
 🌐 [English](README.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [Español](README.es.md) | [Deutsch](README.de.md) | [日本語](README.ja.md) | [Français](README.fr.md) | [Português](README.pt.md) | [Русский](README.ru.md) | [العربية](README.ar.md)
 <!-- lang:end -->
 
-> 이 번역은 [English README](README.md)보다 늦을 수 있으며, 영어 버전이 기준입니다.
+> 이 번역은 [English README](README.md)와 함께 유지 관리됩니다. 내용이 다르면 영어 버전이 기준입니다.
 
 NewLife.Agent는 .NET 애플리케이션을 OS 데몬으로 설치하며 Windows 서비스, Linux systemd, macOS launchd를 통합합니다. 상태 모니터링, 자동 재시작, 웹 패널을 제공합니다.
 
-## 설치
+Tutorial: https://newlifex.com/core/agent
+
+---
+## 개요
+
+`NewLife.Agent`는 장기 실행 애플리케이션을 위한 서비스 지향 프레임워크입니다. 콘솔/Web/Worker 프로그램을 운영 체제 서비스로 빠르게 호스팅하고 설치, 시작/중지, 모니터링, 재시작, 문제 진단을 통합 제공합니다.
+
+지원 플랫폼:
+
+- Windows(서비스 / 로그인 시 자동 시작)
+- Linux(Systemd / Procd / RcInit 등)
+- macOS(LaunchAgent)
+
+지원 프레임워크:
+
+- `NewLife.Agent`: `net40;net45;net461;netstandard2.0;netstandard2.1;net6.0;net7.0;net8.0;net9.0;net10.0;net11.0`
+- `NewLife.Extensions.Hosting.AgentService`: `netcoreapp3.1;net5.0;net6.0;net7.0;net8.0;net9.0;net10.0;net11.0`
+
+---
+## 주요 기능
+
+- **개발과 운영 통합**: `ServiceBase`를 상속하면 완전한 서비스 거버넌스 기능을 얻습니다.
+- **내장 웹 대시보드**: 브라우저에서 상태를 보고 운영 작업을 수행하는 경량 관리 패널로, 확장 패널과 테마 전환, 토큰 인증 및 무차별 대입 보호를 내장합니다. 기본적으로 localhost에서 수신하며(`WebBind`로 LAN에 노출 가능), 첫 시작 시 로컬 설정 페이지에서 관리자 비밀번호를 설정합니다(초기 비밀번호 파일 없음. `WebPassword`를 지우고 다시 시작하면 설정을 다시 진행). 비루프백 주소의 평문 HTTP 바인딩에는 `AllowInsecureRemote=true`가 필요합니다.
+- **31개 언어 지역화**: 내장 명령, 구성 설명, Hosting 메시지, 웹 대시보드가 31개 언어와 언어 전환 및 RTL을 지원합니다. 요청 문화권은 NewLife.Core가 자동으로 결정합니다.
+- **크로스 플랫폼 자동 적응**: 운영 체제별로 가장 적합한 호스트 구현을 자동 선택합니다.
+- **NativeAOT 네이티브 게시**: 내장 명령과 웹 대시보드가 트리밍/AOT에 완전히 적응했습니다. `net8.0+` 빌드는 `IsAotCompatible` 경고가 0개이며 CI는 12개 RID를 다룹니다. 9개 대상은 실제 스모크 테스트(8개 네이티브 + QEMU 사용자 모드 에뮬레이션의 linux-loongarch64)를 실행하고, 교차 대상(linux-arm/linux-musl-arm/linux-musl-arm64)은 게시 검증을 수행합니다.
+- **다중 아키텍처 단위 테스트**: win-x64 / linux-x64 / linux-arm64는 네이티브로 실행되고 linux-loongarch64(Loongson)는 QEMU 사용자 모드 에뮬레이션에서 전체 테스트를 실행합니다. push/PR로 트리거되며 수동 실행도 지원합니다.
+- **내장 명령 체계**: `-install/-start/-stop/-restart/-status/-run`을 지원합니다.
+- **상태 모니터링 및 자가 복구**: HealthMonitor 구성 요소가 메모리/스레드/핸들 임계값, 예약 재시작, WatchDog 검사를 제공합니다.
+- **다중 인스턴스 지원**: `ServiceName` 값을 다르게 설정하여 하나의 프로그램을 여러 인스턴스로 배포할 수 있습니다.
+- **Host 통합 확장 패키지**: ASP.NET Core/Worker 애플리케이션을 통합 서비스 수명 주기 관리에 포함합니다.
+
+---
+## 시작하기
+
+### 1) 최소 서비스
+
+`ServiceBase`를 상속하고 진입점에서 `Main(args)`를 호출합니다:
+
+- `StartWork(String reason)`을 재정의하여 비즈니스 논리 시작
+- `StopWork(String reason)`을 재정의하여 중지하고 리소스 정리
+
+### 2) 명령줄 운영
+
+일반 명령:
+
+- `-i`: 서비스 설치
+- `-install`: 서비스 설치 및 시작
+- `-start`: 서비스 시작
+- `-stop`: 서비스 중지
+- `-restart`: 서비스 다시 시작
+- `-status`: 서비스 상태 보기
+- `-u`: 서비스 제거
+- `-uninstall`: 서비스 중지 및 제거
+- `-run`: 콘솔 모드로 실행(디버깅)
+
+> 설치/제거/시작/중지에는 일반적으로 관리자(Windows) 또는 root(Linux) 권한이 필요합니다.
+
+### 3) ASP.NET Core / Worker 통합
+
+`NewLife.Extensions.Hosting.AgentService`를 참조하고 `HostBuilder`에서 `UseAgentService()`를 호출하면 일반 호스트 수명 주기와 Agent 서비스 거버넌스가 연결됩니다.
+
+---
+## 문서
+
+- [NewLife.Agent 사용 및 운영 매뉴얼(중국어)](./Doc/Agent-使用与运维手册.md)
+- [요구 사항 문서(중국어)](./Doc/需求文档.md)
+- [기능 목록(중국어)](./Doc/功能清单.md)
+- [아키텍처 설계(중국어)](./Doc/架构设计.md)
+- [경쟁 분석(중국어)](./Doc/竞品分析.md)
+- [변경 로그(중국어)](./ChangeLog.md)
+- [변경 로그(영어)](./ChangeLog.en.md)
+
+---
+## 빠른 설치
+
+기존 프로젝트에 패키지 추가:
 
 ```bash
 dotnet add package NewLife.Agent
 ```
 
-## 빠른 시작
+또는 템플릿으로 새 서비스 프로젝트 만들기:
 
-```csharp
-var service = new MyService();
-service.Start(args);
+```bash
+dotnet new install NewLife.Templates
+dotnet new service --name agent
+cd agent
+dotnet run
 ```
 
-## 주요 기능
-
-- 크로스 플랫폼: Windows, Linux, macOS, ARM64/LoongArch64
-- 로깅, 추적, 런타임 진단 지원
-- NewLife 생태계(XCode/Cube/Remoting)와 원활한 통합
-- 기본 제공 명령, 구성 설명, Hosting 메시지 및 웹 패널을 31개 언어로 지원하며 언어 전환과 RTL을 제공
-
-## 문서
-
-> 📖 전체 문서(중국어): [저장소 문서](Doc)
-
+---
 ## 생태계 지도
 
 NewLife는 독립적으로 버전이 관리되는 오픈소스 프로젝트의 계층형 생태계입니다. 아래 지도는 모든 NewLife 리포지토리에서 그대로 동일하게 공유되며, 각 프로젝트는 코드 리포지토리와 기본 NuGet 패키지로 연결됩니다.

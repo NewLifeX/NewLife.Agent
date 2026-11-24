@@ -1,5 +1,6 @@
-# NewLife.Agent - Marco de daemon de servicios multiplataforma
+# NewLife.Agent - Marco multiplataforma de daemon de servicio y operaciones
 
+![GitHub top language](https://img.shields.io/github/languages/top/newlifex/newlife.agent?logo=github)
 ![GitHub License](https://img.shields.io/github/license/NewLifeX/NewLife.Agent?logo=github)
 ![NuGet Downloads](https://img.shields.io/nuget/dt/NewLife.Agent?logo=nuget)
 ![NuGet](https://img.shields.io/nuget/v/NewLife.Agent?logo=nuget)
@@ -14,34 +15,102 @@
 🌐 [English](README.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [Deutsch](README.de.md) | [日本語](README.ja.md) | [Français](README.fr.md) | [Português](README.pt.md) | [Русский](README.ru.md) | [한국어](README.ko.md) | [العربية](README.ar.md)
 <!-- lang:end -->
 
-> Esta traducción puede estar desactualizada; consulte la [English README](README.md).
+> Esta traducción se mantiene junto con la [English README](README.md); si hay diferencias, prevalece la versión inglesa.
 
 NewLife.Agent instala aplicaciones .NET como daemons del sistema, unificando servicios de Windows, systemd de Linux y launchd de macOS, con monitoreo de salud, reinicio automático y panel web.
 
-## Instalación
+Tutorial: https://newlifex.com/core/agent
+
+---
+## Descripción general
+
+`NewLife.Agent` es un marco orientado a servicios para aplicaciones de larga ejecución. Permite alojar rápidamente programas de consola/Web/Worker como servicios del sistema operativo y ofrece instalación, inicio/parada, monitoreo, reinicio y diagnóstico unificados.
+
+Plataformas compatibles:
+
+- Windows (servicio / inicio automático al iniciar sesión)
+- Linux (Systemd / Procd / RcInit, etc.)
+- macOS (LaunchAgent)
+
+Marcos compatibles:
+
+- `NewLife.Agent`: `net40;net45;net461;netstandard2.0;netstandard2.1;net6.0;net7.0;net8.0;net9.0;net10.0;net11.0`
+- `NewLife.Extensions.Hosting.AgentService`: `netcoreapp3.1;net5.0;net6.0;net7.0;net8.0;net9.0;net10.0;net11.0`
+
+---
+## Aspectos destacados
+
+- **Desarrollo y operación integrados**: herede `ServiceBase` para obtener capacidades completas de gobierno del servicio.
+- **Panel web integrado**: panel de administración ligero para ver el estado y realizar operaciones desde el navegador, con paneles de extensión y cambio de tema, autenticación por token y protección contra fuerza bruta; escucha en localhost de forma predeterminada (`WebBind` puede exponerlo a la LAN), muestra una página de configuración local en el primer inicio para establecer la contraseña de administrador (sin archivo de contraseña inicial; borre `WebPassword` y reinicie para repetir la configuración) y requiere `AllowInsecureRemote=true` para enlazar HTTP sin cifrar en direcciones no locales.
+- **Localización en 31 idiomas**: comandos integrados, descripciones de configuración, mensajes de Hosting y panel web en 31 idiomas con cambio de idioma y RTL; NewLife.Core resuelve automáticamente la cultura de la solicitud.
+- **Adaptación automática multiplataforma**: selecciona automáticamente la implementación de host más adecuada para cada sistema operativo.
+- **Soporte de publicación nativa NativeAOT**: comandos integrados y panel web totalmente adaptados a trimming/AOT; las compilaciones `net8.0+` no generan advertencias `IsAotCompatible` y CI cubre 12 RID: 9 destinos ejecutan pruebas de humo reales (8 nativos + linux-loongarch64 con emulación de modo usuario QEMU) y los destinos cruzados (linux-arm/linux-musl-arm/linux-musl-arm64) verifican la publicación.
+- **Pruebas unitarias multiarquitectura**: win-x64 / linux-x64 / linux-arm64 se ejecutan de forma nativa y linux-loongarch64 (Loongson) ejecuta toda la suite con emulación QEMU en modo usuario; se activan por push/PR y admiten ejecución manual.
+- **Sistema de comandos integrado**: compatible con `-install/-start/-stop/-restart/-status/-run`.
+- **Monitoreo de salud y autorreparación**: el componente HealthMonitor ofrece umbrales de memoria/hilos/identificadores, reinicios programados y comprobaciones WatchDog.
+- **Amigable con múltiples instancias**: configure distintos valores de `ServiceName` para desplegar varias instancias de un programa.
+- **Paquete de integración con Host**: integra aplicaciones ASP.NET Core/Worker en un ciclo de vida de servicio unificado.
+
+---
+## Primeros pasos
+
+### 1) Servicio mínimo
+
+Herede `ServiceBase` y llame a `Main(args)` en el punto de entrada:
+
+- Sobrescriba `StartWork(String reason)` para iniciar la lógica de negocio
+- Sobrescriba `StopWork(String reason)` para detenerla y liberar recursos
+
+### 2) Operaciones por línea de comandos
+
+Comandos habituales:
+
+- `-i`: instalar el servicio
+- `-install`: instalar e iniciar el servicio
+- `-start`: iniciar el servicio
+- `-stop`: detener el servicio
+- `-restart`: reiniciar el servicio
+- `-status`: ver el estado del servicio
+- `-u`: desinstalar el servicio
+- `-uninstall`: detener y desinstalar el servicio
+- `-run`: ejecutar en modo consola (para depuración)
+
+> Instalar/desinstalar/iniciar/detener suele requerir privilegios de administrador (Windows) o root (Linux).
+
+### 3) Integración con ASP.NET Core / Worker
+
+Referencie `NewLife.Extensions.Hosting.AgentService` y llame a `UseAgentService()` en su `HostBuilder` para enlazar el ciclo de vida del host genérico con la gobernanza de servicios de Agent.
+
+---
+## Documentación
+
+- [Manual de uso y operación de NewLife.Agent (chino)](./Doc/Agent-使用与运维手册.md)
+- [Documento de requisitos (chino)](./Doc/需求文档.md)
+- [Lista de funciones (chino)](./Doc/功能清单.md)
+- [Diseño de arquitectura (chino)](./Doc/架构设计.md)
+- [Análisis competitivo (chino)](./Doc/竞品分析.md)
+- [Registro de cambios (chino)](./ChangeLog.md)
+- [Registro de cambios (inglés)](./ChangeLog.en.md)
+
+---
+## Instalación rápida
+
+Añada el paquete a un proyecto existente:
 
 ```bash
 dotnet add package NewLife.Agent
 ```
 
-## Inicio rápido
+O cree un proyecto de servicio nuevo desde la plantilla:
 
-```csharp
-var service = new MyService();
-service.Start(args);
+```bash
+dotnet new install NewLife.Templates
+dotnet new service --name agent
+cd agent
+dotnet run
 ```
 
-## Características
-
-- Multiplataforma: Windows, Linux, macOS y ARM64/LoongArch64
-- Registro, trazabilidad y diagnóstico en tiempo de ejecución completos
-- Integración perfecta con el ecosistema NewLife (XCode/Cube/Remoting)
-- Comandos integrados, descripciones de configuración, mensajes de Hosting y panel web en 31 idiomas, con cambio de idioma y RTL
-
-## Documentación
-
-> 📖 Documentación completa (en chino): [documentos del repositorio](Doc)
-
+---
 ## Mapa del ecosistema
 
 NewLife es un ecosistema por capas de proyectos de código abierto con versionado independiente. El mapa siguiente se comparte literalmente en todos los repositorios de NewLife; cada proyecto enlaza a su repositorio y a su paquete principal de NuGet.

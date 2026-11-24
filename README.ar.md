@@ -1,5 +1,6 @@
-# NewLife.Agent - إطار خدمات خفية متعدد المنصات
+# NewLife.Agent - إطار خدمات خفية وعمليات متعدد المنصات
 
+![GitHub top language](https://img.shields.io/github/languages/top/newlifex/newlife.agent?logo=github)
 ![GitHub License](https://img.shields.io/github/license/NewLifeX/NewLife.Agent?logo=github)
 ![NuGet Downloads](https://img.shields.io/nuget/dt/NewLife.Agent?logo=nuget)
 ![NuGet](https://img.shields.io/nuget/v/NewLife.Agent?logo=nuget)
@@ -14,34 +15,102 @@
 🌐 [English](README.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [Español](README.es.md) | [Deutsch](README.de.md) | [日本語](README.ja.md) | [Français](README.fr.md) | [Português](README.pt.md) | [Русский](README.ru.md) | [한국어](README.ko.md)
 <!-- lang:end -->
 
-> قد تتأخر هذه الترجمة عن [English README](README.md)، وهي المرجع.
+> تُصان هذه الترجمة جنبًا إلى جنب مع [English README](README.md)؛ وعند الاختلاف تكون النسخة الإنجليزية هي المرجع.
 
 يثبّت NewLife.Agent تطبيقات .NET كخدمات نظام ويوحّد خدمات Windows وsystemd في Linux وlaunchd في macOS، مع مراقبة الحالة وإعادة التشغيل التلقائي ولوحة ويب.
 
-## التثبيت
+Tutorial: https://newlifex.com/core/agent
+
+---
+## نظرة عامة
+
+`NewLife.Agent` إطار موجّه للخدمات لتطبيقات التشغيل الطويل. يتيح استضافة برامج وحدة التحكم/الويب/Worker بسرعة كخدمات نظام التشغيل، ويوفر التثبيت والتشغيل/الإيقاف والمراقبة وإعادة التشغيل والتشخيص بشكل موحّد.
+
+المنصات المدعومة:
+
+- Windows (خدمة / تشغيل تلقائي عند تسجيل الدخول)
+- Linux (Systemd / Procd / RcInit وغيرها)
+- macOS (LaunchAgent)
+
+الأطر المدعومة:
+
+- `NewLife.Agent`: `net40;net45;net461;netstandard2.0;netstandard2.1;net6.0;net7.0;net8.0;net9.0;net10.0;net11.0`
+- `NewLife.Extensions.Hosting.AgentService`: `netcoreapp3.1;net5.0;net6.0;net7.0;net8.0;net9.0;net10.0;net11.0`
+
+---
+## أبرز المزايا
+
+- **تطوير وتشغيل متكاملان**: ورّث `ServiceBase` لتحصل على قدرات إدارة الخدمة الكاملة.
+- **لوحة ويب مدمجة**: لوحة إدارة خفيفة لعرض الحالة وتنفيذ العمليات من المتصفح، مع لوحات امتداد وتبديل السمات، ومصادقة بالرمز وحماية من التخمين؛ تستمع على localhost افتراضيًا (`WebBind` يتيح كشفها على الشبكة المحلية)، وتعرض صفحة إعداد محلية عند أول تشغيل لتعيين كلمة مرور المسؤول (لا يوجد ملف كلمة مرور أولي؛ امسح `WebPassword` وأعد التشغيل لإعادة الإعداد)، وتتطلب `AllowInsecureRemote=true` للربط عبر HTTP غير المشفر على عنوان غير محلي.
+- **توطين بـ 31 لغة**: الأوامر المدمجة وأوصاف الإعدادات ورسائل Hosting ولوحة الويب تدعم 31 لغة مع تبديل اللغة وRTL؛ ويحدد NewLife.Core ثقافة الطلب تلقائيًا.
+- **تكيّف تلقائي متعدد المنصات**: يختار تنفيذ المضيف الأنسب لكل نظام تشغيل.
+- **نشر أصلي NativeAOT**: الأوامر المدمجة ولوحة الويب مهيأة بالكامل لـ trimming/AOT؛ تبني إصدارات `net8.0+` دون تحذيرات `IsAotCompatible`، وتغطي CI 12 RID: 9 أهداف تجري اختبارات دخان حقيقية (8 أهداف أصلية + linux-loongarch64 تحت محاكاة QEMU بوضع المستخدم)، بينما تخضع الأهداف المتقاطعة (linux-arm/linux-musl-arm/linux-musl-arm64) للتحقق من النشر.
+- **اختبارات وحدة متعددة المعماريات**: تعمل win-x64 / linux-x64 / linux-arm64 أصليًا، ويشغّل linux-loongarch64 (Loongson) كامل الاختبارات تحت محاكاة QEMU بوضع المستخدم؛ تُطلق عبر push/PR وتدعم التشغيل اليدوي.
+- **نظام أوامر مدمج**: يدعم `-install/-start/-stop/-restart/-status/-run`.
+- **مراقبة الصحة والتعافي الذاتي**: يوفر مكوّن HealthMonitor حدودًا للذاكرة/الخيوط/المقابض، وإعادة تشغيل مجدولة، وفحوص WatchDog.
+- **ملائم لتعدد النسخ**: اضبط قيم `ServiceName` مختلفة لنشر عدة نسخ من برنامج واحد.
+- **حزمة تكامل Host**: تُدخل تطبيقات ASP.NET Core/Worker ضمن دورة حياة خدمة موحّدة.
+
+---
+## بدء الاستخدام
+
+### 1) خدمة بسيطة
+
+ورّث `ServiceBase` واستدعِ `Main(args)` عند نقطة الدخول:
+
+- تجاوز `StartWork(String reason)` لبدء منطق الأعمال
+- تجاوز `StopWork(String reason)` للإيقاف وتحرير الموارد
+
+### 2) العمليات عبر سطر الأوامر
+
+الأوامر الشائعة:
+
+- `-i`: تثبيت الخدمة
+- `-install`: تثبيت الخدمة وتشغيلها
+- `-start`: تشغيل الخدمة
+- `-stop`: إيقاف الخدمة
+- `-restart`: إعادة تشغيل الخدمة
+- `-status`: عرض حالة الخدمة
+- `-u`: إزالة الخدمة
+- `-uninstall`: إيقاف الخدمة وإزالتها
+- `-run`: التشغيل في وضع وحدة التحكم (للتصحيح)
+
+> يتطلب التثبيت/الإزالة/التشغيل/الإيقاف عادةً صلاحيات المسؤول (Windows) أو root (Linux).
+
+### 3) تكامل ASP.NET Core / Worker
+
+أضف مرجعًا إلى `NewLife.Extensions.Hosting.AgentService` واستدعِ `UseAgentService()` على `HostBuilder` لربط دورة حياة المضيف العام بإدارة خدمات Agent.
+
+---
+## التوثيق
+
+- [دليل استخدام وتشغيل NewLife.Agent (بالصينية)](./Doc/Agent-使用与运维手册.md)
+- [وثيقة المتطلبات (بالصينية)](./Doc/需求文档.md)
+- [قائمة الميزات (بالصينية)](./Doc/功能清单.md)
+- [تصميم البنية (بالصينية)](./Doc/架构设计.md)
+- [تحليل المنافسين (بالصينية)](./Doc/竞品分析.md)
+- [سجل التغييرات (بالصينية)](./ChangeLog.md)
+- [سجل التغييرات (بالإنجليزية)](./ChangeLog.en.md)
+
+---
+## التثبيت السريع
+
+أضف الحزمة إلى مشروع موجود:
 
 ```bash
 dotnet add package NewLife.Agent
 ```
 
-## البدء السريع
+أو أنشئ مشروع خدمة جديدًا من القالب:
 
-```csharp
-var service = new MyService();
-service.Start(args);
+```bash
+dotnet new install NewLife.Templates
+dotnet new service --name agent
+cd agent
+dotnet run
 ```
 
-## الميزات الرئيسية
-
-- متعدد المنصات: Windows وLinux وmacOS وARM64/LoongArch64
-- تسجيل وتتبع وتشخيص شامل أثناء التشغيل
-- تكامل سلس مع منظومة NewLife (XCode/Cube/Remoting)
-- أوامر مدمجة وأوصاف إعدادات ورسائل Hosting ولوحة ويب بـ 31 لغة، مع تبديل اللغة ودعم RTL
-
-## التوثيق
-
-> 📖 التوثيق الكامل (بالصينية): [مستندات المستودع](Doc)
-
+---
 ## خريطة المنظومة
 
 NewLife منظومة متعدّدة الطبقات من مشاريع مفتوحة المصدر تُصدَر بإصدارات مستقلة. الخريطة أدناه مشتركة حرفيًا بين جميع مستودعات NewLife؛ وكل مشروع يرتبط بمستودعه وبحزمته الرئيسية على NuGet.

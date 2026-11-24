@@ -93,6 +93,14 @@
 ---
 ## 快速拥有
 
+在既有项目中引用 NuGet 包：
+
+```bash
+dotnet add package NewLife.Agent
+```
+
+或使用模板创建新的服务项目：
+
 ```bash
 dotnet new install NewLife.Templates
 dotnet new service --name agent
@@ -168,3 +176,9 @@ NewLife 生态按依赖分层，各项目独立版本、独立发版。下面的
 ![智能大石头](https://newlifex.com/stone.jpg)
 
 </details>
+
+---
+
+## 许可证
+
+MIT License © 2002-2026 新生命开发团队

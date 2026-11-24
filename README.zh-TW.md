@@ -1,5 +1,6 @@
 # NewLife.Agent - 跨平台服務守護與維運框架
 
+![GitHub top language](https://img.shields.io/github/languages/top/newlifex/newlife.agent?logo=github)
 ![GitHub License](https://img.shields.io/github/license/NewLifeX/NewLife.Agent?logo=github)
 ![NuGet Downloads](https://img.shields.io/nuget/dt/NewLife.Agent?logo=nuget)
 ![NuGet](https://img.shields.io/nuget/v/NewLife.Agent?logo=nuget)
@@ -14,34 +15,102 @@
 🌐 [English](README.md) | [简体中文](README.zh-CN.md) | [Español](README.es.md) | [Deutsch](README.de.md) | [日本語](README.ja.md) | [Français](README.fr.md) | [Português](README.pt.md) | [Русский](README.ru.md) | [한국어](README.ko.md) | [العربية](README.ar.md)
 <!-- lang:end -->
 
-> 本翻譯可能落後，以 [English README](README.md) 為準。
+> 本翻譯與 [English README](README.md) 同批維護；若兩者內容不一致，以英文版為對外口徑。
 
 NewLife.Agent 把 .NET 應用程式安裝為作業系統守護行程，統一 Windows 服務、Linux Systemd 與 macOS Launchd，並提供健康監控、自動重啟和 Web 管理面板。
 
-## 安裝
+Tutorial: https://newlifex.com/core/agent
+
+---
+## 產品介紹
+
+`NewLife.Agent` 是一個面向長期執行應用的服務化框架，支援將主控台/Web/Worker 程式快速託管為系統服務，並統一提供安裝、啟停、監控、重新啟動與排障能力。
+
+支援平台：
+
+- Windows（服務 / 登入自啟動）
+- Linux（Systemd / Procd / RcInit 等）
+- macOS（LaunchAgent）
+
+支援框架：
+
+- `NewLife.Agent`: `net40;net45;net461;netstandard2.0;netstandard2.1;net6.0;net7.0;net8.0;net9.0;net10.0;net11.0`
+- `NewLife.Extensions.Hosting.AgentService`: `netcoreapp3.1;net5.0;net6.0;net7.0;net8.0;net9.0;net10.0;net11.0`
+
+---
+## 亮點
+
+- **開發與維運一體化**：繼承 `ServiceBase` 即可獲得完整的服務治理能力。
+- **內建 Web 管理面板**：輕量級管理面板，可透過瀏覽器檢視狀態、執行維運操作，支援擴充面板與主題切換，內建 Token 驗證與暴力破解防護；預設僅本機監聽（`WebBind` 可開放區域網路），首次啟動顯示本機設定頁，由使用者自行設定管理員密碼（不再產生初始密碼檔；清空 `WebPassword` 並重新啟動可重新進入設定頁），非回送位址的明文監聽需顯式設定 `AllowInsecureRemote=true`。
+- **31 種語言本地化**：內建命令、設定項目描述、Hosting 訊息與 Web 管理面板支援 31 種語言，支援語言切換與 RTL；請求語言由 NewLife.Core 自動識別。
+- **跨平台自動適配**：依系統自動選擇最合適的宿主實作。
+- **NativeAOT 原生發佈支援**：內建命令與 Web 面板全鏈路適配裁剪，`net8.0+` 建置期 `IsAotCompatible` 0 警告，CI 覆蓋 12 個 RID：其中 9 個目標執行真實執行冒煙（8 個原生目標 + linux-loongarch64 經 QEMU 使用者態模擬），交叉目標（linux-arm/linux-musl-arm/linux-musl-arm64）做發佈驗證。
+- **多架構單元測試**：win-x64 / linux-x64 / linux-arm64 原生執行，linux-loongarch64（龍芯）經 QEMU 使用者態模擬執行完整用例集，push/PR 觸發並支援手動執行。
+- **內建命令體系**：支援 `-install/-start/-stop/-restart/-status/-run`。
+- **健康監控與自癒**：HealthMonitor 元件提供記憶體/執行緒/控制代碼閾值、定時重新啟動、WatchDog 等健康檢查能力。
+- **多實例友善**：透過設定不同的 `ServiceName` 可一程式多實例部署。
+- **Host 整合擴充套件**：可將 ASP.NET Core/Worker 納入統一的服務生命週期管理。
+
+---
+## 主要使用方式
+
+### 1）最小服務程式
+
+繼承 `ServiceBase`，在入口呼叫 `Main(args)`：
+
+- 重寫 `StartWork(String reason)` 啟動業務
+- 重寫 `StopWork(String reason)` 停止業務並清理資源
+
+### 2）命令列維運
+
+常用命令：
+
+- `-i`：安裝服務
+- `-install`：安裝並啟動服務
+- `-start`：啟動服務
+- `-stop`：停止服務
+- `-restart`：重新啟動服務
+- `-status`：檢視狀態
+- `-u`：解除安裝服務
+- `-uninstall`：停止並解除安裝服務
+- `-run`：主控台模擬執行（偵錯）
+
+> 安裝/解除安裝/啟停通常需要管理員（Windows）或 root（Linux）權限。
+
+### 3）ASP.NET Core / Worker 整合
+
+引用 `NewLife.Extensions.Hosting.AgentService`，在 `HostBuilder` 呼叫 `UseAgentService()`，即可將通用主機生命週期與 Agent 服務治理能力打通。
+
+---
+## 詳細文件
+
+- [NewLife.Agent 使用與維運手冊](./Doc/Agent-使用与运维手册.md)
+- [需求文件](./Doc/需求文档.md)
+- [功能清單](./Doc/功能清单.md)
+- [架構設計](./Doc/架构设计.md)
+- [競品分析](./Doc/竞品分析.md)
+- [更新日誌](./ChangeLog.md)
+- [Changelog (English)](./ChangeLog.en.md)
+
+---
+## 快速擁有
+
+在既有專案中加入套件：
 
 ```bash
 dotnet add package NewLife.Agent
 ```
 
-## 快速開始
+或使用範本建立新的服務專案：
 
-```csharp
-var service = new MyService();
-service.Start(args);
+```bash
+dotnet new install NewLife.Templates
+dotnet new service --name agent
+cd agent
+dotnet run
 ```
 
-## 核心特性
-
-- 跨平台支援 Windows、Linux、macOS 與 ARM64/LoongArch64
-- 日誌、鏈路追蹤與執行診斷完善
-- 與 NewLife 生態（XCode/Cube/Remoting）無縫整合
-- 內建命令、設定描述、Hosting 訊息與 Web 管理面板支援 31 種語言，支援語言切換與 RTL
-
-## 文件
-
-> 📖 完整文件（中文）見 [儲存庫文件](Doc)
-
+---
 ## 生態版圖
 
 NewLife 生態系按相依分層，各專案獨立版本、獨立發行。下面的版圖在所有 NewLife 儲存庫中逐字一致；每個專案連結到程式碼儲存庫與主 NuGet 套件。

@@ -95,6 +95,14 @@ Reference `NewLife.Extensions.Hosting.AgentService` and call `UseAgentService()`
 
 ## Quick Install
 
+Add the package to an existing project:
+
+```bash
+dotnet add package NewLife.Agent
+```
+
+Or create a new service project from the template:
+
 ```bash
 dotnet new install NewLife.Templates
 dotnet new service --name agent
@@ -172,3 +180,9 @@ Website: https://newlifex.com · Open source organization: https://github.com/Ne
 ![智能大石头](https://newlifex.com/stone.jpg)
 
 </details>
+
+---
+
+## License
+
+MIT License © 2002-2026 NewLife Team
